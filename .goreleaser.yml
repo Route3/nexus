@@ -1,4 +1,4 @@
-project_name: polygon-edge
+project_name: nexus
 
 release:
   disable: false
@@ -8,7 +8,7 @@ release:
 builds:
   - id: linux-amd64
     main: ./main.go
-    binary: polygon-edge
+    binary: nexus
     goos:
       - linux
     goarch:
@@ -18,7 +18,7 @@ builds:
       - CXX=g++
     ldflags:
       # We need to build a static binary because we are building in a glibc based system and running in a musl container
-      -s -w -linkmode external -extldflags "-static" -X 'github.com/0xPolygon/polygon-edge/versioning.Version=v{{ .Version }}'
+      -s -w -linkmode external -extldflags "-static" -X 'github.com/Apex-Fusion/Nexus/versioning.Version=v{{ .Version }}'
     tags:
       - netgo
       - osusergo
@@ -34,7 +34,7 @@ snapshot:
 
 dockers:
   - image_templates:
-      - apexfusion/{{ .ProjectName }}:{{ .Version }}-amd64
+      - ghcr.io/apex-fusion/{{ .ProjectName }}:{{ .Version }}-amd64
     dockerfile: Dockerfile.release
     use: buildx
     goarch: amd64
@@ -45,12 +45,12 @@ dockers:
     skip_push: false
 
 docker_manifests:
-  - name_template: apexfusion/{{ .ProjectName }}:{{ .Version }}
+  - name_template: ghcr.io/apex-fusion/{{ .ProjectName }}:{{ .Version }}
     image_templates:
-      - 0xpolygon/{{ .ProjectName }}:{{ .Version }}-amd64
+      - ghcr.io/apex-fusion/{{ .ProjectName }}:{{ .Version }}-amd64
     skip_push: false
 
-  - name_template: apexfusion/{{ .ProjectName }}:latest
+  - name_template: ghcr.io/apex-fusion/{{ .ProjectName }}:latest
     image_templates:
-      - 0xpolygon/{{ .ProjectName }}:{{ .Version }}-amd64
+      - ghcr.io/apex-fusion/{{ .ProjectName }}:{{ .Version }}-amd64
     skip_push: auto

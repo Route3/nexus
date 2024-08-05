@@ -1,52 +1,66 @@
 ---
-name: Release
-on:  # yamllint disable-line rule:truthy
-  push:
-    branches-ignore:
-      - '**'
-    tags:
-      - 'v*.*.*'
-      # to be used by fork patch-releases ^^
-      - 'v*.*.*-*'
+  name: Release
+  on:  # yamllint disable-line rule:truthy
+    push:
+      branches-ignore:
+        - '**'
+      tags:
+        - 'v*.*.*'
+        # to be used by fork patch-releases ^^
+        - 'v*.*.*-*'
 
-jobs:
-  goreleaser:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+  jobs:
+    goreleaser:
+      runs-on: arc-runner-set
+      env:
+        DOCKER_CONFIG: $HOME/.docker
+      steps:
+        - name: Setup git
+          run: |
+            sudo apt update && sudo apt install -y git
 
-      - name: Set up Go
-        uses: actions/setup-go@master
-        with:
-          go-version: 1.18.x
+        - name: Checkout
+          uses: actions/checkout@v4
+          with:
+            fetch-depth: 0
 
-      - name: Prepare
-        id: prepare
-        run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          echo ::set-output name=tag_name::${TAG}
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        - name: Set up Go
+          uses: actions/setup-go@master
+          with:
+            go-version: 1.18.x
 
-      - name: Run GoReleaser
-        run: |
-          docker run \
-          		--rm \
-          		--privileged \
-          		-e CGO_ENABLED=1 \
-          		-e GITHUB_TOKEN \
-          		-v /var/run/docker.sock:/var/run/docker.sock \
-          		-v `pwd`:/go/src/$(PACKAGE_NAME) \
-          		-w /go/src/$(PACKAGE_NAME) \
-          		ghcr.io/goreleaser/goreleaser-cross:${GOLANG_CROSS_VERSION} \
-          		--rm-dist --skip-validate
-        env:
-          PACKAGE_NAME: github.com/apex-fusion/nexus
-          GOLANG_CROSS_VERSION: v1.18.3
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.prepare.outputs.tag_name }}
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        - name: Prepare
+          id: prepare
+          run: |
+            TAG=${GITHUB_REF#refs/tags/}
+            echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
+
+        - name: Set up QEMU
+          uses: docker/setup-qemu-action@v3
+
+        - name: Login to GitHub Container Registry
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+
+        - name: Run GoReleaser
+          run: |
+            echo ${PACKAGE_NAME}
+            docker run \
+                --rm \
+                --privileged \
+                -e CGO_ENABLED=1 \
+                -e GITHUB_TOKEN \
+                -e DOCKER_CONFIG \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -v `pwd`:/go/src/${PACKAGE_NAME} \
+                -w /go/src/${PACKAGE_NAME} \
+                ghcr.io/goreleaser/goreleaser-cross:${GOLANG_CROSS_VERSION} \
+                --rm-dist --skip-validate
+          env:
+            PACKAGE_NAME: github.com/apex-fusion/nexus
+            GOLANG_CROSS_VERSION: v1.18.3
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            VERSION: ${{ steps.prepare.outputs.tag_name }}
