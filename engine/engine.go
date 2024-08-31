@@ -47,15 +47,15 @@ func NewClient(rawUrl string, token string, jwtId string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) GetPayloadV1(payloadId string) (*GetPayloadV1Response, error) {
-	// Construct the payload
-	requestData := GetPayloadV1Request{
+func getRequestBase(method string) RequestBase {
+	return RequestBase{
 		JsonRPC: JSONRPC,
-		Method:  GetPayloadV1Method,
-		Params:  []string{payloadId},
+		Method:  method,
 		ID:      0,
 	}
+}
 
+func handleRequest[RD RequestData, R Response](c *Client, requestData RD) (*R, error) {
 	// Encode the request data to JSON
 	jsonData, err := json.Marshal(requestData)
 	if err != nil {
@@ -79,61 +79,42 @@ func (c *Client) GetPayloadV1(payloadId string) (*GetPayloadV1Response, error) {
 		return nil, fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	var response GetPayloadV1Response
+	var response R
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
 	}
 
 	return &response, nil
+}
+
+func (c *Client) GetPayloadV1(payloadId string) (*GetPayloadV1Response, error) {
+	requestBase := getRequestBase(GetPayloadV1Method)
+	// Construct the payload
+	requestData := GetPayloadV1Request{
+		RequestBase: requestBase,
+		Params:      []string{payloadId},
+	}
+
+	return handleRequest[GetPayloadV1Request, GetPayloadV1Response](c, requestData)
 }
 
 func (c *Client) NewPayloadV1(executionPayload NewPayloadV1RequestParams) (*NewPayloadV1Response, error) {
+	requestBase := getRequestBase(NewPayloadV1Method)
 	// Construct the payload
 	requestData := NewPayloadV1Request{
-		JsonRPC: JSONRPC,
-		Method:  NewPayloadV1Method,
-		Params:  []NewPayloadV1RequestParams{executionPayload},
-		ID:      0,
+		RequestBase: requestBase,
+		Params:      []NewPayloadV1RequestParams{executionPayload},
 	}
 
-	// Encode the request data to JSON
-	jsonData, err := json.Marshal(requestData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request data: %v", err)
-	}
-
-	resp, err := c.client.Post(c.url.String(), "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Check for HTTP errors
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status code: %d", resp.StatusCode)
-	}
-
-	// Read the entire response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	var response NewPayloadV1Response
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
-	}
-
-	return &response, nil
+	return handleRequest[NewPayloadV1Request, NewPayloadV1Response](c, requestData)
 }
 
 func (c *Client) ForkchoiceUpdatedV1(blockHash string, suggestedFeeRecipient string) (*ForkchoiceUpdatedV1Response, error) {
+	requestBase := getRequestBase(ForkchoiceUpdatedV1Method)
 	// Construct the payload
 	requestData := ForkchoiceUpdatedV1Request{
-		JsonRPC: JSONRPC,
-		Method:  ForkchoiceUpdatedV1Method,
+		RequestBase: requestBase,
 		Params: []ForkchoiceUpdatedV1Param{
 			ForkchoiceStateParam{
 				// HeadBlockHash:      blockHash,
@@ -149,78 +130,18 @@ func (c *Client) ForkchoiceUpdatedV1(blockHash string, suggestedFeeRecipient str
 				SuggestedFeeRecipient: suggestedFeeRecipient,
 			},
 		},
-		ID: 0,
 	}
 
-	// Encode the request data to JSON
-	jsonData, err := json.Marshal(requestData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request data: %v", err)
-	}
-
-	resp, err := c.client.Post(c.url.String(), "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Check for HTTP errors
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status code: %d", resp.StatusCode)
-	}
-
-	// Read the entire response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	var response ForkchoiceUpdatedV1Response
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
-	}
-
-	return &response, nil
+	return handleRequest[ForkchoiceUpdatedV1Request, ForkchoiceUpdatedV1Response](c, requestData)
 }
 
 func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (*ExchangeCapabilitiesResponse, error) {
+	requestBase := getRequestBase(ExchangeCapabilitiesMethod)
 	// Construct the payload
 	requestData := ExchangeCapabilitiesRequest{
-		JsonRPC: JSONRPC,
-		Method:  ExchangeCapabilitiesMethod,
-		Params:  [][]string{consesusCapabilites},
-		ID:      0,
+		RequestBase: requestBase,
+		Params:      [][]string{consesusCapabilites},
 	}
 
-	// Encode the request data to JSON
-	jsonData, err := json.Marshal(requestData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request data: %v", err)
-	}
-
-	resp, err := c.client.Post(c.url.String(), "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Check for HTTP errors
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status code: %d", resp.StatusCode)
-	}
-
-	// Read the entire response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	var response ExchangeCapabilitiesResponse
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
-	}
-
-	return &response, nil
+	return handleRequest[ExchangeCapabilitiesRequest, ExchangeCapabilitiesResponse](c, requestData)
 }
