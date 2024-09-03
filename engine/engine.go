@@ -55,66 +55,63 @@ func getRequestBase(method string) RequestBase {
 	}
 }
 
-func handleRequest[RD RequestData, R Response](c *Client, requestData RD) (*R, error) {
-	// Encode the request data to JSON
+// Encode the request data to JSON
+func (c *Client) handleRequest(requestData interface{}, responseData interface{}) error {
 	jsonData, err := json.Marshal(requestData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request data: %v", err)
+		return fmt.Errorf("failed to marshal request data: %v", err)
 	}
 
 	resp, err := c.client.Post(c.url.String(), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %v", err)
+		return fmt.Errorf("failed to send request: %v", err)
 	}
 	defer resp.Body.Close()
 
 	// Check for HTTP errors
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status code: %d", resp.StatusCode)
+		return fmt.Errorf("status code: %d", resp.StatusCode)
 	}
 
 	// Read the entire response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
+		return fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	var response R
-	err = json.Unmarshal(body, &response)
+	err = json.Unmarshal(body, &responseData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
+		return fmt.Errorf("failed to unmarshal response: %v", err)
 	}
 
-	return &response, nil
+	return nil
 }
 
-func (c *Client) GetPayloadV1(payloadId string) (*GetPayloadV1Response, error) {
-	requestBase := getRequestBase(GetPayloadV1Method)
-	// Construct the payload
+func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Response, err error) {
 	requestData := GetPayloadV1Request{
-		RequestBase: requestBase,
+		RequestBase: getRequestBase(GetPayloadV1Method),
 		Params:      []string{payloadId},
 	}
 
-	return handleRequest[GetPayloadV1Request, GetPayloadV1Response](c, requestData)
+	err = c.handleRequest(&requestData, &responseData)
+
+	return
 }
 
-func (c *Client) NewPayloadV1(executionPayload NewPayloadV1RequestParams) (*NewPayloadV1Response, error) {
-	requestBase := getRequestBase(NewPayloadV1Method)
-	// Construct the payload
+func (c *Client) NewPayloadV1(executionPayload NewPayloadV1RequestParams) (responseData *NewPayloadV1Response, err error) {
 	requestData := NewPayloadV1Request{
-		RequestBase: requestBase,
+		RequestBase: getRequestBase(NewPayloadV1Method),
 		Params:      []NewPayloadV1RequestParams{executionPayload},
 	}
 
-	return handleRequest[NewPayloadV1Request, NewPayloadV1Response](c, requestData)
+	err = c.handleRequest(&requestData, &responseData)
+
+	return
 }
 
-func (c *Client) ForkchoiceUpdatedV1(blockHash string, suggestedFeeRecipient string) (*ForkchoiceUpdatedV1Response, error) {
-	requestBase := getRequestBase(ForkchoiceUpdatedV1Method)
-	// Construct the payload
+func (c *Client) ForkchoiceUpdatedV1(blockHash string, suggestedFeeRecipient string) (responseData *ForkchoiceUpdatedV1Response, err error) {
 	requestData := ForkchoiceUpdatedV1Request{
-		RequestBase: requestBase,
+		RequestBase: getRequestBase(ForkchoiceUpdatedV1Method),
 		Params: []ForkchoiceUpdatedV1Param{
 			ForkchoiceStateParam{
 				// HeadBlockHash:      blockHash,
@@ -132,16 +129,18 @@ func (c *Client) ForkchoiceUpdatedV1(blockHash string, suggestedFeeRecipient str
 		},
 	}
 
-	return handleRequest[ForkchoiceUpdatedV1Request, ForkchoiceUpdatedV1Response](c, requestData)
+	err = c.handleRequest(&requestData, &responseData)
+
+	return
 }
 
-func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (*ExchangeCapabilitiesResponse, error) {
-	requestBase := getRequestBase(ExchangeCapabilitiesMethod)
-	// Construct the payload
+func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseData *ExchangeCapabilitiesResponse, err error) {
 	requestData := ExchangeCapabilitiesRequest{
-		RequestBase: requestBase,
+		RequestBase: getRequestBase(ExchangeCapabilitiesMethod),
 		Params:      [][]string{consesusCapabilites},
 	}
 
-	return handleRequest[ExchangeCapabilitiesRequest, ExchangeCapabilitiesResponse](c, requestData)
+	err = c.handleRequest(&requestData, &responseData)
+
+	return
 }

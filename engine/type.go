@@ -1,10 +1,14 @@
 package engine
 
+type RequestBase struct {
+	JsonRPC string `json:"jsonrpc,omitempty"`
+	Method  string `json:"method"`
+	ID      uint   `json:"id"`
+}
+
 type GetPayloadV1Request struct {
-	JsonRPC string   `json:"jsonrpc,omitempty"`
-	Method  string   `json:"method"`
-	Params  []string `json:"params"`
-	ID      uint     `json:"id"`
+	RequestBase
+	Params []string `json:"params"`
 }
 
 type GetPayloadV1ResponseResult struct {
@@ -45,10 +49,8 @@ type NewPayloadV1RequestParams struct {
 }
 
 type NewPayloadV1Request struct {
-	JsonRPC string                      `json:"jsonrpc,omitempty"`
-	Method  string                      `json:"method"`
-	Params  []NewPayloadV1RequestParams `json:"params"`
-	ID      uint                        `json:"id"`
+	RequestBase
+	Params []NewPayloadV1RequestParams `json:"params"`
 }
 
 type NewPayloadV1ResponseResult struct {
@@ -86,10 +88,8 @@ func (s ForkchoicePayloadAttributes) isForkchoiceUpdatedV1Param() bool {
 }
 
 type ForkchoiceUpdatedV1Request struct {
-	JsonRPC string                     `json:"jsonrpc"`
-	Method  string                     `json:"method"`
-	Params  []ForkchoiceUpdatedV1Param `json:"params"`
-	ID      uint                       `json:"id"`
+	RequestBase
+	Params []ForkchoiceUpdatedV1Param `json:"params"`
 }
 
 type ForkchoiceUpdatedV1ResponsePayloadStatus struct {
@@ -108,10 +108,8 @@ type ForkchoiceUpdatedV1Response struct {
 }
 
 type ExchangeCapabilitiesRequest struct {
-	JsonRPC string     `json:"jsonrpc,omitempty"`
-	Method  string     `json:"method"`
-	Params  [][]string `json:"params"`
-	ID      uint       `json:"id"`
+	RequestBase
+	Params [][]string `json:"params"`
 }
 
 type ExchangeCapabilitiesResponse struct {
