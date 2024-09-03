@@ -50,19 +50,15 @@ const (
 	unsetPeersValue = -1
 )
 
-var (
-	params = &serverParams{
-		rawConfig: &config.Config{
-			Telemetry: &config.Telemetry{},
-			Network:   &config.Network{},
-			TxPool:    &config.TxPool{},
-		},
-	}
-)
+var params = &serverParams{
+	rawConfig: &config.Config{
+		Telemetry: &config.Telemetry{},
+		Network:   &config.Network{},
+		TxPool:    &config.TxPool{},
+	},
+}
 
-var (
-	errInvalidNATAddress = errors.New("could not parse NAT IP address")
-)
+var errInvalidNATAddress = errors.New("could not parse NAT IP address")
 
 type serverParams struct {
 	rawConfig  *config.Config

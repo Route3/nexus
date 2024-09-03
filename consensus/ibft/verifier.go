@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/hex"
 
-	"github.com/apex-fusion/nexus/types"
 	"github.com/Route3/go-ibft/messages"
 	protoIBFT "github.com/Route3/go-ibft/messages/proto"
+	"github.com/apex-fusion/nexus/types"
 )
 
 // Verifier impl for go-ibft
@@ -73,7 +73,6 @@ func (i *backendIBFT) IsValidSender(msg *protoIBFT.Message) bool {
 		msg.Signature,
 		msgNoSig,
 	)
-
 	if err != nil {
 		i.logger.Error("failed to ecrecover message", "err", err)
 
@@ -157,7 +156,6 @@ func (i *backendIBFT) IsValidCommittedSeal(
 		committedSeal.Signature,
 		proposalHash,
 	)
-
 	if err != nil {
 		i.logger.Error("IsValidCommittedSeal: failed to verify committed seal", "err", err)
 

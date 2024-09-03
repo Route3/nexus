@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/binary"
 	"fmt"
+	"math/big"
 	"sync/atomic"
 
 	"github.com/apex-fusion/nexus/helper/hex"
@@ -26,6 +27,7 @@ type Header struct {
 	MixHash      Hash
 	Nonce        Nonce
 	Hash         Hash
+	PayloadHash  Hash
 }
 
 func (h *Header) Equal(hh *Header) bool {
@@ -75,6 +77,7 @@ func (h *Header) Copy() *Header {
 		GasLimit:     h.GasLimit,
 		GasUsed:      h.GasUsed,
 		Timestamp:    h.Timestamp,
+		PayloadHash:  h.PayloadHash,
 	}
 
 	newHeader.Miner = make([]byte, len(h.Miner))
@@ -92,12 +95,32 @@ type Body struct {
 }
 
 type Block struct {
-	Header       *Header
-	Transactions []*Transaction
-	Uncles       []*Header
-
+	Header           *Header
+	Transactions     []*Transaction
+	Uncles           []*Header
+	ExecutionPayload Payload
 	// Cache
 	size atomic.Value // *uint64
+}
+
+type Payload struct {
+	ParentHash    Hash     `json:"parentHash"    gencodec:"required"`
+	FeeRecipient  Address  `json:"feeRecipient"  gencodec:"required"`
+	StateRoot     Hash     `json:"stateRoot"     gencodec:"required"`
+	ReceiptsRoot  Hash     `json:"receiptsRoot"  gencodec:"required"`
+	LogsBloom     []byte   `json:"logsBloom"     gencodec:"required"`
+	Random        Hash     `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+	Number        uint64   `json:"blockNumber"   gencodec:"required"`
+	GasLimit      uint64   `json:"gasLimit"      gencodec:"required"`
+	GasUsed       uint64   `json:"gasUsed"       gencodec:"required"`
+	Timestamp     uint64   `json:"timestamp"     gencodec:"required"`
+	ExtraData     []byte   `json:"extraData"     gencodec:"required"`
+	BaseFeePerGas *big.Int `json:"baseFeePerGas" gencodec:"required"`
+	BlockHash     Hash     `json:"blockHash"     gencodec:"required"`
+	Transactions  [][]byte `json:"transactions"  gencodec:"required"`
+	/*Withdrawals   []*types.Withdrawal `json:"withdrawals"`
+	BlobGasUsed   *uint64             `json:"blobGasUsed"`
+	ExcessBlobGas *uint64             `json:"excessBlobGas"`*/
 }
 
 func (b *Block) Hash() Hash {

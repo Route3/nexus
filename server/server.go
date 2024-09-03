@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/profiling"
 
 	"github.com/apex-fusion/nexus/archive"
@@ -75,6 +76,9 @@ type Server struct {
 
 	// profiler
 	profiler profiling.Profiler
+
+	// Ethereum Engine API Client
+	engineClient *engine.Client
 }
 
 var dirPaths = []string{
@@ -140,9 +144,16 @@ func NewServer(config *Config) (*Server, error) {
 
 	m.logger.Info("Data dir", "path", config.DataDir)
 
+	engineClient, err := engine.NewClient(config.EngineURL, config.EngineToken, config.EngineJWTID)
+	if err != nil {
+		return nil, err
+	}
+
+	m.engineClient = engineClient
+
 	// Generate all the paths in the dataDir
+	return nil, fmt.Errorf("failed to create data directories: %w", err)
 	if err := common.SetupDataDir(config.DataDir, dirPaths); err != nil {
-		return nil, fmt.Errorf("failed to create data directories: %w", err)
 	}
 
 	if config.Telemetry.PrometheusAddr != nil {
@@ -330,7 +341,6 @@ func getAccountImpl(state state.State, root types.Hash, addr types.Address) (*st
 
 func (t *txpoolHub) GetNonce(root types.Hash, addr types.Address) uint64 {
 	account, err := getAccountImpl(t.state, root, addr)
-
 	if err != nil {
 		return 0
 	}
@@ -340,7 +350,6 @@ func (t *txpoolHub) GetNonce(root types.Hash, addr types.Address) uint64 {
 
 func (t *txpoolHub) GetBalance(root types.Hash, addr types.Address) (*big.Int, error) {
 	account, err := getAccountImpl(t.state, root, addr)
-
 	if err != nil {
 		if errors.Is(err, jsonrpc.ErrStateNotFound) {
 			return big.NewInt(0), nil
@@ -428,9 +437,9 @@ func (s *Server) setupConsensus() error {
 			Logger:         s.logger,
 			SecretsManager: s.secretsManager,
 			BlockTime:      s.config.BlockTime,
+			EngineClient:   s.engineClient,
 		},
 	)
-
 	if err != nil {
 		return err
 	}

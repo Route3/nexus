@@ -6,6 +6,7 @@ import (
 
 	"github.com/apex-fusion/nexus/blockchain"
 	"github.com/apex-fusion/nexus/chain"
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/progress"
 	"github.com/apex-fusion/nexus/network"
 	"github.com/apex-fusion/nexus/secrets"
@@ -70,6 +71,7 @@ type Params struct {
 	Logger         hclog.Logger
 	SecretsManager secrets.SecretsManager
 	BlockTime      uint64
+	EngineClient   *engine.Client
 }
 
 // Factory is the factory function to create a discovery consensus
