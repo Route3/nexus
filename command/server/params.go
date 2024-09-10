@@ -174,5 +174,8 @@ func (p *serverParams) generateConfig() *server.Config {
 		LogLevel:           hclog.LevelFromString(p.rawConfig.LogLevel),
 		JSONLogFormat:      p.rawConfig.JSONLogFormat,
 		LogFilePath:        p.logFileLocation,
+		EngineURL:          p.rawConfig.EngineURL,
+		EngineToken:        p.rawConfig.EngineToken,
+		EngineJWTID:        p.rawConfig.EngineJWTID,
 	}
 }

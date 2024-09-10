@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/apex-fusion/nexus/engine"
@@ -144,8 +146,28 @@ func NewServer(config *Config) (*Server, error) {
 
 	m.logger.Info("Data dir", "path", config.DataDir)
 
-	engineClient, err := engine.NewClient(config.EngineURL, config.EngineToken, config.EngineJWTID)
-	if err != nil {
+	var engineClient *engine.Client
+
+	// TODO: Do this in the isValidConfig functions.
+	// TODO: Change the name of the EngineToken to specify the path
+	if data, err := os.ReadFile(config.EngineToken); err == nil {
+		trimmed := strings.TrimSpace(string(data))
+		jwtSecret, err := types.ParseBytes(&trimmed)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(jwtSecret) != 32 {
+			return nil, fmt.Errorf("invalid JWT secret")
+		}
+
+		logger.Info("Loaded JWT secret file", "path", config.EngineToken, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
+
+		engineClient, err = engine.NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
 		return nil, err
 	}
 
