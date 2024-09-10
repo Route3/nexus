@@ -6,6 +6,23 @@ type RequestBase struct {
 	ID      uint   `json:"id"`
 }
 
+type ExchangeTransitionConfigurationV1RequestParams struct {
+	TerminalTotalDifficulty string `json:"terminalTotalDifficulty" gencodec:"required"`
+	TerminalBlockHash       string `json:"terminalBlockHash" gencodec:"required"`
+	TerminalBlockNumber     string `json:"terminalBlockNumber" gencodec:"required"`
+}
+
+type ExchangeTransitionConfigurationV1Request struct {
+	RequestBase
+	Params []ExchangeTransitionConfigurationV1RequestParams `json:"params"`
+}
+
+type ExchangeTransitionConfigurationV1Response struct {
+	TerminalTotalDifficulty string `json:"terminalTotalDifficulty" gencodec:"required"`
+	TerminalBlockHash       string `json:"terminalBlockHash" gencodec:"required"`
+	TerminalBlockNumber     string `json:"terminalBlockNumber" gencodec:"required"`
+}
+
 type GetPayloadV1Request struct {
 	RequestBase
 	Params []string `json:"params"`

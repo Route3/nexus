@@ -7,23 +7,27 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
-	JSONRPC                    = "2.0"
-	ExchangeCapabilitiesMethod = "engine_exchangeCapabilities"
-	ForkchoiceUpdatedV1Method  = "engine_forkchoiceUpdatedV1"
-	GetPayloadV1Method         = "engine_getPayloadV1"
-	NewPayloadV1Method         = "engine_newPayloadV1"
+	JSONRPC                                 = "2.0"
+	ExchangeTransitionConfigurationV1Method = "engine_exchangeTransitionConfigurationV1"
+	ExchangeCapabilitiesMethod              = "engine_exchangeCapabilities"
+	ForkchoiceUpdatedV1Method               = "engine_forkchoiceUpdatedV1"
+	GetPayloadV1Method                      = "engine_getPayloadV1"
+	NewPayloadV1Method                      = "engine_newPayloadV1"
 )
 
 type Client struct {
+	logger hclog.Logger
 	client *http.Client
 	url    *url.URL
-	token  string
+	token  []byte
 }
 
-func NewClient(rawUrl string, token string, jwtId string) (*Client, error) {
+func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string) (*Client, error) {
 	url, err := url.Parse(rawUrl)
 	if err != nil {
 		return nil, err
@@ -40,11 +44,32 @@ func NewClient(rawUrl string, token string, jwtId string) (*Client, error) {
 		Transport: authTransport,
 	}
 
-	return &Client{
+	engineClient := &Client{
+		logger.Named("engine"),
 		client,
 		url,
 		token,
-	}, nil
+	}
+
+	fmt.Println("------")
+	fmt.Println("------")
+	fmt.Println(rawUrl)
+	fmt.Println(token)
+	fmt.Println(jwtId)
+	fmt.Println("------")
+	fmt.Println("------")
+
+	_, err = engineClient.ExchangeCapabilities(make([]string, 0))
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = engineClient.ExchangeTransitionConfigurationV1()
+	if err != nil {
+		return nil, err
+	}
+
+	return engineClient, nil
 }
 
 func getRequestBase(method string) RequestBase {
@@ -69,9 +94,9 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 	defer resp.Body.Close()
 
 	// Check for HTTP errors
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("status code: %d", resp.StatusCode)
-	}
+	// if resp.StatusCode != http.StatusOK {
+	// 	return fmt.Errorf("status code: %d", resp.StatusCode)
+	// }
 
 	// Read the entire response body
 	body, err := io.ReadAll(resp.Body)
@@ -79,6 +104,7 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 		return fmt.Errorf("failed to read response body: %v", err)
 	}
 
+	fmt.Println(string(body))
 	err = json.Unmarshal(body, &responseData)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %v", err)
@@ -87,7 +113,27 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 	return nil
 }
 
+func (c *Client) ExchangeTransitionConfigurationV1() (responseData *ExchangeTransitionConfigurationV1Response, err error) {
+	c.logger.Debug("Running ExchangeTransitionConfigurationV1")
+
+	requestData := ExchangeTransitionConfigurationV1Request{
+		RequestBase: getRequestBase(ExchangeTransitionConfigurationV1Method),
+		Params: []ExchangeTransitionConfigurationV1RequestParams{
+			{
+				TerminalTotalDifficulty: "0x0",
+				TerminalBlockHash:       "0x0000000000000000000000000000000000000000000000000000000000000000",
+				TerminalBlockNumber:     "0x1",
+			},
+		},
+	}
+
+	err = c.handleRequest(&requestData, &responseData)
+
+	return
+}
+
 func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Response, err error) {
+	c.logger.Debug("Running GetPayloadV1")
 	requestData := GetPayloadV1Request{
 		RequestBase: getRequestBase(GetPayloadV1Method),
 		Params:      []string{payloadId},
@@ -99,6 +145,7 @@ func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Respo
 }
 
 func (c *Client) NewPayloadV1(executionPayload NewPayloadV1RequestParams) (responseData *NewPayloadV1Response, err error) {
+	c.logger.Debug("Running NewPayloadV1")
 	requestData := NewPayloadV1Request{
 		RequestBase: getRequestBase(NewPayloadV1Method),
 		Params:      []NewPayloadV1RequestParams{executionPayload},
@@ -110,6 +157,7 @@ func (c *Client) NewPayloadV1(executionPayload NewPayloadV1RequestParams) (respo
 }
 
 func (c *Client) ForkchoiceUpdatedV1(blockHash string, suggestedFeeRecipient string) (responseData *ForkchoiceUpdatedV1Response, err error) {
+	c.logger.Debug("Running ForkchoiceUpdatedV1")
 	requestData := ForkchoiceUpdatedV1Request{
 		RequestBase: getRequestBase(ForkchoiceUpdatedV1Method),
 		Params: []ForkchoiceUpdatedV1Param{
@@ -135,6 +183,7 @@ func (c *Client) ForkchoiceUpdatedV1(blockHash string, suggestedFeeRecipient str
 }
 
 func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseData *ExchangeCapabilitiesResponse, err error) {
+	c.logger.Debug("Running ExchangeCapabilities")
 	requestData := ExchangeCapabilitiesRequest{
 		RequestBase: getRequestBase(ExchangeCapabilitiesMethod),
 		Params:      [][]string{consesusCapabilites},
