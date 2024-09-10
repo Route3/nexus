@@ -1,0 +1,115 @@
+services:
+  #
+  # Step 1: Remove /shared
+  #
+  clean-all:
+    image: "alpine:latest"
+    command:  "rm -rf /shared/*"
+    volumes:
+      - ./shared:/shared
+
+  #
+  # Step 2: Remove generate jwt secret for Ethereum Engine API
+  #
+  jwt-gen:
+    image: "alpine:latest"
+    command: "apk add openssl && openssl rand -hex 32 | tr -d '\n' > '/shared/jwt.hex'"
+    volumes:
+      - ./shared:/shared
+    depends_on:
+      clean-all:
+        condition: service_completed_successfully
+
+  #
+  # Step 3: Generate nexus validator key
+  #
+  nexus-key-gen:
+    build:
+      context: .
+    command: "secrets init --data-dir /shared/nexus"
+    volumes:
+      - ./shared:/shared
+    depends_on:
+      jwt-gen:
+        condition: service_completed_successfully
+
+  #
+  # Step 3: Generate nexus genesis
+  #
+  genesis-gen:
+    build:
+      context: .
+    entrypoint: "/bin/bash"
+    command: [
+      "-cex",
+      "[ -f '/shared/nexus-genesis.json' ] && exit 0 && \
+      (/app/nexus secrets output --data-dir /shared/nexus --json | jq -j .node_id > /shared/nexus/node_id) && \
+      (/app/nexus secrets output --data-dir /shared/nexus --json | jq -j .address > /shared/nexus/validator_key) && \
+      /app/nexus genesis --consensus ibft --ibft-validator-type ecdsa --ibft-validator $(cat /shared/nexus/validator_key) --bootnode /ip4/127.0.0.1/tcp/1478/p2p/$(cat /shared/nexus/node_id)/ --dir /shared/nexus-genesis.json
+      "
+    ]
+    volumes:
+      - ./shared:/shared
+    depends_on:
+      nexus-key-gen:
+        condition: service_completed_successfully
+
+  geth-init:
+    image: "ethereum/client-go:latest"
+    command: --datadir=/shared/geth init /shared/geth-genesis.json
+    volumes:
+      - ./shared:/shared
+      - ./geth-genesis.json:/shared/geth-genesis.json
+    depends_on:
+      genesis-gen:
+        condition: service_completed_successfully
+
+  geth:
+    image: "ethereum/client-go:latest"
+    command:
+      - --verbosity=5
+      - --http
+      - --http.api=eth,net,web3
+      - --http.addr=0.0.0.0
+      - --http.corsdomain=*
+      - --ws
+      - --ws.api=eth,net,web3
+      - --ws.addr=0.0.0.0
+      - --ws.origins=*
+      - --authrpc.vhosts=*
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.jwtsecret=/shared/jwt.hex
+      - --datadir=/shared/geth
+      #- --allow-insecure-unlock
+      #- --unlock=0x123463a4b065722e99115d6c222f267d9cabb524
+      #- --password=/execution/geth_password.txt
+      - --nodiscover
+      - --syncmode=full
+    ports:
+      - 8551:8551
+      - 8545:8545
+      - 8546:8546
+    volumes:
+      - ./shared:/shared
+      - ./geth-genesis.json:/shared/geth-genesis.json
+    depends_on:
+      geth-init:
+        condition: service_completed_successfully
+
+  # nexus:
+    # build:
+    #   context: .
+    # command: [
+    #   "server",
+    #   "--data-dir", "/shared/nexus",
+    #   "--chain", "/shared/nexus-genesis.json",
+    #   "--jsonrpc", "0.0.0.0:8000",
+    #   "--log-level", "DEBUG",
+    # ]
+    # volumes:
+    #   - ./shared:/shared
+    # depends_on:
+    #   geth:
+    #     condition: service_started
+    # ports:
+    #   - 8000:8000
