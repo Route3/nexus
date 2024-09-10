@@ -152,8 +152,8 @@ func NewServer(config *Config) (*Server, error) {
 	m.engineClient = engineClient
 
 	// Generate all the paths in the dataDir
-	return nil, fmt.Errorf("failed to create data directories: %w", err)
 	if err := common.SetupDataDir(config.DataDir, dirPaths); err != nil {
+		return nil, fmt.Errorf("failed to create data directories: %w", err)
 	}
 
 	if config.Telemetry.PrometheusAddr != nil {
