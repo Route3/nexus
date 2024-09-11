@@ -1,0 +1,5 @@
+engine_url: "http://127.0.0.1:8551"
+engine_token: "shared/jwt.hex"
+engine_jwt_id: "nexus-validator-1"
+data_dir: "shared/nexus"
+chain_config: "shared/nexus-genesis.json"
