@@ -2,11 +2,11 @@ services:
   #
   # Step 1: Remove /shared
   #
-  clean-all:
-    image: "alpine:latest"
-    command:  "rm -rf /shared/*"
-    volumes:
-      - ./shared:/shared
+  # clean-all:
+  #   image: "alpine:latest"
+  #   command:  "rm -rf /shared/*"
+  #   volumes:
+  #     - ./shared:/shared
 
   #
   # Step 2: Remove generate jwt secret for Ethereum Engine API
@@ -16,9 +16,9 @@ services:
     command: "apk add openssl && openssl rand -hex 32 | tr -d '\n' > '/shared/jwt.hex'"
     volumes:
       - ./shared:/shared
-    depends_on:
-      clean-all:
-        condition: service_completed_successfully
+    # depends_on:
+    #   clean-all:
+    #     condition: service_completed_successfully
 
   #
   # Step 3: Generate nexus validator key
@@ -63,6 +63,18 @@ services:
     depends_on:
       genesis-gen:
         condition: service_completed_successfully
+
+  mitmproxy:
+    image: mitmproxy/mitmproxy
+    command: >
+      mitmweb
+      --mode reverse:http://geth:8551
+      --listen-port 8550
+      --web-host 0.0.0.0
+      --set block_global=false
+    ports:
+      - 8550:8550
+      - 8081:8081
 
   geth:
     image: "ethereum/client-go:latest"
