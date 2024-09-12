@@ -133,11 +133,11 @@ func (c *Client) ExchangeTransitionConfigurationV1() (responseData *ExchangeTran
 	return
 }
 
-func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Response, err error) {
+func (c *Client) GetPayloadV1() (responseData *GetPayloadV1Response, err error) {
 	c.logger.Debug("Running GetPayloadV1")
 	requestData := GetPayloadV1Request{
 		RequestBase: getRequestBase(GetPayloadV1Method),
-		Params:      []string{payloadId},
+		Params:      []string{"null"},
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
