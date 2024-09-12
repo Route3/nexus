@@ -32,7 +32,7 @@ type Config struct {
 	JSONRPCBlockRangeLimit   uint64     `json:"json_rpc_block_range_limit" yaml:"json_rpc_block_range_limit"`
 	JSONLogFormat            bool       `json:"json_log_format" yaml:"json_log_format"`
 	EngineURL                string     `json:"engine_url" yaml:"engine_url"`
-	EngineTokenPath              string     `json:"engine_token_path" yaml:"engine_token_path"`
+	EngineTokenPath          string     `json:"engine_token_path" yaml:"engine_token_path"`
 	EngineJWTID              string     `json:"engine_jwt_id" yaml:"engine_jwt_id"`
 }
 
