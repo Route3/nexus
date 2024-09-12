@@ -5,12 +5,12 @@ import (
 	"math"
 	"time"
 
+	"github.com/Route3/go-ibft/messages"
 	"github.com/apex-fusion/nexus/consensus"
 	"github.com/apex-fusion/nexus/consensus/ibft/signer"
 	"github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
-	"github.com/Route3/go-ibft/messages"
 )
 
 func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
@@ -29,7 +29,18 @@ func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
 		return nil
 	}
 
-	block, err := i.buildBlock(latestHeader)
+	_payload, err := i.engineClient.GetPayloadV1()
+
+	if err != nil {
+		i.logger.Error("cannot get engine's payload", "err", err)
+
+		return nil
+	}
+
+	payload := types.Payload(_payload.Result)
+
+	block, err := i.buildBlock(latestHeader, &payload)
+
 	if err != nil {
 		i.logger.Error("cannot build block", "num", blockNumber, "err", err)
 
@@ -156,7 +167,7 @@ func (i *backendIBFT) Quorum(blockNumber uint64) uint64 {
 }
 
 // buildBlock builds the block, based on the passed in snapshot and parent header
-func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
+func (i *backendIBFT) buildBlock(parent *types.Header, payload *types.Payload) (*types.Block, error) {
 	header := &types.Header{
 		ParentHash: parent.Hash,
 		Number:     parent.Number + 1,
