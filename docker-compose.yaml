@@ -4,7 +4,7 @@ services:
   #
   clean-all:
     image: "alpine:latest"
-    command: "rm -rf /shared/*"
+    command:  "rm -rf /shared/*"
     volumes:
       - ./shared:/shared
 
@@ -41,12 +41,13 @@ services:
       context: .
     entrypoint: "/bin/bash"
     command: [
-        "-cex",
-        # "[ -f '/shared/nexus-genesis.json' ] && exit 0 && \
-        "(/app/nexus secrets output --data-dir /shared/nexus --json | jq -j .node_id > /shared/nexus/node_id) && \
-        (/app/nexus secrets output --data-dir /shared/nexus --json | jq -j .address > /shared/nexus/validator_key) && \
-        (/app/nexus genesis --consensus ibft --ibft-validator-type ecdsa --ibft-validator $(cat /shared/nexus/validator_key) --bootnode /ip4/127.0.0.1/tcp/1478/p2p/$(cat /shared/nexus/node_id)/ --dir /shared/nexus-genesis.json)",
-      ]
+      "-cex",
+      "[ -f '/shared/nexus-genesis.json' ] && exit 0 && \
+      (/app/nexus secrets output --data-dir /shared/nexus --json | jq -j .node_id > /shared/nexus/node_id) && \
+      (/app/nexus secrets output --data-dir /shared/nexus --json | jq -j .address > /shared/nexus/validator_key) && \
+      /app/nexus genesis --consensus ibft --ibft-validator-type ecdsa --ibft-validator $(cat /shared/nexus/validator_key) --bootnode /ip4/127.0.0.1/tcp/1478/p2p/$(cat /shared/nexus/node_id)/ --dir /shared/nexus-genesis.json
+      "
+    ]
     volumes:
       - ./shared:/shared
     depends_on:
@@ -96,19 +97,19 @@ services:
         condition: service_completed_successfully
 
   # nexus:
-  # build:
-  #   context: .
-  # command: [
-  #   "server",
-  #   "--data-dir", "/shared/nexus",
-  #   "--chain", "/shared/nexus-genesis.json",
-  #   "--jsonrpc", "0.0.0.0:8000",
-  #   "--log-level", "DEBUG",
-  # ]
-  # volumes:
-  #   - ./shared:/shared
-  # depends_on:
-  #   geth:
-  #     condition: service_started
-  # ports:
-  #   - 8000:8000
+    # build:
+    #   context: .
+    # command: [
+    #   "server",
+    #   "--data-dir", "/shared/nexus",
+    #   "--chain", "/shared/nexus-genesis.json",
+    #   "--jsonrpc", "0.0.0.0:8000",
+    #   "--log-level", "DEBUG",
+    # ]
+    # volumes:
+    #   - ./shared:/shared
+    # depends_on:
+    #   geth:
+    #     condition: service_started
+    # ports:
+    #   - 8000:8000
