@@ -44,9 +44,9 @@ type Config struct {
 
 	LogFilePath string
 
-	EngineURL   string
-	EngineToken string
-	EngineJWTID string
+	EngineURL       string
+	EngineTokenPath string
+	EngineJWTID     string
 }
 
 // Telemetry holds the config details for metric services
