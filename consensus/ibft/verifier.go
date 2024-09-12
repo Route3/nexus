@@ -48,17 +48,13 @@ func (i *backendIBFT) IsValidBlock(proposal []byte) bool {
 		return false
 	}
 
-	if err := i.blockchain.VerifyPotentialBlock(newBlock); err != nil {
-		i.logger.Error("block verification failed", "err", err)
-
+	res, err := i.engineClient.NewPayloadV1(newBlock.ExecutionPayload)
+	if err != nil {
+		i.logger.Error("Payload execution failed", "payloadHash", newBlock.Header.PayloadHash)
 		return false
 	}
 
-	if err := i.currentHooks.VerifyBlock(newBlock); err != nil {
-		i.logger.Error("additional block verification failed", "err", err)
-
-		return false
-	}
+	// TODO: Here we should check if we got a response that the payload is valid, because the EL might return that it is syncing blocks and still be a 200 response.
 
 	return true
 }

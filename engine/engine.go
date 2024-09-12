@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/apex-fusion/nexus/types"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -94,9 +95,9 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 	defer resp.Body.Close()
 
 	// Check for HTTP errors
-	// if resp.StatusCode != http.StatusOK {
-	// 	return fmt.Errorf("status code: %d", resp.StatusCode)
-	// }
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("status code: %d", resp.StatusCode)
+	}
 
 	// Read the entire response body
 	body, err := io.ReadAll(resp.Body)
@@ -144,11 +145,11 @@ func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Respo
 	return
 }
 
-func (c *Client) NewPayloadV1(executionPayload NewPayloadV1RequestParams) (responseData *NewPayloadV1Response, err error) {
+func (c *Client) NewPayloadV1(executionPayload types.Payload) (responseData *NewPayloadV1Response, err error) {
 	c.logger.Debug("Running NewPayloadV1")
 	requestData := NewPayloadV1Request{
 		RequestBase: getRequestBase(NewPayloadV1Method),
-		Params:      []NewPayloadV1RequestParams{executionPayload},
+		Params:      []types.Payload{executionPayload},
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
