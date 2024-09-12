@@ -1,9 +1,6 @@
 package engine
 
-import (
-	"github.com/apex-fusion/nexus/types"
-)
-
+import "github.com/apex-fusion/nexus/types"
 
 type RequestBase struct {
 	JsonRPC string `json:"jsonrpc,omitempty"`
@@ -58,7 +55,7 @@ type NewPayloadV1RequestParams struct {
 
 type NewPayloadV1Request struct {
 	RequestBase
-	Params []NewPayloadV1RequestParams `json:"params"`
+	Params []types.Payload `json:"params"`
 }
 
 type NewPayloadV1ResponseResult struct {
