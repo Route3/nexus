@@ -30,6 +30,10 @@ type GetPayloadV1Request struct {
 	Params []string `json:"params"`
 }
 
+type PayloadVersion struct {
+	PayloadID string `json:"payloadId"`
+}
+
 type GetPayloadV1ResponseResult types.Payload;
 
 type GetPayloadV1Response struct {

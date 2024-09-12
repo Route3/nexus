@@ -65,10 +65,16 @@ func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string) (
 		return nil, err
 	}
 
+	_, err = engineClient.ForkChoiceUpdatedV1("0x9e7be6b5ccb576cec0ab66a64639aab41e8edf604a93ccaa5c0073410c1e780d", "")
+	if err != nil {
+		return nil, err
+	}
+
 	_, err = engineClient.ExchangeTransitionConfigurationV1()
 	if err != nil {
 		return nil, err
 	}
+
 
 	return engineClient, nil
 }
@@ -137,7 +143,7 @@ func (c *Client) GetPayloadV1() (responseData *GetPayloadV1Response, err error) 
 	c.logger.Debug("Running GetPayloadV1")
 	requestData := GetPayloadV1Request{
 		RequestBase: getRequestBase(GetPayloadV1Method),
-		Params:      []string{"0x0011223344556677"}, //string length required to be 16
+		Params: []string {"0x01eab440f90637f9"}, //`payloadId` received in the first `forkChoiceUpdatedV1` response
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
@@ -157,24 +163,24 @@ func (c *Client) NewPayloadV1(executionPayload types.Payload) (responseData *New
 	return
 }
 
-func (c *Client) ForkchoiceUpdatedV1(blockHash string, suggestedFeeRecipient string) (responseData *ForkchoiceUpdatedV1Response, err error) {
+func (c *Client) ForkChoiceUpdatedV1(blockHash string, suggestedFeeRecipient string) (responseData *ForkchoiceUpdatedV1Response, err error) {
 	c.logger.Debug("Running ForkchoiceUpdatedV1")
 	requestData := ForkchoiceUpdatedV1Request{
 		RequestBase: getRequestBase(ForkchoiceUpdatedV1Method),
 		Params: []ForkchoiceUpdatedV1Param{
 			ForkchoiceStateParam{
-				// HeadBlockHash:      blockHash,
-				// SafeBlockHash:      blockHash,
-				// FinalizedBlockHash: blockHash,
-				HeadBlockHash:      "0x3559e851470f6e7bbed1db474980683e8c315bfce99b2a6ef47c057c04de7858",
-				SafeBlockHash:      "0x3559e851470f6e7bbed1db474980683e8c315bfce99b2a6ef47c057c04de7858",
-				FinalizedBlockHash: "0x3b8fb240d288781d4aac94d3fd16809ee413bc99294a085798a589dae51ddd4a",
+				HeadBlockHash:      blockHash,
+				SafeBlockHash:      blockHash,
+				FinalizedBlockHash: blockHash,
+				// HeadBlockHash:      "0x3559e851470f6e7bbed1db474980683e8c315bfce99b2a6ef47c057c04de7858",
+				// SafeBlockHash:      "0x3559e851470f6e7bbed1db474980683e8c315bfce99b2a6ef47c057c04de7858",
+				// FinalizedBlockHash: "0x3b8fb240d288781d4aac94d3fd16809ee413bc99294a085798a589dae51ddd4a",
 			},
-			ForkchoicePayloadAttributes{
-				Timestamp:             "0x5",                                                                // TODO
-				PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
-				SuggestedFeeRecipient: suggestedFeeRecipient,
-			},
+			// ForkchoicePayloadAttributes{
+			// 	Timestamp:             "0x66dbe07b",                                                                // TODO
+			// 	PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
+			// 	SuggestedFeeRecipient: "0x0000000000000000000000000000000000000000",
+			// },
 		},
 	}
 
