@@ -129,6 +129,35 @@ func newLoggerFromConfig(config *Config) (hclog.Logger, error) {
 	return newCLILogger(config), nil
 }
 
+// newEngineAPIFromConfig creates a Engine API
+func newEngineAPIFromConfig(config *Config, logger hclog.Logger) (*engine.Client, error) {
+
+	var engineClient *engine.Client
+
+	if data, err := os.ReadFile(config.EngineTokenPath); err == nil {
+		trimmed := strings.TrimSpace(string(data))
+		jwtSecret, err := types.ParseBytes(&trimmed)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(jwtSecret) != 32 {
+			return nil, fmt.Errorf("invalid JWT secret")
+		}
+
+		logger.Info("Loaded JWT secret file", "path", config.EngineTokenPath, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
+
+		engineClient, err = engine.NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, err
+	}
+
+	return engineClient, nil
+}
+
 // NewServer creates a new Minimal server, using the passed in configuration
 func NewServer(config *Config) (*Server, error) {
 	logger, err := newLoggerFromConfig(config)
@@ -146,32 +175,12 @@ func NewServer(config *Config) (*Server, error) {
 
 	m.logger.Info("Data dir", "path", config.DataDir)
 
-	var engineClient *engine.Client
-
-	// TODO: Do this in the isValidConfig functions.
-	// TODO: Change the name of the EngineToken to specify the path
-	if data, err := os.ReadFile(config.EngineToken); err == nil {
-		trimmed := strings.TrimSpace(string(data))
-		jwtSecret, err := types.ParseBytes(&trimmed)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(jwtSecret) != 32 {
-			return nil, fmt.Errorf("invalid JWT secret")
-		}
-
-		logger.Info("Loaded JWT secret file", "path", config.EngineToken, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
-
-		engineClient, err = engine.NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID)
-		if err != nil {
-			return nil, err
-		}
+	// Setting up Engine API
+	if engineClient, err := newEngineAPIFromConfig(config, logger); err != nil {
+		return nil, fmt.Errorf("Engine API setup failed", "err", err.Error())
 	} else {
-		return nil, err
+		m.engineClient = engineClient
 	}
-
-	m.engineClient = engineClient
 
 	// Generate all the paths in the dataDir
 	if err := common.SetupDataDir(config.DataDir, dirPaths); err != nil {

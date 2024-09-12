@@ -175,7 +175,7 @@ func (p *serverParams) generateConfig() *server.Config {
 		JSONLogFormat:      p.rawConfig.JSONLogFormat,
 		LogFilePath:        p.logFileLocation,
 		EngineURL:          p.rawConfig.EngineURL,
-		EngineToken:        p.rawConfig.EngineToken,
+		EngineTokenPath:        p.rawConfig.EngineTokenPath,
 		EngineJWTID:        p.rawConfig.EngineJWTID,
 	}
 }

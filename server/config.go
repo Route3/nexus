@@ -45,7 +45,7 @@ type Config struct {
 	LogFilePath string
 
 	EngineURL   string
-	EngineToken string
+	EngineTokenPath string
 	EngineJWTID string
 }
 
