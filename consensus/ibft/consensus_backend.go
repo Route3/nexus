@@ -8,6 +8,7 @@ import (
 	"github.com/Route3/go-ibft/messages"
 	"github.com/apex-fusion/nexus/consensus"
 	"github.com/apex-fusion/nexus/consensus/ibft/signer"
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
@@ -17,6 +18,8 @@ func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
 	var (
 		latestHeader      = i.blockchain.Header()
 		latestBlockNumber = latestHeader.Number
+		parentHash = latestHeader.ParentHash
+		blockHash = latestHeader.Hash
 	)
 
 	if latestBlockNumber+1 != blockNumber {
@@ -29,7 +32,19 @@ func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
 		return nil
 	}
 
-	_payload, err := i.engineClient.GetPayloadV1()
+	fmt.Println("parentHash.String():", parentHash.String())
+	fmt.Println("blockHash.String():", blockHash.String())
+
+	fcuResp, fcuErr := i.engineClient.ForkChoiceUpdatedV1(blockHash.String(), "")
+	if fcuErr != nil {
+		i.logger.Error("cannot update fork choice", "err", fcuErr)
+
+		return nil
+	}
+
+	fmt.Println("fcuResp.Result.PayloadID:", fcuResp.Result.PayloadID, "<--")
+
+	_payload, err := i.engineClient.GetPayloadV1(fcuResp.Result.PayloadID)
 
 	if err != nil {
 		i.logger.Error("cannot get engine's payload", "err", err)
@@ -37,9 +52,9 @@ func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
 		return nil
 	}
 
-	payload := types.Payload(_payload.Result)
+	payload, err := engine.GetPayloadV1ResponseToPayload(_payload)
 
-	block, err := i.buildBlock(latestHeader, &payload)
+	block, err := i.buildBlock(latestHeader, payload)
 
 	if err != nil {
 		i.logger.Error("cannot build block", "num", blockNumber, "err", err)
@@ -400,3 +415,5 @@ func (i *backendIBFT) extractParentCommittedSeals(
 
 	return i.extractCommittedSeals(header)
 }
+
+

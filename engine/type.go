@@ -34,7 +34,24 @@ type PayloadVersion struct {
 	PayloadID string `json:"payloadId"`
 }
 
-type GetPayloadV1ResponseResult types.Payload;
+// type GetPayloadV1ResponseResult types.Payload;
+
+type GetPayloadV1ResponseResult struct {
+	ParentHash    string `json:"parentHash"`
+	FeeRecipient  string `json:"feeRecipient"`
+	StateRoot     string `json:"stateRoot"`
+	ReceiptsRoot  string `json:"receiptsRoot"`
+	LogsBloom     string `json:"logsBloom"`
+	PrevRandao    string `json:"prevRandao"`
+	BlockNumber   string `json:"blockNumber"`
+	GasLimit      string `json:"gasLimit"`
+	GasUsed       string `json:"gasUsed"`
+	Timestamp     string `json:"timestamp"`
+	ExtraData     string `json:"extraData"`
+	BaseFeePerGas string `json:"baseFeePerGas"`
+	BlockHash     string `json:"blockHash"`
+	//TODO handle missing .members (like `Transactions`)
+}
 
 type GetPayloadV1Response struct {
 	Result GetPayloadV1ResponseResult `json:"result"`
