@@ -17,9 +17,19 @@ set -ex
 if [ $option_g ]; then
   echo "Resetting geth state"
 
+  # ================================================ node 0
+
   # Reset geth state
   sudo rm -rf ./multi-validator-shared/0/geth ./multi-validator-shared/0/geth-genesis.json
+
+  # ================================================ node 1
+
+  # Reset geth state
   sudo rm -rf ./multi-validator-shared/1/geth ./multi-validator-shared/1/geth-genesis.json
+
+  # ================================================ node 2
+
+  # Reset geth state
   sudo rm -rf ./multi-validator-shared/2/geth ./multi-validator-shared/2/geth-genesis.json
 
 
@@ -61,7 +71,7 @@ if [ $option_n ]; then
   # Generate Nexus Genesis
   go run main.go secrets output --data-dir ./multi-validator-shared/1/nexus --json | jq -j .node_id >./multi-validator-shared/1/nexus/node_id
   go run main.go secrets output --data-dir ./multi-validator-shared/1/nexus --json | jq -j .address >./multi-validator-shared/1/nexus/validator_key
-  go run main.go genesis --consensus ibft --ibft-validator-type ecdsa --ibft-validator $(cat ./multi-validator-shared/1/nexus/validator_key) --bootnode /ip4/127.0.0.1/tcp/1478/p2p/$(cat ./multi-validator-shared/1/nexus/node_id)/ --dir ./multi-validator-shared/1/nexus-genesis.json
+  go run main.go genesis --consensus ibft --ibft-validator-type ecdsa --ibft-validator $(cat ./multi-validator-shared/1/nexus/validator_key) --bootnode /ip4/127.0.0.1/tcp/1478/p2p/$(cat ./multi-validator-shared/0/nexus/node_id)/ --dir ./multi-validator-shared/1/nexus-genesis.json
 
 
   # ================================================ node 2
@@ -78,7 +88,7 @@ if [ $option_n ]; then
   # Generate Nexus Genesis
   go run main.go secrets output --data-dir ./multi-validator-shared/2/nexus --json | jq -j .node_id >./multi-validator-shared/2/nexus/node_id
   go run main.go secrets output --data-dir ./multi-validator-shared/2/nexus --json | jq -j .address >./multi-validator-shared/2/nexus/validator_key
-  go run main.go genesis --consensus ibft --ibft-validator-type ecdsa --ibft-validator $(cat ./multi-validator-shared/2/nexus/validator_key) --bootnode /ip4/127.0.0.1/tcp/1478/p2p/$(cat ./multi-validator-shared/2/nexus/node_id)/ --dir ./multi-validator-shared/2/nexus-genesis.json
+  go run main.go genesis --consensus ibft --ibft-validator-type ecdsa --ibft-validator $(cat ./multi-validator-shared/2/nexus/validator_key) --bootnode /ip4/127.0.0.1/tcp/1478/p2p/$(cat ./multi-validator-shared/0/nexus/node_id)/ --dir ./multi-validator-shared/2/nexus-genesis.json
 
 fi
 
