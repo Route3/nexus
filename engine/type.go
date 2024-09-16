@@ -141,3 +141,12 @@ type ExchangeCapabilitiesRequest struct {
 type ExchangeCapabilitiesResponse struct {
 	Result []string `json:"result"`
 }
+
+type EngineErrorBody struct {
+	Code int `json:"code"`
+	Message string `json:"message"`
+}
+
+type EngineResponseError struct {
+	Error EngineErrorBody `json:"error"`
+}

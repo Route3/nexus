@@ -109,7 +109,17 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 		return fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	fmt.Println(string(body))
+	fmt.Println("httpClient: body response:", string(body))
+
+	// Check if HTTP.status == 200 but some Geth error occured
+	var potentialErrResp EngineResponseError
+	
+	err = json.Unmarshal(body, &potentialErrResp)
+
+	if potentialErrResp.Error.Code != 0 {
+		return fmt.Errorf("engine err: %v", potentialErrResp.Error)
+	}
+	
 	err = json.Unmarshal(body, &responseData)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %v", err)
