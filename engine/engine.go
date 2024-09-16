@@ -113,13 +113,13 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 
 	// Check if HTTP.status == 200 but some Geth error occured
 	var potentialErrResp EngineResponseError
-	
+
 	err = json.Unmarshal(body, &potentialErrResp)
 
 	if potentialErrResp.Error.Code != 0 {
 		return fmt.Errorf("engine err: %v", potentialErrResp.Error)
 	}
-	
+
 	err = json.Unmarshal(body, &responseData)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %v", err)
@@ -221,7 +221,7 @@ func GetPayloadV1ResponseToPayload(resp *GetPayloadV1Response) (payload *types.P
 
 	payload.BaseFeePerGas = hexutils.DecodeHexToBig(string(hexutils.DropHexPrefix([]byte(resp.Result.BaseFeePerGas)))) // TODO: Make it prettier
 	payload.BlockHash = types.StringToHash(resp.Result.BlockHash)
-	payload.ExtraData, _ = hexutils.DecodeString(resp.Result.ExtraData)
+	payload.ExtraData, _ = hexutils.DecodeString(string(hexutils.DropHexPrefix([]byte(resp.Result.ExtraData)))) // TODO: Make it prettier
 	payload.FeeRecipient = types.StringToAddress(resp.Result.FeeRecipient)
 	payload.GasLimit, _ = hexutils.DecodeUint64(resp.Result.GasLimit)
 	payload.GasUsed, _ = hexutils.DecodeUint64(resp.Result.GasUsed)
@@ -241,7 +241,7 @@ func GetPayloadV1ResponseToPayload(resp *GetPayloadV1Response) (payload *types.P
 	payload.Timestamp, _ = hexutils.DecodeUint64(resp.Result.Timestamp)
 	payload.Transactions = [][]byte{}
 
-	//TODO: handle this ?
+	// TODO: handle this ?
 	// payload.Transactions = resp.Result.???
 
 	return
