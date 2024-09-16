@@ -124,8 +124,11 @@ func (i *backendIBFT) InsertBlock(
 
 	newBlock.Header = header
 
+	fmt.Println("New payload Call!")
+
 	_, err = i.engineClient.NewPayloadV1(newBlock.ExecutionPayload)
 	if err != nil {
+		i.logger.Error("cannot create new payload", "err", err)
 		return
 	}
 
