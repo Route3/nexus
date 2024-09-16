@@ -6,12 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
+	hexutils "github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/hashicorp/go-hclog"
 )
@@ -209,40 +208,31 @@ func GetPayloadV1ResponseToPayload(resp *GetPayloadV1Response) (payload *types.P
 	// TODO handle potential conversion errors
 
 	payload = new(types.Payload)
-	fmt.Println(resp)
 
-	payload.BaseFeePerGas = new(big.Int)
-	payload.BaseFeePerGas.SetString(resp.Result.BaseFeePerGas[2:], 16)
-
+	payload.BaseFeePerGas = hexutils.DecodeHexToBig(string(hexutils.DropHexPrefix([]byte(resp.Result.BaseFeePerGas)))) // TODO: Make it prettier
 	payload.BlockHash = types.StringToHash(resp.Result.BlockHash)
-
-	payload.ExtraData, _ = hex.DecodeString(resp.Result.ExtraData[2:])
-
+	payload.ExtraData, _ = hexutils.DecodeString(resp.Result.ExtraData)
 	payload.FeeRecipient = types.StringToAddress(resp.Result.FeeRecipient)
+	payload.GasLimit, _ = hexutils.DecodeUint64(resp.Result.GasLimit)
+	payload.GasUsed, _ = hexutils.DecodeUint64(resp.Result.GasUsed)
 
-	payload.GasLimit, _ = strconv.ParseUint(resp.Result.GasLimit, 16, 64)
+	// Logs bloom encoding
+	var logsBloom types.Bloom
+	input := hexutils.DropHexPrefix([]byte(resp.Result.LogsBloom))
+	if _, err := hex.Decode(logsBloom[:], input); err != nil {
+		return nil, err
+	}
+	payload.LogsBloom = logsBloom
 
-	payload.GasUsed, _ = strconv.ParseUint(resp.Result.GasUsed, 16, 64)
-
-	payload.LogsBloom, _ = hex.DecodeString(resp.Result.LogsBloom[2:])
-
-	payload.Number, _ = strconv.ParseUint(resp.Result.BlockNumber, 16, 64)
-
+	payload.Number, _ = hexutils.DecodeUint64(resp.Result.BlockNumber)
 	payload.ParentHash = types.StringToHash(resp.Result.ParentHash)
-
-	// TODO check if neccesary
-	// payload.Random = types.StringToHash(resp.Result.PrevRandao)
-
 	payload.ReceiptsRoot = types.StringToHash(resp.Result.ReceiptsRoot)
-
 	payload.StateRoot = types.StringToHash(resp.Result.StateRoot)
+	payload.Timestamp, _ = hexutils.DecodeUint64(resp.Result.Timestamp)
+	payload.Transactions = [][]byte{}
 
-	payload.Timestamp, _ = strconv.ParseUint(resp.Result.Timestamp, 16, 64)
-
-	// TODO: handle this ?
+	//TODO: handle this ?
 	// payload.Transactions = resp.Result.???
-
-	fmt.Println("- payload ------>", payload)
 
 	return
 }
