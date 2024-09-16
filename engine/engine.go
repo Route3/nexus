@@ -56,54 +56,26 @@ func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string) (
 		token,
 	}
 
-	fmt.Println("------")
-	fmt.Println("------")
-	fmt.Println(rawUrl)
-	fmt.Println(token)
-	fmt.Println(jwtId)
-	fmt.Println("------")
-	fmt.Println("------")
-
-	_, err = engineClient.ExchangeCapabilities(make([]string, 0))
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = engineClient.ExchangeTransitionConfigurationV1()
-	if err != nil {
-		return nil, err
-	}
-
-	//TODO move this call somewhere else
-	fcuResp, err := engineClient.ForkChoiceUpdatedV1_init("0x9e7be6b5ccb576cec0ab66a64639aab41e8edf604a93ccaa5c0073410c1e780d", "")
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("fcuResp:", fcuResp)
-
-	//TODO remove --------------------------------------------------->
-	execResp, err := engineClient.GetPayloadV1(fcuResp.Result.PayloadID)
-
-	fmt.Println("execResp:", execResp)
-
-	for i := 0; i < 5; i++ {
-
-		fcuResp, err = engineClient.ForkChoiceUpdatedV1(execResp.Result.ParentHash, "")
-
-		fmt.Println("fcuResp:", fcuResp)
-
-		execResp, err = engineClient.GetPayloadV1(fcuResp.Result.PayloadID)
-
-		GetPayloadV1ResponseToPayload(execResp)
-
-		fmt.Println("execResp:", execResp)
-	}
-
-	panic("<------- done ")
-
-	//TODO <--------------------------------------------------- remove
-
 	return engineClient, nil
+}
+
+func (c *Client) Init(latestPayloadHash string) (payloadId string, err error) {
+	_, err = c.ExchangeCapabilities(make([]string, 0))
+	if err != nil {
+		return
+	}
+
+	_, err = c.ExchangeTransitionConfigurationV1()
+	if err != nil {
+		return
+	}
+
+	res, err := c.ForkChoiceUpdatedV1(latestPayloadHash, true)
+	if err != nil {
+		return
+	}
+
+	return res.Result.PayloadID, nil
 }
 
 func getRequestBase(method string) RequestBase {
@@ -170,8 +142,7 @@ func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Respo
 	c.logger.Debug("Running GetPayloadV1")
 	requestData := GetPayloadV1Request{
 		RequestBase: getRequestBase(GetPayloadV1Method),
-		// Params: []string {"0x01eab440f90637f9"}, //`payloadId` received in the first `forkChoiceUpdatedV1` response
-		Params: []string {payloadId},
+		Params:      []string{payloadId},
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
@@ -179,11 +150,11 @@ func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Respo
 	return
 }
 
-func (c *Client) NewPayloadV1(executionPayload types.Payload) (responseData *NewPayloadV1Response, err error) {
+func (c *Client) NewPayloadV1(executionPayload *types.Payload) (responseData *NewPayloadV1Response, err error) {
 	c.logger.Debug("Running NewPayloadV1")
 	requestData := NewPayloadV1Request{
 		RequestBase: getRequestBase(NewPayloadV1Method),
-		Params:      []types.Payload{executionPayload},
+		Params:      []types.Payload{*executionPayload},
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
@@ -191,51 +162,30 @@ func (c *Client) NewPayloadV1(executionPayload types.Payload) (responseData *New
 	return
 }
 
-func (c *Client) ForkChoiceUpdatedV1(blockHash string, suggestedFeeRecipient string) (responseData *ForkchoiceUpdatedV1Response, err error) {
-	c.logger.Debug("Running ForkchoiceUpdatedV1")
+func (c *Client) ForkChoiceUpdatedV1(blockHash string, buildPayload bool) (responseData *ForkchoiceUpdatedV1Response, err error) {
+	c.logger.Debug("Running ForkchoiceUpdatedV1", "blockHash", blockHash)
 
-	blockTimestamp :=  "0x" + fmt.Sprintf("%X", time.Now().Unix())      
-	
-	fmt.Println("blockTimestamp:", blockTimestamp)
+	blockTimestamp := "0x" + fmt.Sprintf("%X", time.Now().Unix())
 
-	requestData := ForkchoiceUpdatedV1Request{
-		RequestBase: getRequestBase(ForkchoiceUpdatedV1Method),
-		Params: []ForkchoiceUpdatedV1Param{
-			ForkchoiceStateParam{
-				HeadBlockHash:      blockHash,
-				SafeBlockHash:      blockHash,
-				FinalizedBlockHash: blockHash,
-			},
-			ForkchoicePayloadAttributes{
-				Timestamp:             blockTimestamp,                                
-				PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
-				SuggestedFeeRecipient: "0x0000000000000000000000000000000000000000",
-			},
+	params := []ForkchoiceUpdatedV1Param{
+		ForkchoiceStateParam{
+			HeadBlockHash:      blockHash,
+			SafeBlockHash:      blockHash,
+			FinalizedBlockHash: blockHash,
 		},
+		nil,
 	}
 
-	err = c.handleRequest(&requestData, &responseData)
-
-	return
-}
-
-func (c *Client) ForkChoiceUpdatedV1_init(blockHash string, suggestedFeeRecipient string) (responseData *ForkchoiceUpdatedV1Response, err error) {
-	c.logger.Debug("Running ForkchoiceUpdatedV1")
-
+	if buildPayload {
+		params[1] = ForkchoicePayloadAttributes{
+			Timestamp:             blockTimestamp,
+			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
+			SuggestedFeeRecipient: "0x0000000000000000000000000000000000000000",
+		}
+	}
 	requestData := ForkchoiceUpdatedV1Request{
 		RequestBase: getRequestBase(ForkchoiceUpdatedV1Method),
-		Params: []ForkchoiceUpdatedV1Param{
-			ForkchoiceStateParam{
-				HeadBlockHash:      blockHash,
-				SafeBlockHash:      blockHash,
-				FinalizedBlockHash: blockHash,
-			},
-			ForkchoicePayloadAttributes{
-				Timestamp:             "0x66dbe07b",                           
-				PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
-				SuggestedFeeRecipient: "0x0000000000000000000000000000000000000000",
-			},
-		},
+		Params:      params,
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
@@ -255,12 +205,13 @@ func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseDat
 	return
 }
 
-func GetPayloadV1ResponseToPayload (resp *GetPayloadV1Response) (payload *types.Payload, err error) {
-	//TODO handle potential conversion errors
+func GetPayloadV1ResponseToPayload(resp *GetPayloadV1Response) (payload *types.Payload, err error) {
+	// TODO handle potential conversion errors
 
-	payload = new (types.Payload)
+	payload = new(types.Payload)
+	fmt.Println(resp)
 
-	payload.BaseFeePerGas = new (big.Int)
+	payload.BaseFeePerGas = new(big.Int)
 	payload.BaseFeePerGas.SetString(resp.Result.BaseFeePerGas[2:], 16)
 
 	payload.BlockHash = types.StringToHash(resp.Result.BlockHash)

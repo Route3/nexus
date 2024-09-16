@@ -98,7 +98,7 @@ type Block struct {
 	Header           *Header
 	Transactions     []*Transaction
 	Uncles           []*Header
-	ExecutionPayload Payload
+	ExecutionPayload *Payload
 	// Cache
 	size atomic.Value // *uint64
 }

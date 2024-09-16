@@ -259,7 +259,6 @@ func (s *KeyValueStorage) ReadTxLookup(hash types.Hash) (types.Hash, bool) {
 
 	blockHash := []byte{}
 	blockHash, err := v.GetBytes(blockHash[:0], 32)
-
 	if err != nil {
 		panic(err)
 	}
@@ -285,7 +284,6 @@ var ErrNotFound = fmt.Errorf("not found")
 func (s *KeyValueStorage) readRLP(p, k []byte, raw types.RLPUnmarshaler) error {
 	p = append(p, k...)
 	data, ok, err := s.db.Get(p)
-
 	if err != nil {
 		return err
 	}
@@ -338,7 +336,6 @@ func (s *KeyValueStorage) set(p []byte, k []byte, v []byte) error {
 func (s *KeyValueStorage) get(p []byte, k []byte) ([]byte, bool) {
 	p = append(p, k...)
 	data, ok, err := s.db.Get(p)
-
 	if err != nil {
 		return nil, false
 	}

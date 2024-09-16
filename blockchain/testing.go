@@ -16,10 +16,8 @@ import (
 	"github.com/apex-fusion/nexus/types"
 )
 
-var (
-	// defaultBlockGasTarget is the default value for the block gas target for new blocks
-	defaultBlockGasTarget uint64 = 8000000
-)
+// defaultBlockGasTarget is the default value for the block gas target for new blocks
+var defaultBlockGasTarget uint64 = 8000000
 
 var (
 	errInvalidTypeAssertion  = errors.New("invalid type assertion")
@@ -109,7 +107,6 @@ func NewTestBlockchain(t *testing.T, headers []*types.Header) *Blockchain {
 
 	st := itrie.NewState(itrie.NewMemoryStorage())
 	b, err := newBlockChain(config, state.NewExecutor(config.Params, st, hclog.NewNullLogger()))
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,10 +219,12 @@ func NewMockBlockchain(
 
 // Verifier delegators
 
-type verifyHeaderDelegate func(*types.Header) error
-type processHeadersDelegate func([]*types.Header) error
-type getBlockCreatorDelegate func(*types.Header) (types.Address, error)
-type preStateCommitDelegate func(*types.Header, *state.Transition) error
+type (
+	verifyHeaderDelegate    func(*types.Header) error
+	processHeadersDelegate  func([]*types.Header) error
+	getBlockCreatorDelegate func(*types.Header) (types.Address, error)
+	preStateCommitDelegate  func(*types.Header, *state.Transition) error
+)
 
 type MockVerifier struct {
 	verifyHeaderFn    verifyHeaderDelegate
@@ -343,7 +342,7 @@ func newBlockChain(config *chain.Chain, executor Executor) (*Blockchain, error) 
 		executor = &mockExecutor{}
 	}
 
-	b, err := NewBlockchain(hclog.NewNullLogger(), "", config, &MockVerifier{}, executor, &mockSigner{})
+	b, err := NewBlockchain(hclog.NewNullLogger(), "", config, &MockVerifier{}, executor, &mockSigner{}, "")
 	if err != nil {
 		return nil, err
 	}

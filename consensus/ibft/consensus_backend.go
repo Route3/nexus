@@ -18,8 +18,6 @@ func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
 	var (
 		latestHeader      = i.blockchain.Header()
 		latestBlockNumber = latestHeader.Number
-		parentHash = latestHeader.ParentHash
-		blockHash = latestHeader.Hash
 	)
 
 	if latestBlockNumber+1 != blockNumber {
@@ -32,30 +30,35 @@ func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
 		return nil
 	}
 
-	fmt.Println("parentHash.String():", parentHash.String())
-	fmt.Println("blockHash.String():", blockHash.String())
+	// fmt.Println("parentHash.String():", parentHash.String())
+	// fmt.Println("blockHash.String():", blockHash.String())
+	//
+	// fcuResp, fcuErr := i.engineClient.ForkChoiceUpdatedV1(blockHash.String(), "")
+	// if fcuErr != nil {
+	// 	i.logger.Error("cannot update fork choice", "err", fcuErr)
+	//
+	// 	return nil
+	// }
+	//
+	// fmt.Println("fcuResp.Result.PayloadID:", fcuResp.Result.PayloadID, "<--")
+	//
 
-	fcuResp, fcuErr := i.engineClient.ForkChoiceUpdatedV1(blockHash.String(), "")
-	if fcuErr != nil {
-		i.logger.Error("cannot update fork choice", "err", fcuErr)
-
-		return nil
-	}
-
-	fmt.Println("fcuResp.Result.PayloadID:", fcuResp.Result.PayloadID, "<--")
-
-	_payload, err := i.engineClient.GetPayloadV1(fcuResp.Result.PayloadID)
-
+	payloadResponse, err := i.engineClient.GetPayloadV1(i.blockchain.GetPayloadId())
 	if err != nil {
 		i.logger.Error("cannot get engine's payload", "err", err)
 
 		return nil
 	}
 
-	payload, err := engine.GetPayloadV1ResponseToPayload(_payload)
+	// TODO: Why do we need this method?
+	payload, err := engine.GetPayloadV1ResponseToPayload(payloadResponse)
+	if err != nil {
+		i.logger.Error("cannot parse payload response", "err", err)
+
+		return nil
+	}
 
 	block, err := i.buildBlock(latestHeader, payload)
-
 	if err != nil {
 		i.logger.Error("cannot build block", "num", blockNumber, "err", err)
 
@@ -102,7 +105,7 @@ func (i *backendIBFT) InsertBlock(
 	// This is a safety net to help us narrow down and also recover before
 	// writing the block
 	if err := i.ValidateExtraDataFormat(newBlock.Header); err != nil {
-		//Format committed seals to make them more readable
+		// Format committed seals to make them more readable
 		committedSealsStr := make([]string, len(committedSealsMap))
 		for i, seal := range committedSeals {
 			committedSealsStr[i] = fmt.Sprintf("{signer=%v signature=%v}",
@@ -120,6 +123,18 @@ func (i *backendIBFT) InsertBlock(
 	}
 
 	newBlock.Header = header
+
+	_, err = i.engineClient.NewPayloadV1(newBlock.ExecutionPayload)
+	if err != nil {
+		return
+	}
+
+	res, err := i.engineClient.ForkChoiceUpdatedV1(newBlock.Header.PayloadHash.String(), true)
+	if err != nil {
+		i.logger.Error("cannot run FCU for block insertion", "err", err)
+		return
+	}
+	i.blockchain.SetPayloadId(res.Result.PayloadID)
 
 	// Save the block locally
 	if err := i.blockchain.WriteBlock(newBlock, "consensus"); err != nil {
@@ -190,10 +205,11 @@ func (i *backendIBFT) buildBlock(parent *types.Header, payload *types.Payload) (
 		Nonce:      types.Nonce{},
 		MixHash:    signer.IstanbulDigest,
 		// this is required because blockchain needs difficulty to organize blocks and forks
-		Difficulty: parent.Number + 1,
-		StateRoot:  types.EmptyRootHash, // this avoids needing state for now
-		Sha3Uncles: types.EmptyUncleHash,
-		GasLimit:   parent.GasLimit, // Inherit from parent for now, will need to adjust dynamically later.
+		Difficulty:  parent.Number + 1,
+		StateRoot:   types.EmptyRootHash, // this avoids needing state for now
+		Sha3Uncles:  types.EmptyUncleHash,
+		GasLimit:    parent.GasLimit, // Inherit from parent for now, will need to adjust dynamically later.
+		PayloadHash: payload.BlockHash,
 	}
 
 	// calculate gas limit based on parent header
@@ -238,6 +254,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header, payload *types.Payload) (
 		Header:   header,
 		Txns:     txs,
 		Receipts: transition.Receipts(),
+		Payload:  payload,
 	})
 
 	// write the seal of the block after all the fields are completed
@@ -415,5 +432,3 @@ func (i *backendIBFT) extractParentCommittedSeals(
 
 	return i.extractCommittedSeals(header)
 }
-
-

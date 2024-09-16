@@ -84,6 +84,12 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		b.Uncles = append(b.Uncles, bUncle)
 	}
 
+	// payload
+	b.ExecutionPayload = &Payload{}
+	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, elems[3]); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -162,8 +168,12 @@ func (h *Header) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 	if err != nil {
 		return err
 	}
-
 	h.SetNonce(nonce)
+
+	// payload hash
+	if err = elems[15].GetHash(h.PayloadHash[:0]); err != nil {
+		return err
+	}
 
 	// compute the hash after the decoding
 	h.ComputeHash()
@@ -355,4 +365,67 @@ func (t *Transaction) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) erro
 	}
 
 	return nil
+}
+
+func (p *Payload) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
+	elems, err := v.GetElems()
+	if err != nil {
+		return err
+	}
+
+	if len(elems) != 13 {
+		return fmt.Errorf("incorrect number of elements to decode payload, expected 12 but found %d", len(elems))
+	}
+
+	if err = elems[0].GetHash(p.ParentHash[:]); err != nil {
+		return err
+	}
+
+	if err = elems[1].GetAddr(p.FeeRecipient[:]); err != nil {
+		return err
+	}
+
+	if err = elems[2].GetHash(p.StateRoot[:]); err != nil {
+		return err
+	}
+
+	if err = elems[3].GetHash(p.ReceiptsRoot[:]); err != nil {
+		return err
+	}
+
+	// perhaps do it like in header?: if _, err = elems[6].GetBytes(h.LogsBloom[:0], 256); err != nil
+	if _, err = elems[4].GetBytes(p.LogsBloom[:0], 256); err != nil {
+		return err
+	}
+
+	if p.Number, err = elems[5].GetUint64(); err != nil {
+		return err
+	}
+
+	if p.GasLimit, err = elems[6].GetUint64(); err != nil {
+		return err
+	}
+
+	if p.GasUsed, err = elems[7].GetUint64(); err != nil {
+		return err
+	}
+
+	if p.Timestamp, err = elems[8].GetUint64(); err != nil {
+		return err
+	}
+
+	if p.ExtraData, err = elems[9].GetBytes(p.ExtraData[:0]); err != nil {
+		return err
+	}
+
+	p.BaseFeePerGas = new(big.Int)
+	if err := elems[10].GetBigInt(p.BaseFeePerGas); err != nil {
+		return err
+	}
+
+	if err = elems[11].GetHash(p.BlockHash[:]); err != nil {
+		return err
+	}
+
+	return err
 }
