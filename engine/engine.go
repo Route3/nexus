@@ -215,7 +215,7 @@ func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseDat
 }
 
 func GetPayloadV1ResponseToPayload(resp *GetPayloadV1Response) (payload *types.Payload, err error) {
-	// TODO handle potential conversion errors
+	// TODO: handle potential conversion errors and implement this as a json.Unmarshal method
 
 	payload = new(types.Payload)
 
@@ -241,8 +241,13 @@ func GetPayloadV1ResponseToPayload(resp *GetPayloadV1Response) (payload *types.P
 	payload.Timestamp, _ = hexutils.DecodeUint64(resp.Result.Timestamp)
 	payload.Transactions = [][]byte{}
 
-	// TODO: handle this ?
-	// payload.Transactions = resp.Result.???
+	for _, transaction := range resp.Result.Transactions {
+		decoded, err := hexutils.DecodeHex(transaction)
+		if err != nil {
+			return nil, err
+		}
+		payload.Transactions = append(payload.Transactions, decoded)
+	}
 
 	return
 }

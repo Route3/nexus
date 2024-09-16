@@ -129,6 +129,12 @@ func (p *Payload) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	transactions := make([]string, len(p.Transactions))
+	for i, transaction := range p.Transactions {
+		transactions[i] = hex.EncodeToHex(transaction)
+	}
+
 	return json.Marshal(&struct {
 		ParentHash    string   `json:"parentHash"    gencodec:"required"`
 		FeeRecipient  string   `json:"feeRecipient"  gencodec:"required"`
@@ -158,7 +164,7 @@ func (p *Payload) MarshalJSON() ([]byte, error) {
 		ExtraData:     hex.EncodeToHex(p.ExtraData),
 		BaseFeePerGas: hex.EncodeBig(p.BaseFeePerGas),
 		BlockHash:     p.BlockHash.String(),
-		Transactions:  []string{},
+		Transactions:  transactions,
 	})
 }
 
