@@ -37,20 +37,20 @@ type PayloadVersion struct {
 // type GetPayloadV1ResponseResult types.Payload;
 
 type GetPayloadV1ResponseResult struct {
-	ParentHash    string `json:"parentHash"`
-	FeeRecipient  string `json:"feeRecipient"`
-	StateRoot     string `json:"stateRoot"`
-	ReceiptsRoot  string `json:"receiptsRoot"`
-	LogsBloom     string `json:"logsBloom"`
-	PrevRandao    string `json:"prevRandao"`
-	BlockNumber   string `json:"blockNumber"`
-	GasLimit      string `json:"gasLimit"`
-	GasUsed       string `json:"gasUsed"`
-	Timestamp     string `json:"timestamp"`
-	ExtraData     string `json:"extraData"`
-	BaseFeePerGas string `json:"baseFeePerGas"`
-	BlockHash     string `json:"blockHash"`
-	//TODO handle missing .members (like `Transactions`)
+	ParentHash    string   `json:"parentHash"`
+	FeeRecipient  string   `json:"feeRecipient"`
+	StateRoot     string   `json:"stateRoot"`
+	ReceiptsRoot  string   `json:"receiptsRoot"`
+	LogsBloom     string   `json:"logsBloom"`
+	PrevRandao    string   `json:"prevRandao"`
+	BlockNumber   string   `json:"blockNumber"`
+	GasLimit      string   `json:"gasLimit"`
+	GasUsed       string   `json:"gasUsed"`
+	Timestamp     string   `json:"timestamp"`
+	ExtraData     string   `json:"extraData"`
+	BaseFeePerGas string   `json:"baseFeePerGas"`
+	BlockHash     string   `json:"blockHash"`
+	Transactions  []string `json:"transactions"`
 }
 
 type GetPayloadV1Response struct {
@@ -143,7 +143,7 @@ type ExchangeCapabilitiesResponse struct {
 }
 
 type EngineErrorBody struct {
-	Code int `json:"code"`
+	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
