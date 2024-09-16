@@ -113,12 +113,12 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 	fmt.Println("httpClient: body response:", string(body))
 
 	// Check if HTTP.status == 200 but some Geth error occured
-	var potentialErrResp GethResponseError
+	var potentialErrResp EngineResponseError
 	
 	err = json.Unmarshal(body, &potentialErrResp)
 
 	if potentialErrResp.Error.Code != 0 {
-		return fmt.Errorf("Geth err: %v", potentialErrResp.Error)
+		return fmt.Errorf("engine err: %v", potentialErrResp.Error)
 	}
 	
 	err = json.Unmarshal(body, &responseData)

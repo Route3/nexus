@@ -142,11 +142,11 @@ type ExchangeCapabilitiesResponse struct {
 	Result []string `json:"result"`
 }
 
-type GethErrorBody struct {
+type EngineErrorBody struct {
 	Code int `json:"code"`
 	Message string `json:"message"`
 }
 
-type GethResponseError struct {
-	Error GethErrorBody `json:"error"`
+type EngineResponseError struct {
+	Error EngineErrorBody `json:"error"`
 }
