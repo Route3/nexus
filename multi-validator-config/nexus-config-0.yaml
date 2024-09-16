@@ -1,0 +1,6 @@
+engine_url: "http://127.0.0.1:8550"
+engine_token_path: "multi-validator-shared/0/jwt.hex"
+engine_jwt_id: "nexus-validator-0"
+data_dir: "multi-validator-shared/0/nexus"
+chain_config: "multi-validator-shared/0/nexus-genesis.json"
+execution_genesis_hash: "0xbbedb5ae2fdd7e812bd29421c90ba610b7d9eb2f4686abffa40b782629c7f4bd"
