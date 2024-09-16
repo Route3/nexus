@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"sync/atomic"
@@ -108,7 +109,7 @@ type Payload struct {
 	FeeRecipient  Address  `json:"feeRecipient"  gencodec:"required"`
 	StateRoot     Hash     `json:"stateRoot"     gencodec:"required"`
 	ReceiptsRoot  Hash     `json:"receiptsRoot"  gencodec:"required"`
-	LogsBloom     []byte   `json:"logsBloom"     gencodec:"required"`
+	LogsBloom     Bloom    `json:"logsBloom"     gencodec:"required"`
 	Random        Hash     `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
 	Number        uint64   `json:"blockNumber"   gencodec:"required"`
 	GasLimit      uint64   `json:"gasLimit"      gencodec:"required"`
@@ -121,6 +122,44 @@ type Payload struct {
 	/*Withdrawals   []*types.Withdrawal `json:"withdrawals"`
 	BlobGasUsed   *uint64             `json:"blobGasUsed"`
 	ExcessBlobGas *uint64             `json:"excessBlobGas"`*/
+}
+
+func (p *Payload) MarshalJSON() ([]byte, error) {
+	logsBloom, err := p.LogsBloom.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(&struct {
+		ParentHash    string   `json:"parentHash"    gencodec:"required"`
+		FeeRecipient  string   `json:"feeRecipient"  gencodec:"required"`
+		StateRoot     string   `json:"stateRoot"     gencodec:"required"`
+		ReceiptsRoot  string   `json:"receiptsRoot"  gencodec:"required"`
+		LogsBloom     string   `json:"logsBloom"     gencodec:"required"`
+		Random        string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+		Number        string   `json:"blockNumber"   gencodec:"required"`
+		GasLimit      string   `json:"gasLimit"      gencodec:"required"`
+		GasUsed       string   `json:"gasUsed"       gencodec:"required"`
+		Timestamp     string   `json:"timestamp"     gencodec:"required"`
+		ExtraData     string   `json:"extraData"     gencodec:"required"`
+		BaseFeePerGas string   `json:"baseFeePerGas" gencodec:"required"`
+		BlockHash     string   `json:"blockHash"     gencodec:"required"`
+		Transactions  []string `json:"transactions"  gencodec:"required"`
+	}{
+		ParentHash:    p.ParentHash.String(),
+		FeeRecipient:  p.FeeRecipient.String(),
+		StateRoot:     p.StateRoot.String(),
+		ReceiptsRoot:  p.ReceiptsRoot.String(),
+		LogsBloom:     string(logsBloom),
+		Random:        p.Random.String(),
+		Number:        hex.EncodeUint64(p.Number),
+		GasLimit:      hex.EncodeUint64(p.GasLimit),
+		GasUsed:       hex.EncodeUint64(p.GasUsed),
+		Timestamp:     hex.EncodeUint64(p.Timestamp),
+		ExtraData:     hex.EncodeToHex(p.ExtraData),
+		BaseFeePerGas: hex.EncodeBig(p.BaseFeePerGas),
+		BlockHash:     p.BlockHash.String(),
+		Transactions:  []string{},
+	})
 }
 
 func (b *Block) Hash() Hash {
