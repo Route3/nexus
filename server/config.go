@@ -10,8 +10,10 @@ import (
 	"github.com/apex-fusion/nexus/secrets"
 )
 
-const DefaultGRPCPort int = 9632
-const DefaultJSONRPCPort int = 8545
+const (
+	DefaultGRPCPort    int = 9632
+	DefaultJSONRPCPort int = 8545
+)
 
 // Config is used to parametrize the minimal client
 type Config struct {
@@ -41,6 +43,11 @@ type Config struct {
 	JSONLogFormat bool
 
 	LogFilePath string
+
+	EngineURL            string
+	EngineTokenPath      string
+	EngineJWTID          string
+	ExecutionGenesisHash string
 }
 
 // Telemetry holds the config details for metric services

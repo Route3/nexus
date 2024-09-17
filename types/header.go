@@ -2,7 +2,9 @@ package types
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"math/big"
 	"sync/atomic"
 
 	"github.com/apex-fusion/nexus/helper/hex"
@@ -26,6 +28,7 @@ type Header struct {
 	MixHash      Hash
 	Nonce        Nonce
 	Hash         Hash
+	PayloadHash  Hash
 }
 
 func (h *Header) Equal(hh *Header) bool {
@@ -75,6 +78,7 @@ func (h *Header) Copy() *Header {
 		GasLimit:     h.GasLimit,
 		GasUsed:      h.GasUsed,
 		Timestamp:    h.Timestamp,
+		PayloadHash:  h.PayloadHash,
 	}
 
 	newHeader.Miner = make([]byte, len(h.Miner))
@@ -92,12 +96,76 @@ type Body struct {
 }
 
 type Block struct {
-	Header       *Header
-	Transactions []*Transaction
-	Uncles       []*Header
-
+	Header           *Header
+	Transactions     []*Transaction
+	Uncles           []*Header
+	ExecutionPayload *Payload
 	// Cache
 	size atomic.Value // *uint64
+}
+
+type Payload struct {
+	ParentHash    Hash     `json:"parentHash"    gencodec:"required"`
+	FeeRecipient  Address  `json:"feeRecipient"  gencodec:"required"`
+	StateRoot     Hash     `json:"stateRoot"     gencodec:"required"`
+	ReceiptsRoot  Hash     `json:"receiptsRoot"  gencodec:"required"`
+	LogsBloom     Bloom    `json:"logsBloom"     gencodec:"required"`
+	Random        Hash     `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+	Number        uint64   `json:"blockNumber"   gencodec:"required"`
+	GasLimit      uint64   `json:"gasLimit"      gencodec:"required"`
+	GasUsed       uint64   `json:"gasUsed"       gencodec:"required"`
+	Timestamp     uint64   `json:"timestamp"     gencodec:"required"`
+	ExtraData     []byte   `json:"extraData"     gencodec:"required"`
+	BaseFeePerGas *big.Int `json:"baseFeePerGas" gencodec:"required"`
+	BlockHash     Hash     `json:"blockHash"     gencodec:"required"`
+	Transactions  [][]byte `json:"transactions"  gencodec:"required"`
+	/*Withdrawals   []*types.Withdrawal `json:"withdrawals"`
+	BlobGasUsed   *uint64             `json:"blobGasUsed"`
+	ExcessBlobGas *uint64             `json:"excessBlobGas"`*/
+}
+
+func (p *Payload) MarshalJSON() ([]byte, error) {
+	logsBloom, err := p.LogsBloom.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+
+	transactions := make([]string, len(p.Transactions))
+	for i, transaction := range p.Transactions {
+		transactions[i] = hex.EncodeToHex(transaction)
+	}
+
+	return json.Marshal(&struct {
+		ParentHash    string   `json:"parentHash"    gencodec:"required"`
+		FeeRecipient  string   `json:"feeRecipient"  gencodec:"required"`
+		StateRoot     string   `json:"stateRoot"     gencodec:"required"`
+		ReceiptsRoot  string   `json:"receiptsRoot"  gencodec:"required"`
+		LogsBloom     string   `json:"logsBloom"     gencodec:"required"`
+		Random        string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+		Number        string   `json:"blockNumber"   gencodec:"required"`
+		GasLimit      string   `json:"gasLimit"      gencodec:"required"`
+		GasUsed       string   `json:"gasUsed"       gencodec:"required"`
+		Timestamp     string   `json:"timestamp"     gencodec:"required"`
+		ExtraData     string   `json:"extraData"     gencodec:"required"`
+		BaseFeePerGas string   `json:"baseFeePerGas" gencodec:"required"`
+		BlockHash     string   `json:"blockHash"     gencodec:"required"`
+		Transactions  []string `json:"transactions"  gencodec:"required"`
+	}{
+		ParentHash:    p.ParentHash.String(),
+		FeeRecipient:  p.FeeRecipient.String(),
+		StateRoot:     p.StateRoot.String(),
+		ReceiptsRoot:  p.ReceiptsRoot.String(),
+		LogsBloom:     string(logsBloom),
+		Random:        p.Random.String(),
+		Number:        hex.EncodeUint64(p.Number),
+		GasLimit:      hex.EncodeUint64(p.GasLimit),
+		GasUsed:       hex.EncodeUint64(p.GasUsed),
+		Timestamp:     hex.EncodeUint64(p.Timestamp),
+		ExtraData:     hex.EncodeToHex(p.ExtraData),
+		BaseFeePerGas: hex.EncodeBig(p.BaseFeePerGas),
+		BlockHash:     p.BlockHash.String(),
+		Transactions:  transactions,
+	})
 }
 
 func (b *Block) Hash() Hash {

@@ -10,12 +10,14 @@ type BuildBlockParams struct {
 	Header   *types.Header
 	Txns     []*types.Transaction
 	Receipts []*types.Receipt
+	Payload  *types.Payload
 }
 
 // BuildBlock is a utility function that builds a block, based on the passed in header, transactions and receipts
 func BuildBlock(params BuildBlockParams) *types.Block {
 	txs := params.Txns
 	header := params.Header
+	payload := params.Payload
 
 	if len(txs) == 0 {
 		header.TxRoot = types.EmptyRootHash
@@ -34,7 +36,8 @@ func BuildBlock(params BuildBlockParams) *types.Block {
 	header.ComputeHash()
 
 	return &types.Block{
-		Header:       header,
-		Transactions: txs,
+		Header:           header,
+		Transactions:     txs,
+		ExecutionPayload: payload,
 	}
 }

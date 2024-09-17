@@ -10,6 +10,7 @@ import (
 	"github.com/apex-fusion/nexus/consensus/ibft/fork"
 	"github.com/apex-fusion/nexus/consensus/ibft/proto"
 	"github.com/apex-fusion/nexus/consensus/ibft/signer"
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/progress"
 	"github.com/apex-fusion/nexus/network"
 	"github.com/apex-fusion/nexus/secrets"
@@ -77,6 +78,7 @@ type backendIBFT struct {
 	Grpc           *grpc.Server           // Reference to the gRPC manager
 	operator       *operator              // Reference to the gRPC service of IBFT
 	transport      transport              // Reference to the transport protocol
+	engineClient   *engine.Client         // Reference to the engine client
 
 	// Dynamic References
 	forkManager       forkManagerInterface  // Manager to hold IBFT Forks
@@ -133,7 +135,6 @@ func Factory(params *consensus.Params) (consensus.Consensus, error) {
 		epochSize,
 		params.Config.Config,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -154,6 +155,7 @@ func Factory(params *consensus.Params) (consensus.Consensus, error) {
 		secretsManager: params.SecretsManager,
 		Grpc:           params.Grpc,
 		forkManager:    forkManager,
+		engineClient:   params.EngineClient,
 
 		// Configurations
 		config:             params.Config,
@@ -231,6 +233,15 @@ func (i *backendIBFT) startSyncing() {
 
 // Start starts the IBFT consensus
 func (i *backendIBFT) Start() error {
+	// Get the initial payloadId
+	//// TODO: Move to Init
+	//latestPayloadHash := i.blockchain.GetLatestPayloadHash()
+	//res, err := i.engineClient.ForkChoiceUpdatedV1(latestPayloadHash, true)
+	//if err != nil {
+	//	return err
+	//}
+	//i.blockchain.SetPayloadId(res.Result.PayloadID)
+
 	// Start the syncer
 	if err := i.syncer.Start(); err != nil {
 		return err
@@ -580,7 +591,6 @@ func (i *backendIBFT) verifyParentCommittedSeals(
 		i.forkManager,
 		parent.Number,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -643,7 +653,6 @@ func (i *backendIBFT) ValidateExtraDataFormat(header *types.Header) error {
 		i.forkManager,
 		header.Number,
 	)
-
 	if err != nil {
 		return err
 	}

@@ -50,6 +50,9 @@ func (b *Block) MarshalRLPWith(ar *fastrlp.Arena) *fastrlp.Value {
 		vv.Set(v1)
 	}
 
+	if b.ExecutionPayload != nil {
+		vv.Set(b.ExecutionPayload.MarshalRLPWith(ar))
+	}
 	return vv
 }
 
@@ -82,6 +85,8 @@ func (h *Header) MarshalRLPWith(arena *fastrlp.Arena) *fastrlp.Value {
 	vv.Set(arena.NewCopyBytes(h.ExtraData))
 	vv.Set(arena.NewBytes(h.MixHash.Bytes()))
 	vv.Set(arena.NewCopyBytes(h.Nonce[:]))
+
+	vv.Set(arena.NewBytes(h.PayloadHash.Bytes()))
 
 	return vv
 }
@@ -185,6 +190,37 @@ func (t *Transaction) MarshalRLPWith(arena *fastrlp.Arena) *fastrlp.Value {
 	vv.Set(arena.NewBigInt(t.V))
 	vv.Set(arena.NewBigInt(t.R))
 	vv.Set(arena.NewBigInt(t.S))
+
+	return vv
+}
+
+func (p *Payload) MarshalRLPWith(arena *fastrlp.Arena) *fastrlp.Value {
+	// We only encode the values that we are using.
+	// Missing fields in Payload struct (random, withdrawalsRoot) are for engine API compatibility only
+
+	vv := arena.NewArray()
+	vv.Set(arena.NewBytes(p.ParentHash.Bytes()))
+	vv.Set(arena.NewBytes(p.FeeRecipient.Bytes()))
+	vv.Set(arena.NewBytes(p.StateRoot.Bytes()))
+	vv.Set(arena.NewBytes(p.ReceiptsRoot.Bytes()))
+	vv.Set(arena.NewCopyBytes(p.LogsBloom[:]))
+	vv.Set(arena.NewUint(p.Number))
+	vv.Set(arena.NewUint(p.GasLimit))
+	vv.Set(arena.NewUint(p.GasUsed))
+	vv.Set(arena.NewUint(p.Timestamp))
+	vv.Set(arena.NewBytes(p.ExtraData))
+	vv.Set(arena.NewBigInt(p.BaseFeePerGas))
+	vv.Set(arena.NewBytes(p.BlockHash.Bytes()))
+
+	if len(p.Transactions) == 0 {
+		vv.Set(arena.NewNullArray())
+	} else {
+		v0 := arena.NewArray()
+		for _, tx := range p.Transactions {
+			v0.Set(arena.NewBytes(tx))
+		}
+		vv.Set(v0)
+	}
 
 	return vv
 }

@@ -50,19 +50,15 @@ const (
 	unsetPeersValue = -1
 )
 
-var (
-	params = &serverParams{
-		rawConfig: &config.Config{
-			Telemetry: &config.Telemetry{},
-			Network:   &config.Network{},
-			TxPool:    &config.TxPool{},
-		},
-	}
-)
+var params = &serverParams{
+	rawConfig: &config.Config{
+		Telemetry: &config.Telemetry{},
+		Network:   &config.Network{},
+		TxPool:    &config.TxPool{},
+	},
+}
 
-var (
-	errInvalidNATAddress = errors.New("could not parse NAT IP address")
-)
+var errInvalidNATAddress = errors.New("could not parse NAT IP address")
 
 type serverParams struct {
 	rawConfig  *config.Config
@@ -167,16 +163,20 @@ func (p *serverParams) generateConfig() *server.Config {
 			MaxOutboundPeers: p.rawConfig.Network.MaxOutboundPeers,
 			Chain:            p.genesisConfig,
 		},
-		DataDir:            p.rawConfig.DataDir,
-		Seal:               p.rawConfig.ShouldSeal,
-		PriceLimit:         p.rawConfig.TxPool.PriceLimit,
-		MaxSlots:           p.rawConfig.TxPool.MaxSlots,
-		MaxAccountEnqueued: p.rawConfig.TxPool.MaxAccountEnqueued,
-		SecretsManager:     p.secretsConfig,
-		RestoreFile:        p.getRestoreFilePath(),
-		BlockTime:          p.rawConfig.BlockTime,
-		LogLevel:           hclog.LevelFromString(p.rawConfig.LogLevel),
-		JSONLogFormat:      p.rawConfig.JSONLogFormat,
-		LogFilePath:        p.logFileLocation,
+		DataDir:              p.rawConfig.DataDir,
+		Seal:                 p.rawConfig.ShouldSeal,
+		PriceLimit:           p.rawConfig.TxPool.PriceLimit,
+		MaxSlots:             p.rawConfig.TxPool.MaxSlots,
+		MaxAccountEnqueued:   p.rawConfig.TxPool.MaxAccountEnqueued,
+		SecretsManager:       p.secretsConfig,
+		RestoreFile:          p.getRestoreFilePath(),
+		BlockTime:            p.rawConfig.BlockTime,
+		LogLevel:             hclog.LevelFromString(p.rawConfig.LogLevel),
+		JSONLogFormat:        p.rawConfig.JSONLogFormat,
+		LogFilePath:          p.logFileLocation,
+		EngineURL:            p.rawConfig.EngineURL,
+		EngineTokenPath:      p.rawConfig.EngineTokenPath,
+		EngineJWTID:          p.rawConfig.EngineJWTID,
+		ExecutionGenesisHash: p.rawConfig.ExecutionGenesisHash,
 	}
 }

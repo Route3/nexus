@@ -3,10 +3,11 @@ package ibft
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 
-	"github.com/apex-fusion/nexus/types"
 	"github.com/Route3/go-ibft/messages"
 	protoIBFT "github.com/Route3/go-ibft/messages/proto"
+	"github.com/apex-fusion/nexus/types"
 )
 
 // Verifier impl for go-ibft
@@ -48,17 +49,15 @@ func (i *backendIBFT) IsValidBlock(proposal []byte) bool {
 		return false
 	}
 
-	if err := i.blockchain.VerifyPotentialBlock(newBlock); err != nil {
-		i.logger.Error("block verification failed", "err", err)
-
+	res, err := i.engineClient.NewPayloadV1(newBlock.ExecutionPayload)
+	if err != nil {
+		i.logger.Error("Payload execution failed", "payloadHash", newBlock.Header.PayloadHash)
 		return false
 	}
 
-	if err := i.currentHooks.VerifyBlock(newBlock); err != nil {
-		i.logger.Error("additional block verification failed", "err", err)
+	fmt.Println(res)
 
-		return false
-	}
+	// TODO: Here we should check if we got a response that the payload is valid, because the EL might return that it is syncing blocks and still be a 200 response.
 
 	return true
 }
@@ -73,7 +72,6 @@ func (i *backendIBFT) IsValidSender(msg *protoIBFT.Message) bool {
 		msg.Signature,
 		msgNoSig,
 	)
-
 	if err != nil {
 		i.logger.Error("failed to ecrecover message", "err", err)
 
@@ -157,7 +155,6 @@ func (i *backendIBFT) IsValidCommittedSeal(
 		committedSeal.Signature,
 		proposalHash,
 	)
-
 	if err != nil {
 		i.logger.Error("IsValidCommittedSeal: failed to verify committed seal", "err", err)
 

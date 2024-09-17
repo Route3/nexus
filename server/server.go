@@ -4,13 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/profiling"
 
 	"github.com/apex-fusion/nexus/archive"
@@ -75,6 +78,9 @@ type Server struct {
 
 	// profiler
 	profiler profiling.Profiler
+
+	// Ethereum Engine API Client
+	engineClient *engine.Client
 }
 
 var dirPaths = []string{
@@ -121,6 +127,34 @@ func newLoggerFromConfig(config *Config) (hclog.Logger, error) {
 	}
 
 	return newCLILogger(config), nil
+}
+
+// newEngineAPIFromConfig creates a Engine API
+func newEngineAPIFromConfig(config *Config, logger hclog.Logger) (*engine.Client, error) {
+	var engineClient *engine.Client
+
+	if data, err := os.ReadFile(config.EngineTokenPath); err == nil {
+		trimmed := strings.TrimSpace(string(data))
+		jwtSecret, err := types.ParseBytes(&trimmed)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(jwtSecret) != 32 {
+			return nil, fmt.Errorf("invalid JWT secret")
+		}
+
+		logger.Info("Loaded JWT secret file", "path", config.EngineTokenPath, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
+
+		engineClient, err = engine.NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, err
+	}
+
+	return engineClient, nil
 }
 
 // NewServer creates a new Minimal server, using the passed in configuration
@@ -204,12 +238,19 @@ func NewServer(config *Config) (*Server, error) {
 	signer := crypto.NewEIP155Signer(uint64(m.config.Chain.Params.ChainID))
 
 	// blockchain object
-	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, m.executor, signer)
+	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, m.executor, signer, m.config.ExecutionGenesisHash)
 	if err != nil {
 		return nil, err
 	}
 
 	m.executor.GetHash = m.blockchain.GetHashHelper
+
+	// Setting up Engine API
+	if engineClient, err := newEngineAPIFromConfig(config, logger); err != nil {
+		return nil, fmt.Errorf("Engine API setup failed", "err", err.Error())
+	} else {
+		m.engineClient = engineClient
+	}
 
 	{
 		hub := &txpoolHub{
@@ -282,6 +323,13 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, err
 	}
 
+	// initialize the engine API communication now that we have the blockchain state available
+	payloadId, err := m.engineClient.Init(m.blockchain.GetLatestPayloadHash())
+	if err != nil {
+		return nil, err
+	}
+	m.blockchain.SetPayloadId(payloadId)
+
 	// start consensus
 	if err := m.consensus.Start(); err != nil {
 		return nil, err
@@ -330,7 +378,6 @@ func getAccountImpl(state state.State, root types.Hash, addr types.Address) (*st
 
 func (t *txpoolHub) GetNonce(root types.Hash, addr types.Address) uint64 {
 	account, err := getAccountImpl(t.state, root, addr)
-
 	if err != nil {
 		return 0
 	}
@@ -340,7 +387,6 @@ func (t *txpoolHub) GetNonce(root types.Hash, addr types.Address) uint64 {
 
 func (t *txpoolHub) GetBalance(root types.Hash, addr types.Address) (*big.Int, error) {
 	account, err := getAccountImpl(t.state, root, addr)
-
 	if err != nil {
 		if errors.Is(err, jsonrpc.ErrStateNotFound) {
 			return big.NewInt(0), nil
@@ -428,9 +474,9 @@ func (s *Server) setupConsensus() error {
 			Logger:         s.logger,
 			SecretsManager: s.secretsManager,
 			BlockTime:      s.config.BlockTime,
+			EngineClient:   s.engineClient,
 		},
 	)
-
 	if err != nil {
 		return err
 	}
