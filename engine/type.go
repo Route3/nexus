@@ -30,20 +30,27 @@ type GetPayloadV1Request struct {
 	Params []string `json:"params"`
 }
 
+type PayloadVersion struct {
+	PayloadID string `json:"payloadId"`
+}
+
+// type GetPayloadV1ResponseResult types.Payload;
+
 type GetPayloadV1ResponseResult struct {
-	ParentHash    string `json:"parentHash"`
-	FeeRecipient  string `json:"feeRecipient"`
-	StateRoot     string `json:"stateRoot"`
-	ReceiptsRoot  string `json:"receiptsRoot"`
-	LogsBloom     string `json:"logsBloom"`
-	PrevRandao    string `json:"prevRandao"`
-	BlockNumber   string `json:"blockNumber"`
-	GasLimit      string `json:"gasLimit"`
-	GasUsed       string `json:"gasUsed"`
-	Timestamp     string `json:"timestamp"`
-	ExtraData     string `json:"extraData"`
-	BaseFeePerGas string `json:"baseFeePerGas"`
-	BlockHash     string `json:"blockHash"`
+	ParentHash    string   `json:"parentHash"`
+	FeeRecipient  string   `json:"feeRecipient"`
+	StateRoot     string   `json:"stateRoot"`
+	ReceiptsRoot  string   `json:"receiptsRoot"`
+	LogsBloom     string   `json:"logsBloom"`
+	PrevRandao    string   `json:"prevRandao"`
+	BlockNumber   string   `json:"blockNumber"`
+	GasLimit      string   `json:"gasLimit"`
+	GasUsed       string   `json:"gasUsed"`
+	Timestamp     string   `json:"timestamp"`
+	ExtraData     string   `json:"extraData"`
+	BaseFeePerGas string   `json:"baseFeePerGas"`
+	BlockHash     string   `json:"blockHash"`
+	Transactions  []string `json:"transactions"`
 }
 
 type GetPayloadV1Response struct {
@@ -133,4 +140,13 @@ type ExchangeCapabilitiesRequest struct {
 
 type ExchangeCapabilitiesResponse struct {
 	Result []string `json:"result"`
+}
+
+type EngineErrorBody struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+type EngineResponseError struct {
+	Error EngineErrorBody `json:"error"`
 }

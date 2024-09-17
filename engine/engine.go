@@ -2,12 +2,15 @@ package engine
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
+	hexutils "github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/hashicorp/go-hclog"
 )
@@ -52,25 +55,26 @@ func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string) (
 		token,
 	}
 
-	fmt.Println("------")
-	fmt.Println("------")
-	fmt.Println(rawUrl)
-	fmt.Println(token)
-	fmt.Println(jwtId)
-	fmt.Println("------")
-	fmt.Println("------")
-
-	_, err = engineClient.ExchangeCapabilities(make([]string, 0))
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = engineClient.ExchangeTransitionConfigurationV1()
-	if err != nil {
-		return nil, err
-	}
-
 	return engineClient, nil
+}
+
+func (c *Client) Init(latestPayloadHash string) (payloadId string, err error) {
+	_, err = c.ExchangeCapabilities(make([]string, 0))
+	if err != nil {
+		return
+	}
+
+	_, err = c.ExchangeTransitionConfigurationV1()
+	if err != nil {
+		return
+	}
+
+	res, err := c.ForkChoiceUpdatedV1(latestPayloadHash, true)
+	if err != nil {
+		return
+	}
+
+	return res.Result.PayloadID, nil
 }
 
 func getRequestBase(method string) RequestBase {
@@ -105,7 +109,17 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 		return fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	fmt.Println(string(body))
+	fmt.Println("httpClient: body response:", string(body))
+
+	// Check if HTTP.status == 200 but some Geth error occured
+	var potentialErrResp EngineResponseError
+
+	err = json.Unmarshal(body, &potentialErrResp)
+
+	if potentialErrResp.Error.Code != 0 {
+		return fmt.Errorf("engine err: %v", potentialErrResp.Error)
+	}
+
 	err = json.Unmarshal(body, &responseData)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %v", err)
@@ -133,11 +147,11 @@ func (c *Client) ExchangeTransitionConfigurationV1() (responseData *ExchangeTran
 	return
 }
 
-func (c *Client) GetPayloadV1() (responseData *GetPayloadV1Response, err error) {
+func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Response, err error) {
 	c.logger.Debug("Running GetPayloadV1")
 	requestData := GetPayloadV1Request{
 		RequestBase: getRequestBase(GetPayloadV1Method),
-		Params:      []string{"null"},
+		Params:      []string{payloadId},
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
@@ -145,11 +159,11 @@ func (c *Client) GetPayloadV1() (responseData *GetPayloadV1Response, err error) 
 	return
 }
 
-func (c *Client) NewPayloadV1(executionPayload types.Payload) (responseData *NewPayloadV1Response, err error) {
+func (c *Client) NewPayloadV1(executionPayload *types.Payload) (responseData *NewPayloadV1Response, err error) {
 	c.logger.Debug("Running NewPayloadV1")
 	requestData := NewPayloadV1Request{
 		RequestBase: getRequestBase(NewPayloadV1Method),
-		Params:      []types.Payload{executionPayload},
+		Params:      []types.Payload{*executionPayload},
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
@@ -157,25 +171,30 @@ func (c *Client) NewPayloadV1(executionPayload types.Payload) (responseData *New
 	return
 }
 
-func (c *Client) ForkchoiceUpdatedV1(blockHash string, suggestedFeeRecipient string) (responseData *ForkchoiceUpdatedV1Response, err error) {
-	c.logger.Debug("Running ForkchoiceUpdatedV1")
+func (c *Client) ForkChoiceUpdatedV1(blockHash string, buildPayload bool) (responseData *ForkchoiceUpdatedV1Response, err error) {
+	c.logger.Debug("Running ForkchoiceUpdatedV1", "blockHash", blockHash)
+
+	blockTimestamp := "0x" + fmt.Sprintf("%X", time.Now().Unix())
+
+	params := []ForkchoiceUpdatedV1Param{
+		ForkchoiceStateParam{
+			HeadBlockHash:      blockHash,
+			SafeBlockHash:      blockHash,
+			FinalizedBlockHash: blockHash,
+		},
+		nil,
+	}
+
+	if buildPayload {
+		params[1] = ForkchoicePayloadAttributes{
+			Timestamp:             blockTimestamp,
+			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
+			SuggestedFeeRecipient: "0x0000000000000000000000000000000000000000",
+		}
+	}
 	requestData := ForkchoiceUpdatedV1Request{
 		RequestBase: getRequestBase(ForkchoiceUpdatedV1Method),
-		Params: []ForkchoiceUpdatedV1Param{
-			ForkchoiceStateParam{
-				// HeadBlockHash:      blockHash,
-				// SafeBlockHash:      blockHash,
-				// FinalizedBlockHash: blockHash,
-				HeadBlockHash:      "0x3559e851470f6e7bbed1db474980683e8c315bfce99b2a6ef47c057c04de7858",
-				SafeBlockHash:      "0x3559e851470f6e7bbed1db474980683e8c315bfce99b2a6ef47c057c04de7858",
-				FinalizedBlockHash: "0x3b8fb240d288781d4aac94d3fd16809ee413bc99294a085798a589dae51ddd4a",
-			},
-			ForkchoicePayloadAttributes{
-				Timestamp:             "0x5",                                                                // TODO
-				PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
-				SuggestedFeeRecipient: suggestedFeeRecipient,
-			},
-		},
+		Params:      params,
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
@@ -191,6 +210,44 @@ func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseDat
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
+
+	return
+}
+
+func GetPayloadV1ResponseToPayload(resp *GetPayloadV1Response) (payload *types.Payload, err error) {
+	// TODO: handle potential conversion errors and implement this as a json.Unmarshal method
+
+	payload = new(types.Payload)
+
+	payload.BaseFeePerGas = hexutils.DecodeHexToBig(string(hexutils.DropHexPrefix([]byte(resp.Result.BaseFeePerGas)))) // TODO: Make it prettier
+	payload.BlockHash = types.StringToHash(resp.Result.BlockHash)
+	payload.ExtraData, _ = hexutils.DecodeString(string(hexutils.DropHexPrefix([]byte(resp.Result.ExtraData)))) // TODO: Make it prettier
+	payload.FeeRecipient = types.StringToAddress(resp.Result.FeeRecipient)
+	payload.GasLimit, _ = hexutils.DecodeUint64(resp.Result.GasLimit)
+	payload.GasUsed, _ = hexutils.DecodeUint64(resp.Result.GasUsed)
+
+	// Logs bloom encoding
+	var logsBloom types.Bloom
+	input := hexutils.DropHexPrefix([]byte(resp.Result.LogsBloom))
+	if _, err := hex.Decode(logsBloom[:], input); err != nil {
+		return nil, err
+	}
+	payload.LogsBloom = logsBloom
+
+	payload.Number, _ = hexutils.DecodeUint64(resp.Result.BlockNumber)
+	payload.ParentHash = types.StringToHash(resp.Result.ParentHash)
+	payload.ReceiptsRoot = types.StringToHash(resp.Result.ReceiptsRoot)
+	payload.StateRoot = types.StringToHash(resp.Result.StateRoot)
+	payload.Timestamp, _ = hexutils.DecodeUint64(resp.Result.Timestamp)
+	payload.Transactions = [][]byte{}
+
+	for _, transaction := range resp.Result.Transactions {
+		decoded, err := hexutils.DecodeHex(transaction)
+		if err != nil {
+			return nil, err
+		}
+		payload.Transactions = append(payload.Transactions, decoded)
+	}
 
 	return
 }

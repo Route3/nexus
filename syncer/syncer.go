@@ -17,9 +17,7 @@ const (
 	syncerProto = "/syncer/0.2"
 )
 
-var (
-	errTimeout = errors.New("timeout awaiting block from peer")
-)
+var errTimeout = errors.New("timeout awaiting block from peer")
 
 // XXX: Don't use this syncer for the consensus that may cause fork.
 // This syncer doesn't assume forks

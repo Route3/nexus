@@ -49,6 +49,10 @@ type Blockchain struct {
 	executor  Executor
 	txSigner  TxSigner
 
+	executionGenesisHash string
+	payloadId            string
+	payloadIdMutex       sync.RWMutex
+
 	config  *chain.Chain // Config containing chain information
 	genesis types.Hash   // The hash of the genesis block
 
@@ -192,14 +196,16 @@ func NewBlockchain(
 	consensus Verifier,
 	executor Executor,
 	txSigner TxSigner,
+	executionGenesisHash string,
 ) (*Blockchain, error) {
 	b := &Blockchain{
-		logger:    logger.Named("blockchain"),
-		config:    config,
-		consensus: consensus,
-		executor:  executor,
-		txSigner:  txSigner,
-		stream:    &eventStream{},
+		logger:               logger.Named("blockchain"),
+		config:               config,
+		consensus:            consensus,
+		executor:             executor,
+		txSigner:             txSigner,
+		executionGenesisHash: executionGenesisHash,
+		stream:               &eventStream{},
 		gpAverage: &gasPriceAverage{
 			price: big.NewInt(0),
 			count: big.NewInt(0),

@@ -5,12 +5,13 @@ import (
 	"math"
 	"time"
 
+	"github.com/Route3/go-ibft/messages"
 	"github.com/apex-fusion/nexus/consensus"
 	"github.com/apex-fusion/nexus/consensus/ibft/signer"
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
-	"github.com/Route3/go-ibft/messages"
 )
 
 func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
@@ -29,7 +30,35 @@ func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
 		return nil
 	}
 
-	block, err := i.buildBlock(latestHeader)
+	// fmt.Println("parentHash.String():", parentHash.String())
+	// fmt.Println("blockHash.String():", blockHash.String())
+	//
+	// fcuResp, fcuErr := i.engineClient.ForkChoiceUpdatedV1(blockHash.String(), "")
+	// if fcuErr != nil {
+	// 	i.logger.Error("cannot update fork choice", "err", fcuErr)
+	//
+	// 	return nil
+	// }
+	//
+	// fmt.Println("fcuResp.Result.PayloadID:", fcuResp.Result.PayloadID, "<--")
+	//
+
+	payloadResponse, err := i.engineClient.GetPayloadV1(i.blockchain.GetPayloadId())
+	if err != nil {
+		i.logger.Error("cannot get engine's payload", "err", err)
+
+		return nil
+	}
+
+	// TODO: Why do we need this method?
+	payload, err := engine.GetPayloadV1ResponseToPayload(payloadResponse)
+	if err != nil {
+		i.logger.Error("cannot parse payload response", "err", err)
+
+		return nil
+	}
+
+	block, err := i.buildBlock(latestHeader, payload)
 	if err != nil {
 		i.logger.Error("cannot build block", "num", blockNumber, "err", err)
 
@@ -76,7 +105,7 @@ func (i *backendIBFT) InsertBlock(
 	// This is a safety net to help us narrow down and also recover before
 	// writing the block
 	if err := i.ValidateExtraDataFormat(newBlock.Header); err != nil {
-		//Format committed seals to make them more readable
+		// Format committed seals to make them more readable
 		committedSealsStr := make([]string, len(committedSealsMap))
 		for i, seal := range committedSeals {
 			committedSealsStr[i] = fmt.Sprintf("{signer=%v signature=%v}",
@@ -94,6 +123,21 @@ func (i *backendIBFT) InsertBlock(
 	}
 
 	newBlock.Header = header
+
+	fmt.Println("New payload Call!")
+
+	_, err = i.engineClient.NewPayloadV1(newBlock.ExecutionPayload)
+	if err != nil {
+		i.logger.Error("cannot create new payload", "err", err)
+		return
+	}
+
+	res, err := i.engineClient.ForkChoiceUpdatedV1(newBlock.Header.PayloadHash.String(), true)
+	if err != nil {
+		i.logger.Error("cannot run FCU for block insertion", "err", err)
+		return
+	}
+	i.blockchain.SetPayloadId(res.Result.PayloadID)
 
 	// Save the block locally
 	if err := i.blockchain.WriteBlock(newBlock, "consensus"); err != nil {
@@ -156,7 +200,7 @@ func (i *backendIBFT) Quorum(blockNumber uint64) uint64 {
 }
 
 // buildBlock builds the block, based on the passed in snapshot and parent header
-func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
+func (i *backendIBFT) buildBlock(parent *types.Header, payload *types.Payload) (*types.Block, error) {
 	header := &types.Header{
 		ParentHash: parent.Hash,
 		Number:     parent.Number + 1,
@@ -164,10 +208,11 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 		Nonce:      types.Nonce{},
 		MixHash:    signer.IstanbulDigest,
 		// this is required because blockchain needs difficulty to organize blocks and forks
-		Difficulty: parent.Number + 1,
-		StateRoot:  types.EmptyRootHash, // this avoids needing state for now
-		Sha3Uncles: types.EmptyUncleHash,
-		GasLimit:   parent.GasLimit, // Inherit from parent for now, will need to adjust dynamically later.
+		Difficulty:  parent.Number + 1,
+		StateRoot:   types.EmptyRootHash, // this avoids needing state for now
+		Sha3Uncles:  types.EmptyUncleHash,
+		GasLimit:    parent.GasLimit, // Inherit from parent for now, will need to adjust dynamically later.
+		PayloadHash: payload.BlockHash,
 	}
 
 	// calculate gas limit based on parent header
@@ -212,6 +257,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 		Header:   header,
 		Txns:     txs,
 		Receipts: transition.Receipts(),
+		Payload:  payload,
 	})
 
 	// write the seal of the block after all the fields are completed

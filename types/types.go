@@ -9,8 +9,10 @@ import (
 	"github.com/apex-fusion/nexus/helper/keccak"
 )
 
-var ZeroAddress = Address{}
-var ZeroHash = Hash{}
+var (
+	ZeroAddress = Address{}
+	ZeroHash    = Hash{}
+)
 
 const (
 	HashLength    = 32

@@ -131,7 +131,6 @@ func newLoggerFromConfig(config *Config) (hclog.Logger, error) {
 
 // newEngineAPIFromConfig creates a Engine API
 func newEngineAPIFromConfig(config *Config, logger hclog.Logger) (*engine.Client, error) {
-
 	var engineClient *engine.Client
 
 	if data, err := os.ReadFile(config.EngineTokenPath); err == nil {
@@ -174,13 +173,6 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	m.logger.Info("Data dir", "path", config.DataDir)
-
-	// Setting up Engine API
-	if engineClient, err := newEngineAPIFromConfig(config, logger); err != nil {
-		return nil, fmt.Errorf("Engine API setup failed", "err", err.Error())
-	} else {
-		m.engineClient = engineClient
-	}
 
 	// Generate all the paths in the dataDir
 	if err := common.SetupDataDir(config.DataDir, dirPaths); err != nil {
@@ -246,12 +238,19 @@ func NewServer(config *Config) (*Server, error) {
 	signer := crypto.NewEIP155Signer(uint64(m.config.Chain.Params.ChainID))
 
 	// blockchain object
-	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, m.executor, signer)
+	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, m.executor, signer, m.config.ExecutionGenesisHash)
 	if err != nil {
 		return nil, err
 	}
 
 	m.executor.GetHash = m.blockchain.GetHashHelper
+
+	// Setting up Engine API
+	if engineClient, err := newEngineAPIFromConfig(config, logger); err != nil {
+		return nil, fmt.Errorf("Engine API setup failed", "err", err.Error())
+	} else {
+		m.engineClient = engineClient
+	}
 
 	{
 		hub := &txpoolHub{
@@ -323,6 +322,13 @@ func NewServer(config *Config) (*Server, error) {
 	if err := m.restoreChain(); err != nil {
 		return nil, err
 	}
+
+	// initialize the engine API communication now that we have the blockchain state available
+	payloadId, err := m.engineClient.Init(m.blockchain.GetLatestPayloadHash())
+	if err != nil {
+		return nil, err
+	}
+	m.blockchain.SetPayloadId(payloadId)
 
 	// start consensus
 	if err := m.consensus.Start(); err != nil {
