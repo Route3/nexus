@@ -15,6 +15,9 @@ import (
 )
 
 func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
+
+	fmt.Println("Building proposal; block.num", blockNumber)
+
 	var (
 		latestHeader      = i.blockchain.Header()
 		latestBlockNumber = latestHeader.Number
@@ -135,8 +138,9 @@ func (i *backendIBFT) InsertBlock(
 		i.logger.Error("cannot run FCU for block insertion", "err", err)
 		return
 	}
-	i.blockchain.SetPayloadId(res.Result.PayloadID)
 
+	i.blockchain.SetPayloadId(res.Result.PayloadID)
+	fmt.Println("payload id set!", res)
 	// Save the block locally
 	if err := i.blockchain.WriteBlock(newBlock, "consensus"); err != nil {
 		i.logger.Error("cannot write block", "err", err)

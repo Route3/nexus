@@ -343,9 +343,17 @@ func (i *backendIBFT) startConsensus() {
 }
 
 // isActiveValidator returns whether my signer belongs to current validators
+// func (i *backendIBFT) isActiveValidator() bool {
+// 	return i.currentValidators.Includes(i.currentSigner.Address())
+// }
+
+// isActiveValidator returns whether my signer belongs to current validators
 func (i *backendIBFT) isActiveValidator() bool {
-	return i.currentValidators.Includes(i.currentSigner.Address())
+	isValidator := i.currentValidators.Includes(i.currentSigner.Address())
+	i.logger.Debug("CHECKING IF VALIDATOR", "isValidator", isValidator)
+	return isValidator
 }
+
 
 // updateMetrics will update various metrics based on the given block
 // currently we capture No.of Txs and block interval metrics using this function
