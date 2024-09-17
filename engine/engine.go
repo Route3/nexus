@@ -74,8 +74,6 @@ func (c *Client) Init(latestPayloadHash string) (payloadId string, err error) {
 		return
 	}
 
-	fmt.Println("res.Result.PayloadID", res.Result.PayloadID)
-
 	return res.Result.PayloadID, nil
 }
 
