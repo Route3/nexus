@@ -343,11 +343,6 @@ func (i *backendIBFT) startConsensus() {
 }
 
 // isActiveValidator returns whether my signer belongs to current validators
-// func (i *backendIBFT) isActiveValidator() bool {
-// 	return i.currentValidators.Includes(i.currentSigner.Address())
-// }
-
-// isActiveValidator returns whether my signer belongs to current validators
 func (i *backendIBFT) isActiveValidator() bool {
 	return i.currentValidators.Includes(i.currentSigner.Address())
 }
