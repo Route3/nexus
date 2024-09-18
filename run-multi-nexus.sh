@@ -209,5 +209,5 @@ docker compose up -d || true
 
 # Run nexus
 go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-0.yaml &
-go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-1.yaml &
+# go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-1.yaml &
 # go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-2.yaml &
