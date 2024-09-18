@@ -33,8 +33,8 @@ if [ $option_g ]; then
 
 
   # Stop and remove geth
-  docker compose stop
-  docker compose rm -f
+  docker compose -f docker-compose.multi.yaml stop
+  docker compose -f docker-compose.multi.yaml rm -f
 fi
 
 if [ $option_n ]; then
@@ -92,7 +92,7 @@ if [ $option_n ]; then
 fi
 
 # Run geth
-docker compose up -d || true
+docker compose -f docker-compose.multi.yaml up -d || true
 
 # Run nexus
 go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-0.yaml &
