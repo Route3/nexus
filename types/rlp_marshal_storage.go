@@ -35,9 +35,7 @@ func (b *Body) MarshalRLPWith(ar *fastrlp.Arena) *fastrlp.Value {
 	}
 
 	if b.ExecutionPayload != nil {
-		v2 := ar.NewArray()
-		v2.Set(b.ExecutionPayload.MarshalRLPWith(ar))
-		vv.Set(v2)
+		vv.Set(b.ExecutionPayload.MarshalRLPWith(ar))
 	}
 
 	return vv

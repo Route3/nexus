@@ -55,12 +55,10 @@ func (b *Body) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 	}
 
 	// execution payload
-	payload, err := tuple[2].GetElems()
-	bPayload := &Payload{}
-	if err := bPayload.UnmarshalRLPFrom(p, payload[0]); err != nil {
+	b.ExecutionPayload = &Payload{}
+	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, tuple[2]); err != nil {
 		return err
 	}
-	b.ExecutionPayload = bPayload
 
 	return nil
 }
