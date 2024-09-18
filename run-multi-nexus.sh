@@ -106,6 +106,7 @@
 set -e
 
 
+
 # Parse flags
 while getopts "ng" flag; do
   case "$flag" in
@@ -197,9 +198,10 @@ if [ $option_n ]; then
   # go run main.go genesis --consensus ibft --ibft-validator-type ecdsa --ibft-validator  $(cat ./multi-validator-shared/v-0/nexus/validator_key) --ibft-validator  $(cat ./multi-validator-shared/v-1/nexus/validator_key)  --ibft-validator  $(cat ./multi-validator-shared/v-2/nexus/validator_key) --bootnode /ip4/127.0.0.1/tcp/10001/p2p/$(cat ./multi-validator-shared/v-0/nexus/node_id)/ --dir ./multi-validator-shared/v-0/nexus-genesis.json 
 
   go run main.go genesis --consensus ibft --ibft-validator-type ecdsa \
-    --ibft-validator  $(cat ./multi-validator-shared/v-0/nexus/validator_key) \
-    --ibft-validator  $(cat ./multi-validator-shared/v-1/nexus/validator_key) \
-    --bootnode /ip4/127.0.0.1/tcp/10001/p2p/$(cat ./multi-validator-shared/v-0/nexus/node_id)/ \
+    --ibft-validator $(cat ./multi-validator-shared/v-0/nexus/validator_key) \
+    --ibft-validator $(cat ./multi-validator-shared/v-1/nexus/validator_key) \
+    --ibft-validator $(cat ./multi-validator-shared/v-2/nexus/validator_key) \
+    --bootnode /ip4/127.0.0.1/tcp/10001/p2p/$(cat ./multi-validator-shared/v-0/nexus/node_id) \
     --dir ./multi-validator-shared/v-0/nexus-genesis.json 
 
 fi
@@ -209,5 +211,6 @@ docker compose up -d || true
 
 # Run nexus
 go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-0.yaml &
-# go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-1.yaml &
-# go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-2.yaml &
+go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-1.yaml &
+sleep 1
+go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-2.yaml
