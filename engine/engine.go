@@ -19,9 +19,9 @@ const (
 	JSONRPC                                 = "2.0"
 	ExchangeTransitionConfigurationV1Method = "engine_exchangeTransitionConfigurationV1"
 	ExchangeCapabilitiesMethod              = "engine_exchangeCapabilities"
-	ForkchoiceUpdatedV1Method               = "engine_forkchoiceUpdatedV1"
-	GetPayloadV1Method                      = "engine_getPayloadV1"
-	NewPayloadV1Method                      = "engine_newPayloadV1"
+	ForkchoiceUpdatedV1Method               = "engine_forkchoiceUpdatedV3"
+	GetPayloadV1Method                      = "engine_getPayloadV3"
+	NewPayloadV3Method                      = "engine_newPayloadV3"
 )
 
 type Client struct {
@@ -159,11 +159,18 @@ func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Respo
 	return
 }
 
-func (c *Client) NewPayloadV1(executionPayload *types.Payload) (responseData *NewPayloadV1Response, err error) {
-	c.logger.Debug("Running NewPayloadV1")
-	requestData := NewPayloadV1Request{
-		RequestBase: getRequestBase(NewPayloadV1Method),
-		Params:      []types.Payload{*executionPayload},
+func (c *Client) NewPayloadV3(executionPayload *types.Payload, beaconBlockRoot string) (responseData *NewPayloadV3Response, err error) {
+	c.logger.Debug("Running NewPayloadV3")
+
+	params := []NewPayloadV3RequestParams{
+		NewPayloadV3ExecutionPayloadParam{*executionPayload},
+		make(NewPayloadV3ExpectedBlobVersionedHashes, 0),
+		NewPayloadV3ParentBeaconBlockRoot(beaconBlockRoot),
+	}
+
+	requestData := NewPayloadV3Request{
+		RequestBase: getRequestBase(NewPayloadV3Method),
+		Params:      params,
 	}
 
 	err = c.handleRequest(&requestData, &responseData)

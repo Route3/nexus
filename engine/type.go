@@ -57,36 +57,60 @@ type GetPayloadV1Response struct {
 	Result GetPayloadV1ResponseResult `json:"result"`
 }
 
-type NewPayloadV1RequestParams struct {
-	ParentHash    string   `json:"parentHash"    gencodec:"required"`
-	FeeRecipient  string   `json:"feeRecipient"  gencodec:"required"`
-	StateRoot     string   `json:"stateRoot"     gencodec:"required"`
-	ReceiptsRoot  string   `json:"receiptsRoot"  gencodec:"required"`
-	LogsBloom     string   `json:"logsBloom"     gencodec:"required"`
-	Random        string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
-	Number        string   `json:"blockNumber"   gencodec:"required"`
-	GasLimit      string   `json:"gasLimit"      gencodec:"required"`
-	GasUsed       string   `json:"gasUsed"       gencodec:"required"`
-	Timestamp     string   `json:"timestamp"     gencodec:"required"`
-	ExtraData     string   `json:"extraData"     gencodec:"required"`
-	BaseFeePerGas string   `json:"baseFeePerGas" gencodec:"required"`
-	BlockHash     string   `json:"blockHash"     gencodec:"required"`
-	Transactions  []string `json:"transactions"  gencodec:"required"`
-}
+// type NewPayloadV3RequestParams struct {
+// 	ParentHash    string   `json:"parentHash"    gencodec:"required"`
+// 	FeeRecipient  string   `json:"feeRecipient"  gencodec:"required"`
+// 	StateRoot     string   `json:"stateRoot"     gencodec:"required"`
+// 	ReceiptsRoot  string   `json:"receiptsRoot"  gencodec:"required"`
+// 	LogsBloom     string   `json:"logsBloom"     gencodec:"required"`
+// 	Random        string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+// 	Number        string   `json:"blockNumber"   gencodec:"required"`
+// 	GasLimit      string   `json:"gasLimit"      gencodec:"required"`
+// 	GasUsed       string   `json:"gasUsed"       gencodec:"required"`
+// 	Timestamp     string   `json:"timestamp"     gencodec:"required"`
+// 	ExtraData     string   `json:"extraData"     gencodec:"required"`
+// 	BaseFeePerGas string   `json:"baseFeePerGas" gencodec:"required"`
+// 	BlockHash     string   `json:"blockHash"     gencodec:"required"`
+// 	Transactions  []string `json:"transactions"  gencodec:"required"`
+// }
 
-type NewPayloadV1Request struct {
+type NewPayloadV3Request struct {
 	RequestBase
-	Params []types.Payload `json:"params"`
+	Params []NewPayloadV3RequestParams `json:"params"`
 }
 
-type NewPayloadV1ResponseResult struct {
+type NewPayloadV3RequestParams interface {
+	isNewPayloadV3RequestParams() bool
+}
+
+type NewPayloadV3ExecutionPayloadParam struct {
+	types.Payload
+}
+
+func (s NewPayloadV3ExecutionPayloadParam) isNewPayloadV3RequestParams() bool {
+	return true
+}
+
+type NewPayloadV3ExpectedBlobVersionedHashes []string
+
+func (s NewPayloadV3ExpectedBlobVersionedHashes) isNewPayloadV3RequestParams() bool {
+	return true
+}
+
+type NewPayloadV3ParentBeaconBlockRoot string
+
+func (s NewPayloadV3ParentBeaconBlockRoot) isNewPayloadV3RequestParams() bool {
+	return true
+}
+
+type NewPayloadV3ResponseResult struct {
 	Status          string  `json:"status"`
 	LatestValidHash string  `json:"latestValidHash"`
 	ValidationError *string `json:"validationError"`
 }
 
-type NewPayloadV1Response struct {
-	Result NewPayloadV1ResponseResult `json:"result"`
+type NewPayloadV3Response struct {
+	Result NewPayloadV3ResponseResult `json:"result"`
 }
 
 type ForkchoiceUpdatedV1Param interface {
