@@ -324,7 +324,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// initialize the engine API communication now that we have the blockchain state available
-	payloadId, err := m.engineClient.Init(m.blockchain.GetLatestPayloadHash())
+	payloadId, err := m.engineClient.Init(m.blockchain.GetLatestPayloadHash(), m.blockchain.Header().Hash.String())
 	if err != nil {
 		return nil, err
 	}

@@ -96,13 +96,15 @@ func (i *backendIBFT) InsertBlock(
 
 	newBlock.Header = header
 
-	_, err = i.engineClient.NewPayloadV1(newBlock.ExecutionPayload)
+	parentBeaconBlockRoot := newBlock.ParentHash().String()
+	_, err = i.engineClient.NewPayloadV3(newBlock.ExecutionPayload, parentBeaconBlockRoot)
 	if err != nil {
 		i.logger.Error("cannot create new payload", "err", err)
 		return
 	}
 
-	res, err := i.engineClient.ForkChoiceUpdatedV1(newBlock.Header.PayloadHash.String(), true)
+	currentBlockBeaconRoot := newBlock.Hash().String()
+	res, err := i.engineClient.ForkChoiceUpdatedV3(newBlock.Header.PayloadHash.String(), currentBlockBeaconRoot, true)
 	if err != nil {
 		i.logger.Error("cannot run FCU for block insertion", "err", err)
 		return
@@ -214,7 +216,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 
 	txs := i.writeTransactions(gasLimit, header.Number, transition)
 
-	payloadResponse, err := i.engineClient.GetPayloadV1(i.blockchain.GetPayloadId())
+	payloadResponse, err := i.engineClient.GetPayloadV3(i.blockchain.GetPayloadId())
 	if err != nil {
 		i.logger.Error("cannot get engine's payload", "err", err)
 
@@ -222,7 +224,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 	}
 
 	// TODO: Why do we need this method?
-	payload, err := engine.GetPayloadV1ResponseToPayload(payloadResponse)
+	payload, err := engine.GetPayloadV3ResponseToPayload(payloadResponse)
 	if err != nil {
 		i.logger.Error("cannot parse payload response", "err", err)
 
