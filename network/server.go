@@ -277,8 +277,6 @@ func (s *Server) Start() error {
 
 // setupBootnodes sets up the node's bootnode connections
 func (s *Server) setupBootnodes() error {
-	// TODO: Remove
-	return nil
 
 	// Check the bootnode config is present
 	if s.config.Chain.Bootnodes == nil {
