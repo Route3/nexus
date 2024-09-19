@@ -15,6 +15,9 @@ import (
 )
 
 func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
+
+	fmt.Println("Building proposal; block.num", blockNumber)
+
 	var (
 		latestHeader      = i.blockchain.Header()
 		latestBlockNumber = latestHeader.Number
@@ -123,8 +126,6 @@ func (i *backendIBFT) InsertBlock(
 	}
 
 	newBlock.Header = header
-
-	fmt.Println("New payload Call!")
 
 	_, err = i.engineClient.NewPayloadV1(newBlock.ExecutionPayload)
 	if err != nil {

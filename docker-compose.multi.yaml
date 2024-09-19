@@ -1,10 +1,10 @@
 services:
   geth-init:
     image: "ethereum/client-go:latest"
-    command: --datadir=/shared/geth init /shared/geth-genesis.json
+    command: --datadir=/multi-validator-shared/v-0/geth init /multi-validator-shared/v-0/geth-genesis.json
     volumes:
-      - ./shared:/shared
-      - ./geth-genesis.json:/shared/geth-genesis.json
+      - ./multi-validator-shared/v-0:/multi-validator-shared/v-0
+      - ./geth-genesis.json:/multi-validator-shared/v-0/geth-genesis.json
 
   mitmproxy:
     image: mitmproxy/mitmproxy
@@ -32,8 +32,8 @@ services:
       - --ws.origins=*
       - --authrpc.vhosts=*
       - --authrpc.addr=0.0.0.0
-      - --authrpc.jwtsecret=/shared/jwt.hex
-      - --datadir=/shared/geth
+      - --authrpc.jwtsecret=/multi-validator-shared/v-0/jwt.hex
+      - --datadir=/multi-validator-shared/v-0/geth
       - --nodiscover
       - --syncmode=full
     ports:
@@ -41,8 +41,8 @@ services:
       - 8545:8545
       - 8546:8546
     volumes:
-      - ./shared:/shared
-      - ./geth-genesis.json:/shared/geth-genesis.json
+      - ./multi-validator-shared/v-0:/multi-validator-shared/v-0
+      - ./geth-genesis.json:/multi-validator-shared/v-0/geth-genesis.json
     depends_on:
       geth-init:
         condition: service_completed_successfully

@@ -23,7 +23,7 @@ func (b *Blockchain) GetPayloadId() string {
 
 	fmt.Println("getting payload id ")
 	fmt.Println("getting payload id ")
-	fmt.Println(b.payloadId)
+	fmt.Println("------->", b.payloadId, "<-----")
 	fmt.Println("getting payload id ")
 	fmt.Println("getting payload id ")
 

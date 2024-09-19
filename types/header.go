@@ -91,8 +91,9 @@ func (h *Header) Copy() *Header {
 }
 
 type Body struct {
-	Transactions []*Transaction
-	Uncles       []*Header
+	Transactions     []*Transaction
+	Uncles           []*Header
+	ExecutionPayload *Payload
 }
 
 type Block struct {
@@ -182,8 +183,9 @@ func (b *Block) ParentHash() Hash {
 
 func (b *Block) Body() *Body {
 	return &Body{
-		Transactions: b.Transactions,
-		Uncles:       b.Uncles,
+		Transactions:     b.Transactions,
+		Uncles:           b.Uncles,
+		ExecutionPayload: b.ExecutionPayload,
 	}
 }
 
