@@ -46,4 +46,4 @@ fi
 docker compose -f docker-compose.single.yaml up -d || true
 
 # Run nexus
-#go run main.go server --log-level DEBUG --config nexus-config.yaml
+go run main.go server --log-level DEBUG --config nexus-config.yaml

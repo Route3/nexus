@@ -19,8 +19,8 @@ const (
 	JSONRPC                                 = "2.0"
 	ExchangeTransitionConfigurationV1Method = "engine_exchangeTransitionConfigurationV1"
 	ExchangeCapabilitiesMethod              = "engine_exchangeCapabilities"
-	ForkchoiceUpdatedV1Method               = "engine_forkchoiceUpdatedV3"
-	GetPayloadV1Method                      = "engine_getPayloadV3"
+	ForkchoiceUpdatedV3Method               = "engine_forkchoiceUpdatedV3"
+	GetPayloadV3Method                      = "engine_getPayloadV3"
 	NewPayloadV3Method                      = "engine_newPayloadV3"
 )
 
@@ -58,7 +58,7 @@ func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string) (
 	return engineClient, nil
 }
 
-func (c *Client) Init(latestPayloadHash string) (payloadId string, err error) {
+func (c *Client) Init(latestPayloadHash string, parentBeaconBlockRoot string) (payloadId string, err error) {
 	_, err = c.ExchangeCapabilities(make([]string, 0))
 	if err != nil {
 		return
@@ -69,7 +69,7 @@ func (c *Client) Init(latestPayloadHash string) (payloadId string, err error) {
 		return
 	}
 
-	res, err := c.ForkChoiceUpdatedV1(latestPayloadHash, true)
+	res, err := c.ForkChoiceUpdatedV3(latestPayloadHash, parentBeaconBlockRoot, true)
 	if err != nil {
 		return
 	}
@@ -109,8 +109,6 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 		return fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	fmt.Println("httpClient: body response:", string(body))
-
 	// Check if HTTP.status == 200 but some Geth error occured
 	var potentialErrResp EngineResponseError
 
@@ -147,10 +145,10 @@ func (c *Client) ExchangeTransitionConfigurationV1() (responseData *ExchangeTran
 	return
 }
 
-func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Response, err error) {
-	c.logger.Debug("Running GetPayloadV1")
-	requestData := GetPayloadV1Request{
-		RequestBase: getRequestBase(GetPayloadV1Method),
+func (c *Client) GetPayloadV3(payloadId string) (responseData *GetPayloadV3Response, err error) {
+	c.logger.Debug("Running GetPayloadV3")
+	requestData := GetPayloadV3Request{
+		RequestBase: getRequestBase(GetPayloadV3Method),
 		Params:      []string{payloadId},
 	}
 
@@ -159,11 +157,52 @@ func (c *Client) GetPayloadV1(payloadId string) (responseData *GetPayloadV1Respo
 	return
 }
 
-func (c *Client) NewPayloadV3(executionPayload *types.Payload, beaconBlockRoot string) (responseData *NewPayloadV3Response, err error) {
+func (c *Client) NewPayloadV3(payload *types.Payload, beaconBlockRoot string) (responseData *NewPayloadV3Response, err error) {
 	c.logger.Debug("Running NewPayloadV3")
 
+	executionPayload := &NewPayloadV3ExecutionPayloadParam{
+		ParentHash:      payload.ParentHash.String(),
+		FeeRecipient:    payload.FeeRecipient.String(),
+		StateRoot:       payload.StateRoot.String(),
+		ReceiptsRoot:    payload.ReceiptsRoot.String(),
+		LogsBloom:       payload.LogsBloom.String(),
+		Random:          payload.Random.String(),
+		Number:          hexutils.EncodeUint64(payload.Number),
+		GasLimit:        hexutils.EncodeUint64(payload.GasLimit),
+		GasUsed:         hexutils.EncodeUint64(payload.GasUsed),
+		Timestamp:       hexutils.EncodeUint64(payload.Timestamp),
+		ExtraData:       hexutils.EncodeToHex(payload.ExtraData),
+		BaseFeePerGas:   hexutils.EncodeBig(payload.BaseFeePerGas),
+		BlockHash:       payload.BlockHash.String(),
+		Transactions:    make([]string, 0),
+		Withdrawals:     make([]string, 0),
+		ExcessBlobGas:   "0x0",
+		BlobGasUsed:     "0x0",
+		DepositRequests: nil,
+	}
+
+	for _, transaction := range payload.Transactions {
+		decoded := hexutils.EncodeToHex(transaction)
+		executionPayload.Transactions = append(executionPayload.Transactions, decoded)
+	}
+
+	// ParentHash    string   `json:"parentHash"    gencodec:"required"`
+	// FeeRecipient  string   `json:"feeRecipient"  gencodec:"required"`
+	// StateRoot     string   `json:"stateRoot"     gencodec:"required"`
+	// ReceiptsRoot  string   `json:"receiptsRoot"  gencodec:"required"`
+	// LogsBloom     string   `json:"logsBloom"     gencodec:"required"`
+	// Random        string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+	// Number        string   `json:"blockNumber"   gencodec:"required"`
+	// GasLimit      string   `json:"gasLimit"      gencodec:"required"`
+	// GasUsed       string   `json:"gasUsed"       gencodec:"required"`
+	// Timestamp     string   `json:"timestamp"     gencodec:"required"`
+	// ExtraData     string   `json:"extraData"     gencodec:"required"`
+	// BaseFeePerGas string   `json:"baseFeePerGas" gencodec:"required"`
+	// BlockHash     string   `json:"blockHash"     gencodec:"required"`
+	// Transactions  []string `json:"transactions"  gencodec:"required"`
+
 	params := []NewPayloadV3RequestParams{
-		NewPayloadV3ExecutionPayloadParam{*executionPayload},
+		executionPayload,
 		make(NewPayloadV3ExpectedBlobVersionedHashes, 0),
 		NewPayloadV3ParentBeaconBlockRoot(beaconBlockRoot),
 	}
@@ -178,12 +217,12 @@ func (c *Client) NewPayloadV3(executionPayload *types.Payload, beaconBlockRoot s
 	return
 }
 
-func (c *Client) ForkChoiceUpdatedV1(blockHash string, buildPayload bool) (responseData *ForkchoiceUpdatedV1Response, err error) {
-	c.logger.Debug("Running ForkchoiceUpdatedV1", "blockHash", blockHash)
+func (c *Client) ForkChoiceUpdatedV3(blockHash string, parentBeaconBlockRoot string, buildPayload bool) (responseData *ForkchoiceUpdatedV3Response, err error) {
+	c.logger.Debug("Running ForkchoiceUpdatedV3", "blockHash", blockHash)
 
 	blockTimestamp := "0x" + fmt.Sprintf("%X", time.Now().Unix())
 
-	params := []ForkchoiceUpdatedV1Param{
+	params := []ForkchoiceUpdatedV3Param{
 		ForkchoiceStateParam{
 			HeadBlockHash:      blockHash,
 			SafeBlockHash:      blockHash,
@@ -197,10 +236,12 @@ func (c *Client) ForkChoiceUpdatedV1(blockHash string, buildPayload bool) (respo
 			Timestamp:             blockTimestamp,
 			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
 			SuggestedFeeRecipient: "0x0000000000000000000000000000000000000000",
+			Withdrawals:           make([]string, 0),
+			ParentBeaconBlockroot: parentBeaconBlockRoot,
 		}
 	}
-	requestData := ForkchoiceUpdatedV1Request{
-		RequestBase: getRequestBase(ForkchoiceUpdatedV1Method),
+	requestData := ForkchoiceUpdatedV3Request{
+		RequestBase: getRequestBase(ForkchoiceUpdatedV3Method),
 		Params:      params,
 	}
 
@@ -228,34 +269,35 @@ func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseDat
 	return
 }
 
-func GetPayloadV1ResponseToPayload(resp *GetPayloadV1Response) (payload *types.Payload, err error) {
+func GetPayloadV3ResponseToPayload(resp *GetPayloadV3Response) (payload *types.Payload, err error) {
 	// TODO: handle potential conversion errors and implement this as a json.Unmarshal method
 
 	payload = new(types.Payload)
+	rawPayload := resp.Result.ExecutionPayload
 
-	payload.BaseFeePerGas = hexutils.DecodeHexToBig(string(hexutils.DropHexPrefix([]byte(resp.Result.BaseFeePerGas)))) // TODO: Make it prettier
-	payload.BlockHash = types.StringToHash(resp.Result.BlockHash)
-	payload.ExtraData, _ = hexutils.DecodeString(string(hexutils.DropHexPrefix([]byte(resp.Result.ExtraData)))) // TODO: Make it prettier
-	payload.FeeRecipient = types.StringToAddress(resp.Result.FeeRecipient)
-	payload.GasLimit, _ = hexutils.DecodeUint64(resp.Result.GasLimit)
-	payload.GasUsed, _ = hexutils.DecodeUint64(resp.Result.GasUsed)
+	payload.BaseFeePerGas = hexutils.DecodeHexToBig(string(hexutils.DropHexPrefix([]byte(rawPayload.BaseFeePerGas)))) // TODO: Make it prettier
+	payload.BlockHash = types.StringToHash(rawPayload.BlockHash)
+	payload.ExtraData, _ = hexutils.DecodeString(string(hexutils.DropHexPrefix([]byte(rawPayload.ExtraData)))) // TODO: Make it prettier
+	payload.FeeRecipient = types.StringToAddress(rawPayload.FeeRecipient)
+	payload.GasLimit, _ = hexutils.DecodeUint64(rawPayload.GasLimit)
+	payload.GasUsed, _ = hexutils.DecodeUint64(rawPayload.GasUsed)
 
 	// Logs bloom encoding
 	var logsBloom types.Bloom
-	input := hexutils.DropHexPrefix([]byte(resp.Result.LogsBloom))
+	input := hexutils.DropHexPrefix([]byte(rawPayload.LogsBloom))
 	if _, err := hex.Decode(logsBloom[:], input); err != nil {
 		return nil, err
 	}
 	payload.LogsBloom = logsBloom
 
-	payload.Number, _ = hexutils.DecodeUint64(resp.Result.BlockNumber)
-	payload.ParentHash = types.StringToHash(resp.Result.ParentHash)
-	payload.ReceiptsRoot = types.StringToHash(resp.Result.ReceiptsRoot)
-	payload.StateRoot = types.StringToHash(resp.Result.StateRoot)
-	payload.Timestamp, _ = hexutils.DecodeUint64(resp.Result.Timestamp)
+	payload.Number, _ = hexutils.DecodeUint64(rawPayload.BlockNumber)
+	payload.ParentHash = types.StringToHash(rawPayload.ParentHash)
+	payload.ReceiptsRoot = types.StringToHash(rawPayload.ReceiptsRoot)
+	payload.StateRoot = types.StringToHash(rawPayload.StateRoot)
+	payload.Timestamp, _ = hexutils.DecodeUint64(rawPayload.Timestamp)
 	payload.Transactions = [][]byte{}
 
-	for _, transaction := range resp.Result.Transactions {
+	for _, transaction := range rawPayload.Transactions {
 		decoded, err := hexutils.DecodeHex(transaction)
 		if err != nil {
 			return nil, err

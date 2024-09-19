@@ -1,7 +1,5 @@
 package engine
 
-import "github.com/apex-fusion/nexus/types"
-
 type RequestBase struct {
 	JsonRPC string `json:"jsonrpc,omitempty"`
 	Method  string `json:"method"`
@@ -25,7 +23,7 @@ type ExchangeTransitionConfigurationV1Response struct {
 	TerminalBlockNumber     string `json:"terminalBlockNumber" gencodec:"required"`
 }
 
-type GetPayloadV1Request struct {
+type GetPayloadV3Request struct {
 	RequestBase
 	Params []string `json:"params"`
 }
@@ -34,9 +32,12 @@ type PayloadVersion struct {
 	PayloadID string `json:"payloadId"`
 }
 
-// type GetPayloadV1ResponseResult types.Payload;
+type GetPayloadV3ResponseResult struct {
+	ExecutionPayload GetPayloadV3ExecutionPayload `json:"executionPayload"`
+}
 
-type GetPayloadV1ResponseResult struct {
+// TODO: See if we can de-dupe the payload structs
+type GetPayloadV3ExecutionPayload struct {
 	ParentHash    string   `json:"parentHash"`
 	FeeRecipient  string   `json:"feeRecipient"`
 	StateRoot     string   `json:"stateRoot"`
@@ -53,26 +54,9 @@ type GetPayloadV1ResponseResult struct {
 	Transactions  []string `json:"transactions"`
 }
 
-type GetPayloadV1Response struct {
-	Result GetPayloadV1ResponseResult `json:"result"`
+type GetPayloadV3Response struct {
+	Result GetPayloadV3ResponseResult `json:"result"`
 }
-
-// type NewPayloadV3RequestParams struct {
-// 	ParentHash    string   `json:"parentHash"    gencodec:"required"`
-// 	FeeRecipient  string   `json:"feeRecipient"  gencodec:"required"`
-// 	StateRoot     string   `json:"stateRoot"     gencodec:"required"`
-// 	ReceiptsRoot  string   `json:"receiptsRoot"  gencodec:"required"`
-// 	LogsBloom     string   `json:"logsBloom"     gencodec:"required"`
-// 	Random        string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
-// 	Number        string   `json:"blockNumber"   gencodec:"required"`
-// 	GasLimit      string   `json:"gasLimit"      gencodec:"required"`
-// 	GasUsed       string   `json:"gasUsed"       gencodec:"required"`
-// 	Timestamp     string   `json:"timestamp"     gencodec:"required"`
-// 	ExtraData     string   `json:"extraData"     gencodec:"required"`
-// 	BaseFeePerGas string   `json:"baseFeePerGas" gencodec:"required"`
-// 	BlockHash     string   `json:"blockHash"     gencodec:"required"`
-// 	Transactions  []string `json:"transactions"  gencodec:"required"`
-// }
 
 type NewPayloadV3Request struct {
 	RequestBase
@@ -84,7 +68,24 @@ type NewPayloadV3RequestParams interface {
 }
 
 type NewPayloadV3ExecutionPayloadParam struct {
-	types.Payload
+	ParentHash      string   `json:"parentHash"    gencodec:"required"`
+	FeeRecipient    string   `json:"feeRecipient"  gencodec:"required"`
+	StateRoot       string   `json:"stateRoot"     gencodec:"required"`
+	ReceiptsRoot    string   `json:"receiptsRoot"  gencodec:"required"`
+	LogsBloom       string   `json:"logsBloom"     gencodec:"required"`
+	Random          string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+	Number          string   `json:"blockNumber"   gencodec:"required"`
+	GasLimit        string   `json:"gasLimit"      gencodec:"required"`
+	GasUsed         string   `json:"gasUsed"       gencodec:"required"`
+	Timestamp       string   `json:"timestamp"     gencodec:"required"`
+	ExtraData       string   `json:"extraData"     gencodec:"required"`
+	BaseFeePerGas   string   `json:"baseFeePerGas" gencodec:"required"`
+	BlockHash       string   `json:"blockHash"     gencodec:"required"`
+	Transactions    []string `json:"transactions"  gencodec:"required"`
+	Withdrawals     []string `json:"withdrawals"  gencodec:"required"`
+	ExcessBlobGas   string   `json:"excessBlobGas" gencodec:"required"`
+	BlobGasUsed     string   `json:"blobGasUsed" gencodec:"required"`
+	DepositRequests *string  `json:"depositRequests" gencodec:"required"`
 }
 
 func (s NewPayloadV3ExecutionPayloadParam) isNewPayloadV3RequestParams() bool {
@@ -113,8 +114,8 @@ type NewPayloadV3Response struct {
 	Result NewPayloadV3ResponseResult `json:"result"`
 }
 
-type ForkchoiceUpdatedV1Param interface {
-	isForkchoiceUpdatedV1Param() bool
+type ForkchoiceUpdatedV3Param interface {
+	isForkchoiceUpdatedV3Param() bool
 }
 
 type ForkchoiceStateParam struct {
@@ -123,38 +124,40 @@ type ForkchoiceStateParam struct {
 	FinalizedBlockHash string `json:"finalizedBlockHash"`
 }
 
-func (s ForkchoiceStateParam) isForkchoiceUpdatedV1Param() bool {
+func (s ForkchoiceStateParam) isForkchoiceUpdatedV3Param() bool {
 	return true
 }
 
 type ForkchoicePayloadAttributes struct {
-	Timestamp             string `json:"timestamp"`
-	PrevRandao            string `json:"prevRandao"`
-	SuggestedFeeRecipient string `json:"suggestedFeeRecipient"`
+	Timestamp             string   `json:"timestamp"`
+	PrevRandao            string   `json:"prevRandao"`
+	SuggestedFeeRecipient string   `json:"suggestedFeeRecipient"`
+	Withdrawals           []string `json:"withdrawals"`
+	ParentBeaconBlockroot string   `json:"parentBeaconBlockRoot"`
 }
 
-func (s ForkchoicePayloadAttributes) isForkchoiceUpdatedV1Param() bool {
+func (s ForkchoicePayloadAttributes) isForkchoiceUpdatedV3Param() bool {
 	return true
 }
 
-type ForkchoiceUpdatedV1Request struct {
+type ForkchoiceUpdatedV3Request struct {
 	RequestBase
-	Params []ForkchoiceUpdatedV1Param `json:"params"`
+	Params []ForkchoiceUpdatedV3Param `json:"params"`
 }
 
-type ForkchoiceUpdatedV1ResponsePayloadStatus struct {
+type ForkchoiceUpdatedV3ResponsePayloadStatus struct {
 	Status          string  `json:"status"`
 	LatestValidHash string  `json:"latestValidHash"`
 	ValidationError *string `json:"validationError"`
 }
 
-type ForkchoiceUpdatedV1ResponseResult struct {
-	PayloadStatus ForkchoiceUpdatedV1ResponsePayloadStatus `json:"payloadStatus"`
+type ForkchoiceUpdatedV3ResponseResult struct {
+	PayloadStatus ForkchoiceUpdatedV3ResponsePayloadStatus `json:"payloadStatus"`
 	PayloadID     string                                   `json:"payloadId"`
 }
 
-type ForkchoiceUpdatedV1Response struct {
-	Result ForkchoiceUpdatedV1ResponseResult `json:"result"`
+type ForkchoiceUpdatedV3Response struct {
+	Result ForkchoiceUpdatedV3ResponseResult `json:"result"`
 }
 
 type ExchangeCapabilitiesRequest struct {
