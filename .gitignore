@@ -24,3 +24,5 @@ artifacts
 
 vendor/
 shared/
+
+multi-validator-shared

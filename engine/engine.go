@@ -198,6 +198,13 @@ func (c *Client) ForkChoiceUpdatedV1(blockHash string, buildPayload bool) (respo
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
+	if err != nil {
+		return
+	}
+
+	if responseData.Result.PayloadStatus.Status != "VALID" {
+		err = fmt.Errorf("engine error: payload status is not VALID! actual value:", responseData.Result.PayloadStatus.Status)
+	}
 
 	return
 }

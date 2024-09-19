@@ -20,8 +20,8 @@ if [ $option_g ]; then
   sudo rm -rf ./shared/geth ./shared/geth-genesis.json
 
   # Stop and remove geth
-  docker compose stop
-  docker compose rm -f
+  docker compose -f docker-compose.single.yaml stop
+  docker compose -f docker-compose.single.yaml rm -f
 fi
 
 if [ $option_n ]; then
@@ -43,7 +43,7 @@ if [ $option_n ]; then
 fi
 
 # Run geth
-docker compose up -d || true
+docker compose -f docker-compose.single.yaml up -d || true
 
 # Run nexus
 #go run main.go server --log-level DEBUG --config nexus-config.yaml

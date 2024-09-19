@@ -30,35 +30,7 @@ func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
 		return nil
 	}
 
-	// fmt.Println("parentHash.String():", parentHash.String())
-	// fmt.Println("blockHash.String():", blockHash.String())
-	//
-	// fcuResp, fcuErr := i.engineClient.ForkChoiceUpdatedV1(blockHash.String(), "")
-	// if fcuErr != nil {
-	// 	i.logger.Error("cannot update fork choice", "err", fcuErr)
-	//
-	// 	return nil
-	// }
-	//
-	// fmt.Println("fcuResp.Result.PayloadID:", fcuResp.Result.PayloadID, "<--")
-	//
-
-	payloadResponse, err := i.engineClient.GetPayloadV1(i.blockchain.GetPayloadId())
-	if err != nil {
-		i.logger.Error("cannot get engine's payload", "err", err)
-
-		return nil
-	}
-
-	// TODO: Why do we need this method?
-	payload, err := engine.GetPayloadV1ResponseToPayload(payloadResponse)
-	if err != nil {
-		i.logger.Error("cannot parse payload response", "err", err)
-
-		return nil
-	}
-
-	block, err := i.buildBlock(latestHeader, payload)
+	block, err := i.buildBlock(latestHeader)
 	if err != nil {
 		i.logger.Error("cannot build block", "num", blockNumber, "err", err)
 
@@ -123,8 +95,6 @@ func (i *backendIBFT) InsertBlock(
 	}
 
 	newBlock.Header = header
-
-	fmt.Println("New payload Call!")
 
 	_, err = i.engineClient.NewPayloadV1(newBlock.ExecutionPayload)
 	if err != nil {

@@ -6,11 +6,6 @@ import "fmt"
 
 // SetPayloadId sets the value of payloadId, using a write lock
 func (b *Blockchain) SetPayloadId(payloadId string) {
-	fmt.Println("setting payload id ")
-	fmt.Println("setting payload id ")
-	fmt.Println(payloadId)
-	fmt.Println("setting payload id ")
-	fmt.Println("setting payload id ")
 	b.payloadIdMutex.Lock()
 	defer b.payloadIdMutex.Unlock()
 
@@ -20,12 +15,6 @@ func (b *Blockchain) SetPayloadId(payloadId string) {
 // GetPayloadId gets the value of payloadId, using a read lock
 func (b *Blockchain) GetPayloadId() string {
 	b.payloadIdMutex.RLock()
-
-	fmt.Println("getting payload id ")
-	fmt.Println("getting payload id ")
-	fmt.Println(b.payloadId)
-	fmt.Println("getting payload id ")
-	fmt.Println("getting payload id ")
 
 	defer b.payloadIdMutex.RUnlock()
 	return b.payloadId
