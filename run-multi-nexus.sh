@@ -31,8 +31,12 @@ if [ $option_g ]; then
   # Reset geth state
   sudo rm -rf ./multi-validator-shared/v-2/geth ./multi-validator-shared/v-2/geth-genesis.json
 
+  # ================================================ node 3
 
-  # Stop and remove geth
+  # Reset geth state
+  sudo rm -rf ./multi-validator-shared/v-3/geth ./multi-validator-shared/v-3/geth-genesis.json
+
+  # Stop and remove geths
   docker compose -f docker-compose.multi.yaml stop
   docker compose -f docker-compose.multi.yaml rm -f
 fi
@@ -87,6 +91,21 @@ if [ $option_n ]; then
   go run main.go secrets output --data-dir ./multi-validator-shared/v-2/nexus --json | jq -j .node_id >./multi-validator-shared/v-2/nexus/node_id
   go run main.go secrets output --data-dir ./multi-validator-shared/v-2/nexus --json | jq -j .address >./multi-validator-shared/v-2/nexus/validator_key
 
+  # ================================================ node 3
+
+  # Reset nexus state
+  sudo rm -rf ./multi-validator-shared/v-3/nexus-genesis.json ./multi-validator-shared/v-3/nexus ./multi-validator-shared/v-3/jwt.hex
+
+  # Generate nexus secrets
+  go run main.go secrets init --data-dir ./multi-validator-shared/v-3/nexus
+
+  # Generate jwt.hex
+  openssl rand -hex 32 | tr -d '\n' >'./multi-validator-shared/v-3/jwt.hex'
+
+  # Generate Nexus Genesis info
+  go run main.go secrets output --data-dir ./multi-validator-shared/v-3/nexus --json | jq -j .node_id >./multi-validator-shared/v-3/nexus/node_id
+  go run main.go secrets output --data-dir ./multi-validator-shared/v-3/nexus --json | jq -j .address >./multi-validator-shared/v-3/nexus/validator_key
+
   # ================================================ nodes all
 
   # Generate Nexus Genesis
@@ -94,6 +113,7 @@ if [ $option_n ]; then
     --ibft-validator $(cat ./multi-validator-shared/v-0/nexus/validator_key) \
     --ibft-validator $(cat ./multi-validator-shared/v-1/nexus/validator_key) \
     --ibft-validator $(cat ./multi-validator-shared/v-2/nexus/validator_key) \
+    --ibft-validator $(cat ./multi-validator-shared/v-3/nexus/validator_key) \
     --bootnode /ip4/127.0.0.1/tcp/10001/p2p/$(cat ./multi-validator-shared/v-0/nexus/node_id) \
     --dir ./multi-validator-shared/v-0/nexus-genesis.json 
 
@@ -104,7 +124,7 @@ docker compose -f docker-compose.multi.yaml up -d || true
 
 # Run nexus
 go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-0.yaml &
-sleep 1
+sleep 3
 go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-1.yaml &
-sleep 1
-go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-2.yaml
+go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-2.yaml &
+go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-3.yaml

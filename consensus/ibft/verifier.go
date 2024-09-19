@@ -3,8 +3,6 @@ package ibft
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
-
 	"github.com/Route3/go-ibft/messages"
 	protoIBFT "github.com/Route3/go-ibft/messages/proto"
 	"github.com/apex-fusion/nexus/types"
@@ -49,15 +47,15 @@ func (i *backendIBFT) IsValidBlock(proposal []byte) bool {
 		return false
 	}
 
-	res, err := i.engineClient.NewPayloadV1(newBlock.ExecutionPayload)
-	if err != nil {
-		i.logger.Error("Payload execution failed", "payloadHash", newBlock.Header.PayloadHash)
-		return false
-	}
-
-	fmt.Println(res)
-
-	// TODO: Here we should check if we got a response that the payload is valid, because the EL might return that it is syncing blocks and still be a 200 response.
+	//res, err := i.engineClient.NewPayloadV3(newBlock.ExecutionPayload, newBlock.ParentHash().String())
+	//if err != nil {
+	//	i.logger.Error("Payload execution failed", "payloadHash", newBlock.Header.PayloadHash)
+	//	return false
+	//}
+	//
+	//fmt.Println(res)
+	//
+	//// TODO: Here we should check if we got a response that the payload is valid, because the EL might return that it is syncing blocks and still be a 200 response.
 
 	return true
 }
