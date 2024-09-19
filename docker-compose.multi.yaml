@@ -22,7 +22,7 @@ services:
     image: mitmproxy/mitmproxy
     command: >
       mitmweb
-      --mode reverse:http://geth-0:8551
+      --mode reverse:http://geth:8551
       --listen-port 8550
       --web-host 0.0.0.0
       --set block_global=false
@@ -30,9 +30,22 @@ services:
       - 8550:8550
       - 8081:8081
 
-  geth-0:
-    image: "ethereum/client-go:latest"
+#  mitmproxy-second:
+#    image: mitmproxy/mitmproxy
+#    command: >
+#      mitmweb
+#      --mode reverse:http://gethsecond:18551
+#      --listen-port 18550
+#      --web-host 0.0.0.0
+#      --set block_global=false
+#    ports:
+#      - 18550:18550
+#      - 18081:18081
+
+  geth:
+    image: "ethereum/client-go:alltools-latest-amd64"
     command:
+      - geth
       - --verbosity=5
       - --http
       - --http.api=eth,net,web3
@@ -46,15 +59,47 @@ services:
       - --authrpc.addr=0.0.0.0
       - --authrpc.jwtsecret=/multi-validator-shared/v-0/jwt.hex
       - --datadir=/multi-validator-shared/v-0/geth
-      - --nodiscover
       - --syncmode=full
+      - --nodekey=/multi-validator-shared/v-0/v-0-nodekey
     ports:
       - 8551:8551
       - 8545:8545
       - 8546:8546
+      - 30303:30303
+      - 30301:30301
     volumes:
       - ./multi-validator-shared/v-0:/multi-validator-shared/v-0
       - ./geth-genesis.json:/multi-validator-shared/v-0/geth-genesis.json
     depends_on:
       geth-init-0:
+        condition: service_completed_successfully
+
+  gethsecond:
+    image: "ethereum/client-go:alltools-latest-amd64"
+    command:
+      - geth
+      - --verbosity=5
+      - --http
+      - --http.api=eth,net,web3
+      - --http.addr=0.0.0.0
+      - --http.corsdomain=*
+      - --ws
+      - --ws.api=eth,net,web3
+      - --ws.addr=0.0.0.0
+      - --ws.origins=*
+      - --authrpc.vhosts=*
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.jwtsecret=/multi-validator-shared/v-1/jwt.hex
+      - --datadir=/multi-validator-shared/v-1/geth
+      - --syncmode=full
+      - --bootnodes=enode://565f2cd2c5fd4f8798daaa65c858e4040d2b0db31b7d354177e126b34fea6163194c926a1cf3ffa1be29252518d6217a114479703e0f01ba5642a7d3bdc1137e@127.0.0.1:30303?discport=30303
+    ports:
+      - 18551:8551
+      - 18545:8545
+      - 18546:8546
+    volumes:
+      - ./multi-validator-shared/v-1:/multi-validator-shared/v-1
+      - ./geth-genesis.json:/multi-validator-shared/v-1/geth-genesis.json
+    depends_on:
+      geth-init-1:
         condition: service_completed_successfully

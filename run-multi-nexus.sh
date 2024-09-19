@@ -51,6 +51,8 @@ if [ $option_n ]; then
   # Generate jwt.hex
   openssl rand -hex 32 | tr -d '\n' >'./multi-validator-shared/v-0/jwt.hex'
 
+  cp v-0-nodekey ./multi-validator-shared/v-0/
+
   # Generate Nexus Genesis info
   go run main.go secrets output --data-dir ./multi-validator-shared/v-0/nexus --json | jq -j .node_id >./multi-validator-shared/v-0/nexus/node_id
   go run main.go secrets output --data-dir ./multi-validator-shared/v-0/nexus --json | jq -j .address >./multi-validator-shared/v-0/nexus/validator_key
@@ -63,6 +65,9 @@ if [ $option_n ]; then
   # Generate nexus secrets
   go run main.go secrets init --data-dir ./multi-validator-shared/v-1/nexus
 
+  # Generate jwt.hex
+  openssl rand -hex 32 | tr -d '\n' >'./multi-validator-shared/v-1/jwt.hex'
+
   # Generate Nexus Genesis info
   go run main.go secrets output --data-dir ./multi-validator-shared/v-1/nexus --json | jq -j .node_id >./multi-validator-shared/v-1/nexus/node_id
   go run main.go secrets output --data-dir ./multi-validator-shared/v-1/nexus --json | jq -j .address >./multi-validator-shared/v-1/nexus/validator_key
@@ -74,6 +79,9 @@ if [ $option_n ]; then
 
   # Generate nexus secrets
   go run main.go secrets init --data-dir ./multi-validator-shared/v-2/nexus
+
+  # Generate jwt.hex
+  openssl rand -hex 32 | tr -d '\n' >'./multi-validator-shared/v-2/jwt.hex'
 
   # Generate Nexus Genesis info
   go run main.go secrets output --data-dir ./multi-validator-shared/v-2/nexus --json | jq -j .node_id >./multi-validator-shared/v-2/nexus/node_id
