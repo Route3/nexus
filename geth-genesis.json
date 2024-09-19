@@ -1,6 +1,6 @@
 {
   "config": {
-    "chainId": 32382,
+    "chainId": 9070,
     "homesteadBlock": 0,
     "daoForkSupport": true,
     "eip150Block": 0,
@@ -29,8 +29,14 @@
   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",
   "alloc": {
+    "0xEe639cDA5D46Bd32D0013bB75f60F3E691D9839f": {
+      "balance": "0x9B18AB5DF7180B6B8000000"
+    },
     "0xd144cdD5E24a07CBAc8986f5211C1320fa2588F8": {
-      "balance": "0x43c33c1937564800000"
+      "balance": "0x21E19E0C9BAB2400000"
+    },
+    "0x4BC4892F8B01B9aFc99BCB827c39646EE78bCF06": {
+      "balance": "0x21E19E0C9BAB2400000"
     }
   },
   "number": "0x0",

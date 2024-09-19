@@ -200,7 +200,7 @@ func (i *backendIBFT) Quorum(blockNumber uint64) uint64 {
 }
 
 // buildBlock builds the block, based on the passed in snapshot and parent header
-func (i *backendIBFT) buildBlock(parent *types.Header, payload *types.Payload) (*types.Block, error) {
+func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 	header := &types.Header{
 		ParentHash: parent.Hash,
 		Number:     parent.Number + 1,
@@ -208,11 +208,10 @@ func (i *backendIBFT) buildBlock(parent *types.Header, payload *types.Payload) (
 		Nonce:      types.Nonce{},
 		MixHash:    signer.IstanbulDigest,
 		// this is required because blockchain needs difficulty to organize blocks and forks
-		Difficulty:  parent.Number + 1,
-		StateRoot:   types.EmptyRootHash, // this avoids needing state for now
-		Sha3Uncles:  types.EmptyUncleHash,
-		GasLimit:    parent.GasLimit, // Inherit from parent for now, will need to adjust dynamically later.
-		PayloadHash: payload.BlockHash,
+		Difficulty: parent.Number + 1,
+		StateRoot:  types.EmptyRootHash, // this avoids needing state for now
+		Sha3Uncles: types.EmptyUncleHash,
+		GasLimit:   parent.GasLimit, // Inherit from parent for now, will need to adjust dynamically later.
 	}
 
 	// calculate gas limit based on parent header
@@ -223,6 +222,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header, payload *types.Payload) (
 
 	header.GasLimit = gasLimit
 
+	// TODO: Check if we need the modify header hooks for consensus compatibility
 	if err := i.currentHooks.ModifyHeader(header, i.currentSigner.Address()); err != nil {
 		return nil, err
 	}
@@ -243,6 +243,22 @@ func (i *backendIBFT) buildBlock(parent *types.Header, payload *types.Payload) (
 	}
 
 	txs := i.writeTransactions(gasLimit, header.Number, transition)
+
+	payloadResponse, err := i.engineClient.GetPayloadV1(i.blockchain.GetPayloadId())
+	if err != nil {
+		i.logger.Error("cannot get engine's payload", "err", err)
+
+		return nil, err
+	}
+
+	// TODO: Why do we need this method?
+	payload, err := engine.GetPayloadV1ResponseToPayload(payloadResponse)
+	if err != nil {
+		i.logger.Error("cannot parse payload response", "err", err)
+
+		return nil, err
+	}
+	header.PayloadHash = payload.BlockHash
 
 	if err := i.PreCommitState(header, transition); err != nil {
 		return nil, err
