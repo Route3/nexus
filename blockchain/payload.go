@@ -1,7 +1,5 @@
 package blockchain
 
-import "fmt"
-
 // func (b *Blockchain) setCurrentHeader(h *types.Header, diff *big.Int) {
 
 // SetPayloadId sets the value of payloadId, using a write lock
