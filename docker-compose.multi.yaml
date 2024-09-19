@@ -1,16 +1,28 @@
 services:
-  geth-init:
+  geth-init-0:
     image: "ethereum/client-go:latest"
     command: --datadir=/multi-validator-shared/v-0/geth init /multi-validator-shared/v-0/geth-genesis.json
     volumes:
       - ./multi-validator-shared/v-0:/multi-validator-shared/v-0
       - ./geth-genesis.json:/multi-validator-shared/v-0/geth-genesis.json
+  geth-init-1:
+    image: "ethereum/client-go:latest"
+    command: --datadir=/multi-validator-shared/v-1/geth init /multi-validator-shared/v-1/geth-genesis.json
+    volumes:
+      - ./multi-validator-shared/v-1:/multi-validator-shared/v-1
+      - ./geth-genesis.json:/multi-validator-shared/v-1/geth-genesis.json
+  geth-init-2:
+    image: "ethereum/client-go:latest"
+    command: --datadir=/multi-validator-shared/v-2/geth init /multi-validator-shared/v-2/geth-genesis.json
+    volumes:
+      - ./multi-validator-shared/v-2:/multi-validator-shared/v-2
+      - ./geth-genesis.json:/multi-validator-shared/v-2/geth-genesis.json
 
   mitmproxy:
     image: mitmproxy/mitmproxy
     command: >
       mitmweb
-      --mode reverse:http://geth:8551
+      --mode reverse:http://geth-0:8551
       --listen-port 8550
       --web-host 0.0.0.0
       --set block_global=false
@@ -18,7 +30,7 @@ services:
       - 8550:8550
       - 8081:8081
 
-  geth:
+  geth-0:
     image: "ethereum/client-go:latest"
     command:
       - --verbosity=5
@@ -44,5 +56,5 @@ services:
       - ./multi-validator-shared/v-0:/multi-validator-shared/v-0
       - ./geth-genesis.json:/multi-validator-shared/v-0/geth-genesis.json
     depends_on:
-      geth-init:
+      geth-init-0:
         condition: service_completed_successfully
