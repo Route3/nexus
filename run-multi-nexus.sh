@@ -127,4 +127,4 @@ go run main.go server --log-level DEBUG --config multi-validator-config/nexus-co
 sleep 3
 go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-1.yaml &
 go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-2.yaml &
-go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-3.yaml
+#go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-3.yaml

@@ -18,7 +18,43 @@ services:
       - ./multi-validator-shared/v-2:/multi-validator-shared/v-2
       - ./geth-genesis.json:/multi-validator-shared/v-2/geth-genesis.json
 
-  mitmproxy:
+  mitmproxy-0:
+    image: mitmproxy/mitmproxy
+    command: >
+      mitmweb
+      --mode reverse:http://geth:8551
+      --listen-port 8550
+      --web-host 0.0.0.0
+      --set block_global=false
+    ports:
+      - 8550:8550
+      - 8081:8081
+
+  mitmproxy-1:
+    image: mitmproxy/mitmproxy
+    command: >
+      mitmweb
+      --mode reverse:http://gethsecond:8551
+      --listen-port 8550
+      --web-host 0.0.0.0
+      --set block_global=false
+    ports:
+      - 18550:8550
+      - 18081:8081
+
+  mitmproxy-2:
+    image: mitmproxy/mitmproxy
+    command: >
+      mitmweb
+      --mode reverse:http://geththird:8551
+      --listen-port 8550
+      --web-host 0.0.0.0
+      --set block_global=false
+    ports:
+      - 28550:8550
+      - 28081:8081
+
+  mitmproxy-3:
     image: mitmproxy/mitmproxy
     command: >
       mitmweb
@@ -27,8 +63,8 @@ services:
       --web-host 0.0.0.0
       --set block_global=false
     ports:
-      - 8550:8550
-      - 8081:8081
+      - 38550:8550
+      - 38081:8081
 
 #  mitmproxy-second:
 #    image: mitmproxy/mitmproxy
