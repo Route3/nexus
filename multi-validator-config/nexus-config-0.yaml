@@ -3,7 +3,7 @@ engine_token_path: "multi-validator-shared/v-0/jwt.hex"
 engine_jwt_id: "nexus-validator-0"
 data_dir: "multi-validator-shared/v-0/nexus"
 chain_config: "multi-validator-shared/v-0/nexus-genesis.json"
-execution_genesis_hash: "0xbbedb5ae2fdd7e812bd29421c90ba610b7d9eb2f4686abffa40b782629c7f4bd"
+execution_genesis_hash: "0xd5e46105991a70a95dfc5416e125b18a41486694b3e4e5f4ba283395ce412f09"
 grpc_addr: ":10000"
 jsonrpc_addr: ":10002"
 network:
