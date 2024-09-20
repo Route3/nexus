@@ -16,12 +16,11 @@ import (
 )
 
 const (
-	JSONRPC                                 = "2.0"
-	ExchangeTransitionConfigurationV1Method = "engine_exchangeTransitionConfigurationV1"
-	ExchangeCapabilitiesMethod              = "engine_exchangeCapabilities"
-	ForkchoiceUpdatedV3Method               = "engine_forkchoiceUpdatedV3"
-	GetPayloadV3Method                      = "engine_getPayloadV3"
-	NewPayloadV3Method                      = "engine_newPayloadV3"
+	JSONRPC                    = "2.0"
+	ExchangeCapabilitiesMethod = "engine_exchangeCapabilities"
+	ForkchoiceUpdatedV3Method  = "engine_forkchoiceUpdatedV3"
+	GetPayloadV3Method         = "engine_getPayloadV3"
+	NewPayloadV3Method         = "engine_newPayloadV3"
 )
 
 type Client struct {
@@ -70,6 +69,20 @@ func (c *Client) Init(latestPayloadHash string, parentBeaconBlockRoot string) (p
 	}
 
 	return res.Result.PayloadID, nil
+}
+
+func (c *Client) retryIndefinitely(requestData interface{}, responseData interface{}) {
+	for {
+		err := c.handleRequest(requestData, responseData)
+
+		c.logger.Error("engine API error, retrying indefinitely", "error", err)
+		// If no error, stop retrying
+		if err == nil {
+			break
+		}
+
+		time.Sleep(2 * time.Second)
+	}
 }
 
 func getRequestBase(method string) RequestBase {
@@ -121,25 +134,6 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 	return nil
 }
 
-func (c *Client) ExchangeTransitionConfigurationV1() (responseData *ExchangeTransitionConfigurationV1Response, err error) {
-	c.logger.Debug("Running ExchangeTransitionConfigurationV1")
-
-	requestData := ExchangeTransitionConfigurationV1Request{
-		RequestBase: getRequestBase(ExchangeTransitionConfigurationV1Method),
-		Params: []ExchangeTransitionConfigurationV1RequestParams{
-			{
-				TerminalTotalDifficulty: "0x0",
-				TerminalBlockHash:       "0x0000000000000000000000000000000000000000000000000000000000000000",
-				TerminalBlockNumber:     "0x1",
-			},
-		},
-	}
-
-	err = c.handleRequest(&requestData, &responseData)
-
-	return
-}
-
 func (c *Client) GetPayloadV3(payloadId string) (responseData *GetPayloadV3Response, err error) {
 	c.logger.Debug("Running GetPayloadV3")
 	requestData := GetPayloadV3Request{
@@ -147,7 +141,7 @@ func (c *Client) GetPayloadV3(payloadId string) (responseData *GetPayloadV3Respo
 		Params:      []string{payloadId},
 	}
 
-	err = c.handleRequest(&requestData, &responseData)
+	c.retryIndefinitely(&requestData, &responseData)
 
 	return
 }
@@ -181,21 +175,6 @@ func (c *Client) NewPayloadV3(payload *types.Payload, beaconBlockRoot string) (r
 		executionPayload.Transactions = append(executionPayload.Transactions, decoded)
 	}
 
-	// ParentHash    string   `json:"parentHash"    gencodec:"required"`
-	// FeeRecipient  string   `json:"feeRecipient"  gencodec:"required"`
-	// StateRoot     string   `json:"stateRoot"     gencodec:"required"`
-	// ReceiptsRoot  string   `json:"receiptsRoot"  gencodec:"required"`
-	// LogsBloom     string   `json:"logsBloom"     gencodec:"required"`
-	// Random        string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
-	// Number        string   `json:"blockNumber"   gencodec:"required"`
-	// GasLimit      string   `json:"gasLimit"      gencodec:"required"`
-	// GasUsed       string   `json:"gasUsed"       gencodec:"required"`
-	// Timestamp     string   `json:"timestamp"     gencodec:"required"`
-	// ExtraData     string   `json:"extraData"     gencodec:"required"`
-	// BaseFeePerGas string   `json:"baseFeePerGas" gencodec:"required"`
-	// BlockHash     string   `json:"blockHash"     gencodec:"required"`
-	// Transactions  []string `json:"transactions"  gencodec:"required"`
-
 	params := []NewPayloadV3RequestParams{
 		executionPayload,
 		make(NewPayloadV3ExpectedBlobVersionedHashes, 0),
@@ -207,7 +186,7 @@ func (c *Client) NewPayloadV3(payload *types.Payload, beaconBlockRoot string) (r
 		Params:      params,
 	}
 
-	err = c.handleRequest(&requestData, &responseData)
+	c.retryIndefinitely(&requestData, &responseData)
 
 	return
 }
@@ -240,10 +219,7 @@ func (c *Client) ForkChoiceUpdatedV3(blockHash string, parentBeaconBlockRoot str
 		Params:      params,
 	}
 
-	err = c.handleRequest(&requestData, &responseData)
-	if err != nil {
-		return
-	}
+	c.retryIndefinitely(&requestData, &responseData)
 
 	if responseData.Result.PayloadStatus.Status == "SYNCING" {
 		c.logger.Error("payload status is not VALID!", "status", responseData.Result.PayloadStatus.Status)
