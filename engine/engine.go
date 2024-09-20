@@ -75,11 +75,12 @@ func (c *Client) retryIndefinitely(requestData interface{}, responseData interfa
 	for {
 		err := c.handleRequest(requestData, responseData)
 
-		c.logger.Error("engine API error, retrying indefinitely", "error", err)
 		// If no error, stop retrying
 		if err == nil {
 			break
 		}
+
+		c.logger.Error("engine API error, retrying indefinitely", "error", err)
 
 		time.Sleep(2 * time.Second)
 	}
