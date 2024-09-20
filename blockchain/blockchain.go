@@ -3,6 +3,7 @@ package blockchain
 import (
 	"errors"
 	"fmt"
+	"github.com/apex-fusion/nexus/engine"
 	"math/big"
 	"path/filepath"
 	"sync"
@@ -49,6 +50,7 @@ type Blockchain struct {
 	executor  Executor
 	txSigner  TxSigner
 
+	EngineClient         engine.Client
 	executionGenesisHash string
 	payloadId            string
 	payloadIdMutex       sync.RWMutex
@@ -197,6 +199,7 @@ func NewBlockchain(
 	executor Executor,
 	txSigner TxSigner,
 	executionGenesisHash string,
+	engineClient *engine.Client,
 ) (*Blockchain, error) {
 	b := &Blockchain{
 		logger:               logger.Named("blockchain"),
@@ -205,6 +208,7 @@ func NewBlockchain(
 		executor:             executor,
 		txSigner:             txSigner,
 		executionGenesisHash: executionGenesisHash,
+		EngineClient:         *engineClient,
 		stream:               &eventStream{},
 		gpAverage: &gasPriceAverage{
 			price: big.NewInt(0),
@@ -885,6 +889,21 @@ func (b *Blockchain) executeBlockTransactions(block *types.Block) (*BlockResult,
 func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 	b.writeLock.Lock()
 	defer b.writeLock.Unlock()
+
+	parentBeaconBlockRoot := block.ParentHash().String()
+	_, err := b.EngineClient.NewPayloadV3(block.ExecutionPayload, parentBeaconBlockRoot)
+	if err != nil {
+		b.logger.Error("cannot create new payload", "err", err)
+		return err
+	}
+
+	currentBlockBeaconRoot := block.Hash().String()
+	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash.String(), currentBlockBeaconRoot, true)
+	if err != nil {
+		b.logger.Error("cannot run FCU for block insertion", "err", err)
+		return err
+	}
+	b.SetPayloadId(res.Result.PayloadID)
 
 	if block.Number() <= b.Header().Number {
 		b.logger.Info("block already inserted", "block", block.Number(), "source", source)

@@ -96,21 +96,6 @@ func (i *backendIBFT) InsertBlock(
 
 	newBlock.Header = header
 
-	parentBeaconBlockRoot := newBlock.ParentHash().String()
-	_, err = i.engineClient.NewPayloadV3(newBlock.ExecutionPayload, parentBeaconBlockRoot)
-	if err != nil {
-		i.logger.Error("cannot create new payload", "err", err)
-		return
-	}
-
-	currentBlockBeaconRoot := newBlock.Hash().String()
-	res, err := i.engineClient.ForkChoiceUpdatedV3(newBlock.Header.PayloadHash.String(), currentBlockBeaconRoot, true)
-	if err != nil {
-		i.logger.Error("cannot run FCU for block insertion", "err", err)
-		return
-	}
-	i.blockchain.SetPayloadId(res.Result.PayloadID)
-
 	// Save the block locally
 	if err := i.blockchain.WriteBlock(newBlock, "consensus"); err != nil {
 		i.logger.Error("cannot write block", "err", err)
@@ -216,7 +201,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 
 	txs := i.writeTransactions(gasLimit, header.Number, transition)
 
-	payloadResponse, err := i.engineClient.GetPayloadV3(i.blockchain.GetPayloadId())
+	payloadResponse, err := i.blockchain.EngineClient.GetPayloadV3(i.blockchain.GetPayloadId())
 	if err != nil {
 		i.logger.Error("cannot get engine's payload", "err", err)
 

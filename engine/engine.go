@@ -64,11 +64,6 @@ func (c *Client) Init(latestPayloadHash string, parentBeaconBlockRoot string) (p
 		return
 	}
 
-	_, err = c.ExchangeTransitionConfigurationV1()
-	if err != nil {
-		return
-	}
-
 	res, err := c.ForkChoiceUpdatedV3(latestPayloadHash, parentBeaconBlockRoot, true)
 	if err != nil {
 		return
@@ -250,8 +245,9 @@ func (c *Client) ForkChoiceUpdatedV3(blockHash string, parentBeaconBlockRoot str
 		return
 	}
 
-	if responseData.Result.PayloadStatus.Status != "VALID" {
-		err = fmt.Errorf("engine error: payload status is not VALID! actual value:", responseData.Result.PayloadStatus.Status)
+	if responseData.Result.PayloadStatus.Status == "SYNCING" {
+		c.logger.Error("payload status is not VALID!", "status", responseData.Result.PayloadStatus.Status)
+		return nil, fmt.Errorf("payload status is not VALID!")
 	}
 
 	return

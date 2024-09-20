@@ -3,10 +3,11 @@
 set -e
 
 # Parse flags
-while getopts "ng" flag; do
+while getopts "ngr" flag; do
   case "$flag" in
   n) option_n=true ;;
   g) option_g=true ;;
+  r) option_r=true ;;
   *) echo "Invalid option" ;;
   esac
 done
@@ -54,8 +55,6 @@ if [ $option_n ]; then
 
   # Generate jwt.hex
   openssl rand -hex 32 | tr -d '\n' >'./multi-validator-shared/v-0/jwt.hex'
-
-  cp v-0-nodekey ./multi-validator-shared/v-0/
 
   # Generate Nexus Genesis info
   go run main.go secrets output --data-dir ./multi-validator-shared/v-0/nexus --json | jq -j .node_id >./multi-validator-shared/v-0/nexus/node_id
@@ -122,9 +121,11 @@ fi
 # Run geth
 docker compose -f docker-compose.multi.yaml up -d || true
 
-# Run nexus
-go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-0.yaml &
-sleep 3
-go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-1.yaml &
-go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-2.yaml &
-#go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-3.yaml
+if [ $option_r ]; then
+  echo "Running nexus"
+
+  go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-0.yaml &
+  go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-1.yaml &
+  go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-2.yaml &
+  go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-3.yaml
+fi

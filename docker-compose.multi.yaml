@@ -1,22 +1,29 @@
 services:
   geth-init-0:
-    image: "ethereum/client-go:latest"
+    image: "ghcr.io/route3/apex-geth:latest"
     command: --datadir=/multi-validator-shared/v-0/geth init /multi-validator-shared/v-0/geth-genesis.json
     volumes:
       - ./multi-validator-shared/v-0:/multi-validator-shared/v-0
       - ./geth-genesis.json:/multi-validator-shared/v-0/geth-genesis.json
   geth-init-1:
-    image: "ethereum/client-go:latest"
+    image: "ghcr.io/route3/apex-geth:latest"
     command: --datadir=/multi-validator-shared/v-1/geth init /multi-validator-shared/v-1/geth-genesis.json
     volumes:
       - ./multi-validator-shared/v-1:/multi-validator-shared/v-1
       - ./geth-genesis.json:/multi-validator-shared/v-1/geth-genesis.json
   geth-init-2:
-    image: "ethereum/client-go:latest"
+    image: "ghcr.io/route3/apex-geth:latest"
     command: --datadir=/multi-validator-shared/v-2/geth init /multi-validator-shared/v-2/geth-genesis.json
     volumes:
       - ./multi-validator-shared/v-2:/multi-validator-shared/v-2
       - ./geth-genesis.json:/multi-validator-shared/v-2/geth-genesis.json
+  geth-init-3:
+    image: "ghcr.io/route3/apex-geth:latest"
+    command: --datadir=/multi-validator-shared/v-3/geth init /multi-validator-shared/v-3/geth-genesis.json
+    volumes:
+      - ./multi-validator-shared/v-3:/multi-validator-shared/v-3
+      - ./geth-genesis.json:/multi-validator-shared/v-3/geth-genesis.json
+
 
   mitmproxy-0:
     image: mitmproxy/mitmproxy
@@ -79,9 +86,8 @@ services:
 #      - 18081:18081
 
   geth:
-    image: "ethereum/client-go:alltools-latest-amd64"
+    image: "ghcr.io/route3/apex-geth:latest"
     command:
-      - geth
       - --verbosity=5
       - --http
       - --http.api=eth,net,web3
@@ -96,13 +102,11 @@ services:
       - --authrpc.jwtsecret=/multi-validator-shared/v-0/jwt.hex
       - --datadir=/multi-validator-shared/v-0/geth
       - --syncmode=full
-      - --nodekey=/multi-validator-shared/v-0/v-0-nodekey
+      - --nodiscover
     ports:
       - 8551:8551
       - 8545:8545
       - 8546:8546
-      - 30303:30303
-      - 30301:30301
     volumes:
       - ./multi-validator-shared/v-0:/multi-validator-shared/v-0
       - ./geth-genesis.json:/multi-validator-shared/v-0/geth-genesis.json
@@ -111,9 +115,8 @@ services:
         condition: service_completed_successfully
 
   gethsecond:
-    image: "ethereum/client-go:alltools-latest-amd64"
+    image: "ghcr.io/route3/apex-geth:latest"
     command:
-      - geth
       - --verbosity=5
       - --http
       - --http.api=eth,net,web3
@@ -128,7 +131,7 @@ services:
       - --authrpc.jwtsecret=/multi-validator-shared/v-1/jwt.hex
       - --datadir=/multi-validator-shared/v-1/geth
       - --syncmode=full
-      - --bootnodes=enode://565f2cd2c5fd4f8798daaa65c858e4040d2b0db31b7d354177e126b34fea6163194c926a1cf3ffa1be29252518d6217a114479703e0f01ba5642a7d3bdc1137e@127.0.0.1:30303?discport=30303
+      - --nodiscover
     ports:
       - 18551:8551
       - 18545:8545
@@ -141,9 +144,8 @@ services:
         condition: service_completed_successfully
 
   geththird:
-    image: "ethereum/client-go:alltools-latest-amd64"
+    image: "ghcr.io/route3/apex-geth:latest"
     command:
-      - geth
       - --verbosity=5
       - --http
       - --http.api=eth,net,web3
@@ -158,7 +160,7 @@ services:
       - --authrpc.jwtsecret=/multi-validator-shared/v-2/jwt.hex
       - --datadir=/multi-validator-shared/v-2/geth
       - --syncmode=full
-      - --bootnodes=enode://565f2cd2c5fd4f8798daaa65c858e4040d2b0db31b7d354177e126b34fea6163194c926a1cf3ffa1be29252518d6217a114479703e0f01ba5642a7d3bdc1137e@127.0.0.1:30303?discport=30303
+      - --nodiscover
     ports:
       - 28551:8551
       - 28545:8545
@@ -167,13 +169,12 @@ services:
       - ./multi-validator-shared/v-2:/multi-validator-shared/v-2
       - ./geth-genesis.json:/multi-validator-shared/v-2/geth-genesis.json
     depends_on:
-      geth-init-1:
+      geth-init-2:
         condition: service_completed_successfully
 
   gethfourth:
-    image: "ethereum/client-go:alltools-latest-amd64"
+    image: "ghcr.io/route3/apex-geth:latest"
     command:
-      - geth
       - --verbosity=5
       - --http
       - --http.api=eth,net,web3
@@ -188,7 +189,7 @@ services:
       - --authrpc.jwtsecret=/multi-validator-shared/v-3/jwt.hex
       - --datadir=/multi-validator-shared/v-3/geth
       - --syncmode=full
-      - --bootnodes=enode://565f2cd2c5fd4f8798daaa65c858e4040d2b0db31b7d354177e126b34fea6163194c926a1cf3ffa1be29252518d6217a114479703e0f01ba5642a7d3bdc1137e@127.0.0.1:30303?discport=30303
+      - --nodiscover
     ports:
       - 38551:8551
       - 38545:8545
@@ -197,5 +198,5 @@ services:
       - ./multi-validator-shared/v-3:/multi-validator-shared/v-3
       - ./geth-genesis.json:/multi-validator-shared/v-3/geth-genesis.json
     depends_on:
-      geth-init-1:
+      geth-init-3:
         condition: service_completed_successfully

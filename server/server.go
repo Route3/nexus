@@ -237,20 +237,21 @@ func NewServer(config *Config) (*Server, error) {
 	// use the eip155 signer
 	signer := crypto.NewEIP155Signer(uint64(m.config.Chain.Params.ChainID))
 
-	// blockchain object
-	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, m.executor, signer, m.config.ExecutionGenesisHash)
-	if err != nil {
-		return nil, err
-	}
-
-	m.executor.GetHash = m.blockchain.GetHashHelper
-
+	// TODO: WE don't need an engine reference in the server, just move it all to blockchain
 	// Setting up Engine API
 	if engineClient, err := newEngineAPIFromConfig(config, logger); err != nil {
 		return nil, fmt.Errorf("Engine API setup failed", "err", err.Error())
 	} else {
 		m.engineClient = engineClient
 	}
+
+	// blockchain object
+	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, m.executor, signer, m.config.ExecutionGenesisHash, m.engineClient)
+	if err != nil {
+		return nil, err
+	}
+
+	m.executor.GetHash = m.blockchain.GetHashHelper
 
 	{
 		hub := &txpoolHub{
@@ -474,7 +475,6 @@ func (s *Server) setupConsensus() error {
 			Logger:         s.logger,
 			SecretsManager: s.secretsManager,
 			BlockTime:      s.config.BlockTime,
-			EngineClient:   s.engineClient,
 		},
 	)
 	if err != nil {
