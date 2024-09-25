@@ -898,7 +898,7 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 	}
 
 	currentBlockBeaconRoot := block.Hash().String()
-	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash.String(), currentBlockBeaconRoot, true)
+	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true)
 	if err != nil {
 		b.logger.Error("cannot run FCU for block insertion", "err", err)
 		return err
