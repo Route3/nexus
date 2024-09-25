@@ -199,8 +199,14 @@ func NewBlockchain(
 	executor Executor,
 	txSigner TxSigner,
 	executionGenesisHash string,
-	engineClient *engine.Client,
+	engineConfig *engine.EngineConfig,
 ) (*Blockchain, error) {
+
+	engineClient, engineErr := engine.NewEngineAPIFromConfig(engineConfig, logger)
+	if engineErr != nil {
+		return nil, fmt.Errorf("Engine API setup failed", "err", engineErr.Error())
+	}
+
 	b := &Blockchain{
 		logger:               logger.Named("blockchain"),
 		config:               config,
