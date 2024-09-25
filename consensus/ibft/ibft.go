@@ -230,15 +230,6 @@ func (i *backendIBFT) startSyncing() {
 
 // Start starts the IBFT consensus
 func (i *backendIBFT) Start() error {
-	// Get the initial payloadId
-	//// TODO: Move to Init
-	//latestPayloadHash := i.blockchain.GetLatestPayloadHash()
-	//res, err := i.engineClient.ForkChoiceUpdatedV1(latestPayloadHash, true)
-	//if err != nil {
-	//	return err
-	//}
-	//i.blockchain.SetPayloadId(res.Result.PayloadID)
-
 	// Start the syncer
 	if err := i.syncer.Start(); err != nil {
 		return err
