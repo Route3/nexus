@@ -11,9 +11,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/apex-fusion/nexus/engine"
-	"github.com/apex-fusion/nexus/profiling"
-
 	"github.com/apex-fusion/nexus/archive"
 	"github.com/apex-fusion/nexus/blockchain"
 	"github.com/apex-fusion/nexus/chain"
@@ -24,6 +21,7 @@ import (
 	"github.com/apex-fusion/nexus/helper/progress"
 	"github.com/apex-fusion/nexus/jsonrpc"
 	"github.com/apex-fusion/nexus/network"
+	"github.com/apex-fusion/nexus/profiling"
 	"github.com/apex-fusion/nexus/secrets"
 	"github.com/apex-fusion/nexus/server/proto"
 	"github.com/apex-fusion/nexus/state"
@@ -204,11 +202,8 @@ func NewServer(config *Config) (*Server, error) {
 	// use the eip155 signer
 	signer := crypto.NewEIP155Signer(uint64(m.config.Chain.Params.ChainID))
 
-	// engine api configuration repacking
-	engineCfg := engine.EngineConfig{EngineTokenPath: config.EngineTokenPath, EngineJWTID: config.EngineJWTID, EngineURL: config.EngineURL}
-
 	// blockchain object
-	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, m.executor, signer, m.config.ExecutionGenesisHash, &engineCfg)
+	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, m.executor, signer, m.config.ExecutionGenesisHash, &m.config.EngineConfig)
 	if err != nil {
 		return nil, err
 	}
