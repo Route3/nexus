@@ -402,6 +402,7 @@ func (t *txpoolHub) GetBalance(root types.Hash, addr types.Address) (*big.Int, e
 // setupSecretsManager sets up the secrets manager
 func (s *Server) setupSecretsManager() error {
 	secretsManagerConfig := s.config.SecretsManager
+
 	if secretsManagerConfig == nil {
 		// No config provided, use default
 		secretsManagerConfig = &secrets.SecretsManagerConfig{
@@ -414,7 +415,7 @@ func (s *Server) setupSecretsManager() error {
 		Logger: s.logger,
 	}
 
-	if secretsManagerType == secrets.Local {
+	if secretsManagerType == secrets.Local && len(secretsManagerConfig.Extra) == 0 {
 		// Only the base directory is required for
 		// the local secrets manager
 		secretsManagerParams.Extra = map[string]interface{}{
