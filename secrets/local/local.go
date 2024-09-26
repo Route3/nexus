@@ -39,8 +39,10 @@ func SecretsManagerFactory(
 		secretPathMap: make(map[string]string),
 	}
 
-	if _, ok := config.Extra[secrets.Path]; ok {
-		params.Extra = config.Extra
+	if config != nil && config.Extra != nil {
+		if _, ok := config.Extra[secrets.Path]; ok {
+			params.Extra = config.Extra
+		}
 	}
 
 	// Grab the path to the working directory
