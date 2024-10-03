@@ -122,10 +122,23 @@ fi
 docker compose -f docker-compose.multi.yaml up -d || true
 
 if [ $option_r ]; then
-  echo "Running nexus"
+  echo "Running nexus..."
 
+  rm -rf ./multi-validator-shared/logs && mkdir ./multi-validator-shared/logs
+
+  exec 3>&1
+  exec > >(tee -a ./multi-validator-shared/logs/v-0.txt) 2>&1
   go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-0.yaml &
+
+  exec >&3
+  exec > >(tee -a ./multi-validator-shared/logs/v-1.txt) 2>&1
   go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-1.yaml &
+
+  exec >&3
+  exec > >(tee -a ./multi-validator-shared/logs/v-2.txt) 2>&1
   go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-2.yaml &
-  go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-3.yaml
+
+  exec >&3
+  exec > >(tee -a ./multi-validator-shared/logs/v-3.txt) 2>&1
+  go run main.go server --log-level DEBUG --config multi-validator-config/nexus-config-3.yaml &
 fi
