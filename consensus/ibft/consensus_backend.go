@@ -8,7 +8,6 @@ import (
 	"github.com/Route3/go-ibft/messages"
 	"github.com/apex-fusion/nexus/consensus"
 	"github.com/apex-fusion/nexus/consensus/ibft/signer"
-	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
@@ -208,14 +207,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 		return nil, err
 	}
 
-	// TODO: Why do we need this method?
-	payload, err := engine.GetPayloadV3ResponseToPayload(payloadResponse)
-	if err != nil {
-		i.logger.Error("cannot parse payload response", "err", err)
-
-		return nil, err
-	}
-	header.PayloadHash = payload.BlockHash
+	header.PayloadHash = payloadResponse.Result.ExecutionPayload.BlockHash
 
 	if err := i.PreCommitState(header, transition); err != nil {
 		return nil, err
@@ -230,7 +222,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 		Header:   header,
 		Txns:     txs,
 		Receipts: transition.Receipts(),
-		Payload:  payload,
+		Payload:  &payloadResponse.Result.ExecutionPayload,
 	})
 
 	// write the seal of the block after all the fields are completed

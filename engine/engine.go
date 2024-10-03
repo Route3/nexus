@@ -2,7 +2,6 @@ package engine
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
@@ -241,45 +240,6 @@ func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseDat
 	}
 
 	err = c.handleRequest(&requestData, &responseData)
-
-	return
-}
-
-func GetPayloadV3ResponseToPayload(resp *GetPayloadV3Response) (payload *types.Payload, err error) {
-	// TODO: handle potential conversion errors and implement this as a json.Unmarshal method
-
-	payload = new(types.Payload)
-	rawPayload := resp.Result.ExecutionPayload
-
-	payload.BaseFeePerGas = hexutils.DecodeHexToBig(string(hexutils.DropHexPrefix([]byte(rawPayload.BaseFeePerGas)))) // TODO: Make it prettier
-	payload.BlockHash = types.StringToHash(rawPayload.BlockHash)
-	payload.ExtraData, _ = hexutils.DecodeString(string(hexutils.DropHexPrefix([]byte(rawPayload.ExtraData)))) // TODO: Make it prettier
-	payload.FeeRecipient = types.StringToAddress(rawPayload.FeeRecipient)
-	payload.GasLimit, _ = hexutils.DecodeUint64(rawPayload.GasLimit)
-	payload.GasUsed, _ = hexutils.DecodeUint64(rawPayload.GasUsed)
-
-	// Logs bloom encoding
-	var logsBloom types.Bloom
-	input := hexutils.DropHexPrefix([]byte(rawPayload.LogsBloom))
-	if _, err := hex.Decode(logsBloom[:], input); err != nil {
-		return nil, err
-	}
-	payload.LogsBloom = logsBloom
-
-	payload.Number, _ = hexutils.DecodeUint64(rawPayload.BlockNumber)
-	payload.ParentHash = types.StringToHash(rawPayload.ParentHash)
-	payload.ReceiptsRoot = types.StringToHash(rawPayload.ReceiptsRoot)
-	payload.StateRoot = types.StringToHash(rawPayload.StateRoot)
-	payload.Timestamp, _ = hexutils.DecodeUint64(rawPayload.Timestamp)
-	payload.Transactions = [][]byte{}
-
-	for _, transaction := range rawPayload.Transactions {
-		decoded, err := hexutils.DecodeHex(transaction)
-		if err != nil {
-			return nil, err
-		}
-		payload.Transactions = append(payload.Transactions, decoded)
-	}
 
 	return
 }

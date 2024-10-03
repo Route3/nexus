@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/binary"
+	encodingHex "encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -125,6 +126,23 @@ type Payload struct {
 	ExcessBlobGas *uint64             `json:"excessBlobGas"`*/
 }
 
+type _RawPayload struct {
+	ParentHash    Hash     `json:"parentHash"`
+	FeeRecipient  Address  `json:"feeRecipient"`
+	StateRoot     Hash     `json:"stateRoot"`
+	ReceiptsRoot  Hash     `json:"receiptsRoot"`
+	LogsBloom     string   `json:"logsBloom"`
+	PrevRandao    string   `json:"prevRandao"`
+	BlockNumber   string   `json:"blockNumber"`
+	GasLimit      string   `json:"gasLimit"`
+	GasUsed       string   `json:"gasUsed"`
+	Timestamp     string   `json:"timestamp"`
+	ExtraData     string   `json:"extraData"`
+	BaseFeePerGas string   `json:"baseFeePerGas"`
+	BlockHash     Hash     `json:"blockHash"`
+	Transactions  []string `json:"transactions"`
+}
+
 func (p *Payload) MarshalJSON() ([]byte, error) {
 	logsBloom, err := p.LogsBloom.MarshalText()
 	if err != nil {
@@ -167,6 +185,61 @@ func (p *Payload) MarshalJSON() ([]byte, error) {
 		BlockHash:     p.BlockHash.String(),
 		Transactions:  transactions,
 	})
+}
+
+func (p *Payload) UnmarshalJSON(data []byte) error {
+	var rawPayload _RawPayload
+	err := json.Unmarshal(data, &rawPayload)
+
+	p.BaseFeePerGas = hex.DecodeHexToBig(string(hex.DropHexPrefix([]byte(rawPayload.BaseFeePerGas))))
+	p.BlockHash = rawPayload.BlockHash
+	p.ExtraData, err = hex.DecodeString(string(hex.DropHexPrefix([]byte(rawPayload.ExtraData))))
+
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal payload.extraData")
+	}
+	p.FeeRecipient = rawPayload.FeeRecipient
+	p.GasLimit, err = hex.DecodeUint64(rawPayload.GasLimit)
+	if err != nil {
+		return fmt.Errorf("failed to decode payload.GasLimit")
+	}
+	p.GasUsed, err = hex.DecodeUint64(rawPayload.GasUsed)
+	if err != nil {
+		return fmt.Errorf("failed to decode payload.GasUsed")
+	}
+
+	// Logs bloom decoding
+	var logsBloom Bloom
+	input := hex.DropHexPrefix([]byte(rawPayload.LogsBloom))
+	if _, err := encodingHex.Decode(logsBloom[:], input); err != nil {
+		return fmt.Errorf("failed to decode payload.logsBloom")
+	}
+	p.LogsBloom = logsBloom
+
+	p.Number, err = hex.DecodeUint64(rawPayload.BlockNumber)
+	if err != nil {
+		return fmt.Errorf("failed to decode payload.BlockNumber")
+	}
+	p.ParentHash = rawPayload.ParentHash
+	p.ReceiptsRoot = rawPayload.ReceiptsRoot
+	p.StateRoot = rawPayload.StateRoot
+	p.Timestamp, err = hex.DecodeUint64(rawPayload.Timestamp)
+	if err != nil {
+		return fmt.Errorf("failed to decode payload.Timestamp")
+	}
+
+	// Transaction decoding
+	p.Transactions = [][]byte{}
+
+	for _, transaction := range rawPayload.Transactions {
+		decoded, err := hex.DecodeHex(transaction)
+		if err != nil {
+			return fmt.Errorf("failed to decode payload.Transactions")
+		}
+		p.Transactions = append(p.Transactions, decoded)
+	}
+
+	return err
 }
 
 func (b *Block) Hash() Hash {
