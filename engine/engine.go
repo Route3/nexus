@@ -5,9 +5,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"time"
 
 	hexutils "github.com/apex-fusion/nexus/helper/hex"
@@ -57,7 +60,7 @@ func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string) (
 	return engineClient, nil
 }
 
-func (c *Client) Init(latestPayloadHash string, parentBeaconBlockRoot string) (payloadId string, err error) {
+func (c *Client) Init(latestPayloadHash types.Hash, parentBeaconBlockRoot string) (payloadId string, err error) {
 	_, err = c.ExchangeCapabilities(make([]string, 0))
 	if err != nil {
 		return
@@ -192,16 +195,16 @@ func (c *Client) NewPayloadV3(payload *types.Payload, beaconBlockRoot string) (r
 	return
 }
 
-func (c *Client) ForkChoiceUpdatedV3(blockHash string, parentBeaconBlockRoot string, buildPayload bool) (responseData *ForkchoiceUpdatedV3Response, err error) {
-	c.logger.Debug("Running ForkchoiceUpdatedV3", "blockHash", blockHash)
+func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot string, buildPayload bool) (responseData *ForkchoiceUpdatedV3Response, err error) {
+	c.logger.Debug("Running ForkChoiceUpdatedV3", "blockHash", blockHash)
 
 	blockTimestamp := "0x" + fmt.Sprintf("%X", time.Now().Unix())
 
 	params := []ForkchoiceUpdatedV3Param{
 		ForkchoiceStateParam{
-			HeadBlockHash:      blockHash,
-			SafeBlockHash:      blockHash,
-			FinalizedBlockHash: blockHash,
+			HeadBlockHash:      blockHash.String(),
+			SafeBlockHash:      blockHash.String(),
+			FinalizedBlockHash: blockHash.String(),
 		},
 		nil,
 	}
@@ -279,4 +282,32 @@ func GetPayloadV3ResponseToPayload(resp *GetPayloadV3Response) (payload *types.P
 	}
 
 	return
+}
+
+// NewEngineAPIFromConfig creates a Engine API
+func NewEngineAPIFromConfig(config *EngineConfig, logger hclog.Logger) (*Client, error) {
+	var engineClient *Client
+
+	if data, err := os.ReadFile(config.EngineTokenPath); err == nil {
+		trimmed := strings.TrimSpace(string(data))
+		jwtSecret, err := types.ParseBytes(&trimmed)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(jwtSecret) != 32 {
+			return nil, fmt.Errorf("invalid JWT secret")
+		}
+
+		logger.Info("Loaded JWT secret file", "path", config.EngineTokenPath, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
+
+		engineClient, err = NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, err
+	}
+
+	return engineClient, nil
 }

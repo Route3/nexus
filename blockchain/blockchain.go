@@ -199,8 +199,14 @@ func NewBlockchain(
 	executor Executor,
 	txSigner TxSigner,
 	executionGenesisHash string,
-	engineClient *engine.Client,
+	engineConfig *engine.EngineConfig,
 ) (*Blockchain, error) {
+
+	engineClient, engineErr := engine.NewEngineAPIFromConfig(engineConfig, logger)
+	if engineErr != nil {
+		return nil, fmt.Errorf("Engine API setup failed", "err", engineErr.Error())
+	}
+
 	b := &Blockchain{
 		logger:               logger.Named("blockchain"),
 		config:               config,
@@ -898,7 +904,7 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 	}
 
 	currentBlockBeaconRoot := block.Hash().String()
-	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash.String(), currentBlockBeaconRoot, true)
+	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true)
 	if err != nil {
 		b.logger.Error("cannot run FCU for block insertion", "err", err)
 		return err

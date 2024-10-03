@@ -177,3 +177,9 @@ type EngineErrorBody struct {
 type EngineResponseError struct {
 	Error EngineErrorBody `json:"error"`
 }
+
+type EngineConfig struct {
+	EngineTokenPath string `json:"engineTokenPath"`
+	EngineURL       string `json:"engineURL"`
+	EngineJWTID     string `json:"engineJWTID"`
+}
