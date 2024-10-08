@@ -112,7 +112,7 @@ type Payload struct {
 	StateRoot     Hash     `json:"stateRoot"     gencodec:"required"`
 	ReceiptsRoot  Hash     `json:"receiptsRoot"  gencodec:"required"`
 	LogsBloom     Bloom    `json:"logsBloom"     gencodec:"required"`
-	Random        Hash     `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+	Random        Hash     `json:"prevRandao"    gencodec:"required"`
 	Number        uint64   `json:"blockNumber"   gencodec:"required"`
 	GasLimit      uint64   `json:"gasLimit"      gencodec:"required"`
 	GasUsed       uint64   `json:"gasUsed"       gencodec:"required"`
@@ -160,7 +160,7 @@ func (p *Payload) MarshalJSON() ([]byte, error) {
 		StateRoot     string   `json:"stateRoot"     gencodec:"required"`
 		ReceiptsRoot  string   `json:"receiptsRoot"  gencodec:"required"`
 		LogsBloom     string   `json:"logsBloom"     gencodec:"required"`
-		Random        string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+		Random        string   `json:"prevRandao"    gencodec:"required"`
 		Number        string   `json:"blockNumber"   gencodec:"required"`
 		GasLimit      string   `json:"gasLimit"      gencodec:"required"`
 		GasUsed       string   `json:"gasUsed"       gencodec:"required"`

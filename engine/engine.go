@@ -211,7 +211,7 @@ func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot
 	if buildPayload {
 		params[1] = ForkchoicePayloadAttributes{
 			Timestamp:             blockTimestamp,
-			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
+			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000",
 			SuggestedFeeRecipient: "0x0000000000000000000000000000000000000000",
 			Withdrawals:           make([]string, 0),
 			ParentBeaconBlockroot: parentBeaconBlockRoot,
