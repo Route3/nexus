@@ -436,13 +436,11 @@ func (p *Payload) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
 	p.Transactions = make([][]byte, len(transactions))
 
 	for i, transaction := range transactions {
-		tempTransaction := make([]byte, 0)
-		tempTransaction, err = transaction.GetBytes(tempTransaction[:]) // TODO: Remove first variable return value receiver
+
+		p.Transactions[i], err = transaction.GetBytes(p.Transactions[i][:])
 		if err != nil {
 			return err
 		}
-
-		p.Transactions[i] = tempTransaction
 	}
 
 	return err
