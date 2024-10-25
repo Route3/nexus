@@ -1,0 +1,254 @@
+services:
+  geth-init-0:
+    image: "ghcr.io/route3/nexus-geth:latest"
+    command: --datadir=/multi/v-0/geth init /multi/v-0/geth-genesis.json
+    volumes:
+      - ../shared/multi/v-0:/multi/v-0
+      - ../shared/multi/v-0/geth/genesis.json:/multi/v-0/geth-genesis.json
+  geth-init-1:
+    image: "ghcr.io/route3/nexus-geth:latest"
+    command: --datadir=/multi/v-1/geth init /multi/v-1/geth-genesis.json
+    volumes:
+      - ../shared/multi/v-1:/multi/v-1
+      - ../shared/multi/v-1/geth/genesis.json:/multi/v-1/geth-genesis.json
+  geth-init-2:
+    image: "ghcr.io/route3/nexus-geth:latest"
+    command: --datadir=/multi/v-2/geth init /multi/v-2/geth-genesis.json
+    volumes:
+      - ../shared/multi/v-2:/multi/v-2
+      - ../shared/multi/v-2/geth/genesis.json:/multi/v-2/geth-genesis.json
+  geth-init-3:
+    image: "ghcr.io/route3/nexus-geth:latest"
+    command: --datadir=/multi/v-3/geth init /multi/v-3/geth-genesis.json
+    volumes:
+      - ../shared/multi/v-3:/multi/v-3
+      - ../shared/multi/v-3/geth/genesis.json:/multi/v-3/geth-genesis.json
+
+  mitmproxy-0:
+    image: mitmproxy/mitmproxy
+    command: >
+      mitmweb
+      --mode reverse:http://geth:8551
+      --listen-port 8550
+      --web-host 0.0.0.0
+      --set block_global=false
+    ports:
+      - 8550:8550
+      - 8081:8081
+
+  mitmproxy-1:
+    image: mitmproxy/mitmproxy
+    command: >
+      mitmweb
+      --mode reverse:http://gethsecond:8551
+      --listen-port 8550
+      --web-host 0.0.0.0
+      --set block_global=false
+    ports:
+      - 18550:8550
+      - 18081:8081
+
+  mitmproxy-2:
+    image: mitmproxy/mitmproxy
+    command: >
+      mitmweb
+      --mode reverse:http://geththird:8551
+      --listen-port 8550
+      --web-host 0.0.0.0
+      --set block_global=false
+    ports:
+      - 28550:8550
+      - 28081:8081
+
+  mitmproxy-3:
+    image: mitmproxy/mitmproxy
+    command: >
+      mitmweb
+      --mode reverse:http://gethfourth:8551
+      --listen-port 8550
+      --web-host 0.0.0.0
+      --set block_global=false
+    ports:
+      - 38550:8550
+      - 38081:8081
+
+  geth:
+    image: "ghcr.io/route3/nexus-geth:latest"
+    command:
+      - --verbosity=5
+      - --http
+      - --http.api=eth,net,web3
+      - --http.addr=0.0.0.0
+      - --http.corsdomain=*
+      - --ws
+      - --ws.api=eth,net,web3
+      - --ws.addr=0.0.0.0
+      - --ws.origins=*
+      - --authrpc.vhosts=*
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.jwtsecret=/multi/v-0/geth/jwt.hex
+      - --datadir=/multi/v-0/geth
+      - --syncmode=full
+      - --nodiscover
+    ports:
+      - 8551:8551
+      - 8545:8545
+      - 8546:8546
+    volumes:
+      - ../shared/multi/v-0:/multi/v-0
+      - ../shared/multi/v-0/geth/genesis.json:/multi/v-0/geth-genesis.json
+    depends_on:
+      geth-init-0:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8551"]
+      interval: 2s
+      timeout: 1s
+      retries: 300
+      start_period: 1s
+
+  gethsecond:
+    image: "ghcr.io/route3/nexus-geth:latest"
+    command:
+      - --verbosity=5
+      - --http
+      - --http.api=eth,net,web3
+      - --http.addr=0.0.0.0
+      - --http.corsdomain=*
+      - --ws
+      - --ws.api=eth,net,web3
+      - --ws.addr=0.0.0.0
+      - --ws.origins=*
+      - --authrpc.vhosts=*
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.jwtsecret=/multi/v-1/geth/jwt.hex
+      - --datadir=/multi/v-1/geth
+      - --syncmode=full
+      - --nodiscover
+    ports:
+      - 18551:8551
+      - 18545:8545
+      - 18546:8546
+    volumes:
+      - ../shared/multi/v-1:/multi/v-1
+      - ../shared/multi/v-1/geth/genesis.json:/multi/v-1/geth-genesis.json
+    depends_on:
+      geth-init-1:
+        condition: service_completed_successfully
+
+  geththird:
+    image: "ghcr.io/route3/nexus-geth:latest"
+    command:
+      - --verbosity=5
+      - --http
+      - --http.api=eth,net,web3
+      - --http.addr=0.0.0.0
+      - --http.corsdomain=*
+      - --ws
+      - --ws.api=eth,net,web3
+      - --ws.addr=0.0.0.0
+      - --ws.origins=*
+      - --authrpc.vhosts=*
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.jwtsecret=/multi/v-2/geth/jwt.hex
+      - --datadir=/multi/v-2/geth
+      - --syncmode=full
+      - --nodiscover
+    ports:
+      - 28551:8551
+      - 28545:8545
+      - 28546:8546
+    volumes:
+      - ../shared/multi/v-2:/multi/v-2
+      - ../shared/multi/v-2/geth/genesis.json:/multi/v-2/geth-genesis.json
+    depends_on:
+      geth-init-2:
+        condition: service_completed_successfully
+
+  gethfourth:
+    image: "ghcr.io/route3/nexus-geth:latest"
+    command:
+      - --verbosity=5
+      - --http
+      - --http.api=eth,net,web3
+      - --http.addr=0.0.0.0
+      - --http.corsdomain=*
+      - --ws
+      - --ws.api=eth,net,web3
+      - --ws.addr=0.0.0.0
+      - --ws.origins=*
+      - --authrpc.vhosts=*
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.jwtsecret=/multi/v-3/geth/jwt.hex
+      - --datadir=/multi/v-3/geth
+      - --syncmode=full
+      - --nodiscover
+    ports:
+      - 38551:8551
+      - 38545:8545
+      - 38546:8546
+    volumes:
+      - ../shared/multi/v-3:/multi/v-3
+      - ../shared/multi/v-3/geth/genesis.json:/multi/v-3/geth-genesis.json
+    depends_on:
+      geth-init-3:
+        condition: service_completed_successfully
+
+  waitforit:
+    image: "ubuntu:latest"
+    command: /bin/sh -c "sleep 20"
+
+  nexus:
+    image: "ghcr.io/route3/nexus-beacon:latest"
+    network_mode: host
+    command: server --config=/nexus-init/config-0.yaml
+    volumes:
+      - ../shared/multi/v-0/geth:/geth-init
+      - ../shared/multi/v-0/nexus:/nexus-init
+      - nexus:/nexus
+    depends_on:
+      waitforit:
+        condition: service_completed_successfully
+
+  nexussecond:
+    image: "ghcr.io/route3/nexus-beacon:latest"
+    network_mode: host
+    command: server --config=/nexus-init/config-1.yaml
+    volumes:
+      - ../shared/multi/v-1/geth:/geth-init
+      - ../shared/multi/v-1/nexus:/nexus-init
+      - nexussecond:/nexussecond
+    depends_on:
+      waitforit:
+        condition: service_completed_successfully
+
+  nexusthird:
+    image: "ghcr.io/route3/nexus-beacon:latest"
+    network_mode: host
+    command: server --config=/nexus-init/config-2.yaml
+    volumes:
+      - ../shared/multi/v-2/geth:/geth-init
+      - ../shared/multi/v-2/nexus:/nexus-init
+      - nexusthird:/nexusthird
+    depends_on:
+      waitforit:
+        condition: service_completed_successfully
+
+  nexusfourth:
+    image: "ghcr.io/route3/nexus-beacon:latest"
+    network_mode: host
+    command: server --config=/nexus-init/config-3.yaml
+    volumes:
+      - ../shared/multi/v-3/geth:/geth-init
+      - ../shared/multi/v-3/nexus:/nexus-init
+      - nexusfourth:/nexusfourth
+    depends_on:
+      waitforit:
+        condition: service_completed_successfully
+
+volumes:
+  geth:
+  nexus:
+  nexussecond:
+  nexusthird:
+  nexusfourth:
