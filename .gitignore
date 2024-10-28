@@ -26,3 +26,4 @@ vendor/
 shared/
 
 multi-validator-shared
+.envrc
