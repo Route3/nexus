@@ -153,7 +153,7 @@ const (
 )
 
 func defaultDelay() {
-	time.Sleep(time.Duration(15) * time.Second)
+	time.Sleep(time.Duration(20) * time.Second)
 }
 
 // waitForServices waits for the Geth nodes to become healthy.

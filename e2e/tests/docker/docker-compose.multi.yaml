@@ -199,7 +199,7 @@ services:
     command: /bin/sh -c "sleep 20"
 
   nexus:
-    image: "ghcr.io/route3/nexus-beacon:latest"
+    image: "nexus-dev:latest"
     network_mode: host
     command: server --config=/nexus-init/config-0.yaml
     volumes:
@@ -211,7 +211,7 @@ services:
         condition: service_completed_successfully
 
   nexussecond:
-    image: "ghcr.io/route3/nexus-beacon:latest"
+    image: "nexus-dev:latest"
     network_mode: host
     command: server --config=/nexus-init/config-1.yaml
     volumes:
@@ -223,7 +223,7 @@ services:
         condition: service_completed_successfully
 
   nexusthird:
-    image: "ghcr.io/route3/nexus-beacon:latest"
+    image: "nexus-dev:latest"
     network_mode: host
     command: server --config=/nexus-init/config-2.yaml
     volumes:
@@ -235,7 +235,7 @@ services:
         condition: service_completed_successfully
 
   nexusfourth:
-    image: "ghcr.io/route3/nexus-beacon:latest"
+    image: "nexus-dev:latest"
     network_mode: host
     command: server --config=/nexus-init/config-3.yaml
     volumes:

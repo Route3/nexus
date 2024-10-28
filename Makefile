@@ -88,19 +88,23 @@ rerun-single: stop-multi clean-multi run-multi
 
 set-go-version: 
 	echo "Run: gvm use go1.23.0 && gvm pkgset use go1.23 if needed"
+	go clean -testcache
 
-test-single-liveness: set-go-version
+build-docker-image:
+	 docker build -t nexus-dev:latest .
+
+test-single-liveness: set-go-version build-docker-image
 	cd e2e/tests && go test -timeout 300s -run ^TestE2ESingleLiveness github.com/apex-fusion/nexus
 
-test-single-broadcast: set-go-version
+test-single-broadcast: set-go-version build-docker-image
 	cd e2e/tests && go test -timeout 300s -run ^TestE2ESingleBroadcast github.com/apex-fusion/nexus
 
 test-single: test-single-liveness test-single-broadcast
 
-test-multi-liveness: set-go-version
+test-multi-liveness: set-go-version build-docker-image
 	cd e2e/tests && go test -timeout 400s -run ^TestE2EMultiLiveness github.com/apex-fusion/nexus
 
-test-multi-broadcast: set-go-version
+test-multi-broadcast: set-go-version build-docker-image
 	cd e2e/tests && go test -timeout 1000s -run ^TestE2EMultiBroadcast github.com/apex-fusion/nexus
 
 test-multi: test-multi-liveness test-multi-broadcast
