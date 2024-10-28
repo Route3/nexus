@@ -30,13 +30,19 @@ type LocalSecretsManager struct {
 
 // SecretsManagerFactory implements the factory method
 func SecretsManagerFactory(
-	_ *secrets.SecretsManagerConfig,
+	config *secrets.SecretsManagerConfig,
 	params *secrets.SecretsManagerParams,
 ) (secrets.SecretsManager, error) {
 	// Set up the base object
 	localManager := &LocalSecretsManager{
 		logger:        params.Logger.Named(string(secrets.Local)),
 		secretPathMap: make(map[string]string),
+	}
+
+	if config != nil && config.Extra != nil {
+		if _, ok := config.Extra[secrets.Path]; ok {
+			params.Extra = config.Extra
+		}
 	}
 
 	// Grab the path to the working directory
