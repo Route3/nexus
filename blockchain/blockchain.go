@@ -3,11 +3,12 @@ package blockchain
 import (
 	"errors"
 	"fmt"
-	"github.com/apex-fusion/nexus/engine"
 	"math/big"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+
+	"github.com/apex-fusion/nexus/engine"
 
 	"github.com/apex-fusion/nexus/blockchain/storage"
 	"github.com/apex-fusion/nexus/blockchain/storage/leveldb"

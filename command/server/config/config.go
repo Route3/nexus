@@ -35,6 +35,7 @@ type Config struct {
 	EngineTokenPath          string     `json:"engine_token_path" yaml:"engine_token_path"`
 	EngineJWTID              string     `json:"engine_jwt_id" yaml:"engine_jwt_id"`
 	ExecutionGenesisHash     string     `json:"execution_genesis_hash" yaml:"execution_genesis_hash"`
+	SuggestedFeeRecipient     string    `json:"suggested_fee_recipient" yaml:"suggested_fee_recipient"`
 }
 
 // Telemetry holds the config details for metric services.

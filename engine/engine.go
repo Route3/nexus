@@ -28,9 +28,10 @@ type Client struct {
 	client *http.Client
 	url    *url.URL
 	token  []byte
+	FeeRecipient string
 }
 
-func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string) (*Client, error) {
+func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string, feeRecipient string) (*Client, error) {
 	url, err := url.Parse(rawUrl)
 	if err != nil {
 		return nil, err
@@ -52,6 +53,7 @@ func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string) (
 		client,
 		url,
 		token,
+		feeRecipient,
 	}
 
 	return engineClient, nil
@@ -206,11 +208,13 @@ func (c *Client) ForkChoiceUpdatedV3(blockHash string, parentBeaconBlockRoot str
 		nil,
 	}
 
+	fmt.Println("ForkChoiceUpdate feeRecipient:", c.FeeRecipient)
+
 	if buildPayload {
 		params[1] = ForkchoicePayloadAttributes{
 			Timestamp:             blockTimestamp,
 			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
-			SuggestedFeeRecipient: "0x0000000000000000000000000000000000000000",
+			SuggestedFeeRecipient: c.FeeRecipient,
 			Withdrawals:           make([]string, 0),
 			ParentBeaconBlockroot: parentBeaconBlockRoot,
 		}
