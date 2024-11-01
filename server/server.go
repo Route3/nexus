@@ -20,6 +20,7 @@ import (
 	"github.com/apex-fusion/nexus/blockchain"
 	"github.com/apex-fusion/nexus/chain"
 	"github.com/apex-fusion/nexus/consensus"
+	consensusSigner "github.com/apex-fusion/nexus/consensus/ibft/signer"
 	"github.com/apex-fusion/nexus/crypto"
 	"github.com/apex-fusion/nexus/helper/common"
 	configHelper "github.com/apex-fusion/nexus/helper/config"
@@ -130,7 +131,7 @@ func newLoggerFromConfig(config *Config) (hclog.Logger, error) {
 }
 
 // newEngineAPIFromConfig creates a Engine API
-func newEngineAPIFromConfig(config *Config, logger hclog.Logger) (*engine.Client, error) {
+func newEngineAPIFromConfig(config *Config, logger hclog.Logger, feeRecipient string) (*engine.Client, error) {
 	var engineClient *engine.Client
 
 	if data, err := os.ReadFile(config.EngineTokenPath); err == nil {
@@ -146,7 +147,7 @@ func newEngineAPIFromConfig(config *Config, logger hclog.Logger) (*engine.Client
 
 		logger.Info("Loaded JWT secret file", "path", config.EngineTokenPath, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
 
-		engineClient, err = engine.NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID)
+		engineClient, err = engine.NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID, feeRecipient)
 		if err != nil {
 			return nil, err
 		}
@@ -171,6 +172,8 @@ func NewServer(config *Config) (*Server, error) {
 		grpcServer:         grpc.NewServer(),
 		restoreProgression: progress.NewProgressionWrapper(progress.ChainSyncRestore),
 	}
+
+	
 
 	m.logger.Info("Data dir", "path", config.DataDir)
 
@@ -239,7 +242,12 @@ func NewServer(config *Config) (*Server, error) {
 
 	// TODO: WE don't need an engine reference in the server, just move it all to blockchain
 	// Setting up Engine API
-	if engineClient, err := newEngineAPIFromConfig(config, logger); err != nil {
+	ecdsaValidatorSigner, _ := consensusSigner.NewECDSAKeyManager(m.secretsManager)
+	feeRecipient := ecdsaValidatorSigner.Address().String()
+	if config.SuggestedFeeRecipient != "" {
+		feeRecipient = config.SuggestedFeeRecipient
+	}
+	if engineClient, err := newEngineAPIFromConfig(config, logger, feeRecipient); err != nil {
 		return nil, fmt.Errorf("Engine API setup failed", "err", err.Error())
 	} else {
 		m.engineClient = engineClient
