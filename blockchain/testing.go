@@ -3,9 +3,10 @@ package blockchain
 import (
 	"errors"
 	"fmt"
-	"github.com/apex-fusion/nexus/engine"
 	"math/big"
 	"testing"
+
+	"github.com/apex-fusion/nexus/engine"
 
 	"github.com/apex-fusion/nexus/blockchain/storage"
 
@@ -343,7 +344,7 @@ func newBlockChain(config *chain.Chain, executor Executor) (*Blockchain, error) 
 		executor = &mockExecutor{}
 	}
 
-	b, err := NewBlockchain(hclog.NewNullLogger(), "", config, &MockVerifier{}, executor, &mockSigner{}, "", &engine.EngineConfig{})
+	b, err := NewBlockchain(hclog.NewNullLogger(), "", config, &MockVerifier{}, executor, &mockSigner{}, "", &engine.EngineConfig{}, nil, "")
 	if err != nil {
 		return nil, err
 	}

@@ -30,9 +30,10 @@ type Client struct {
 	client *http.Client
 	url    *url.URL
 	token  []byte
+	FeeRecipient string
 }
 
-func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string) (*Client, error) {
+func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string, feeRecipient string) (*Client, error) {
 	url, err := url.Parse(rawUrl)
 	if err != nil {
 		return nil, err
@@ -54,6 +55,7 @@ func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string) (
 		client,
 		url,
 		token,
+		feeRecipient,
 	}
 
 	return engineClient, nil
@@ -211,8 +213,8 @@ func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot
 	if buildPayload {
 		params[1] = ForkchoicePayloadAttributes{
 			Timestamp:             blockTimestamp,
-			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000",
-			SuggestedFeeRecipient: "0x0000000000000000000000000000000000000000",
+			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
+			SuggestedFeeRecipient: c.FeeRecipient,
 			Withdrawals:           make([]string, 0),
 			ParentBeaconBlockroot: parentBeaconBlockRoot,
 		}
@@ -245,7 +247,7 @@ func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseDat
 }
 
 // NewEngineAPIFromConfig creates a Engine API
-func NewEngineAPIFromConfig(config *EngineConfig, logger hclog.Logger) (*Client, error) {
+func NewEngineAPIFromConfig(config *EngineConfig, logger hclog.Logger, feeRecipient string) (*Client, error) {
 	var engineClient *Client
 
 	if data, err := os.ReadFile(config.EngineTokenPath); err == nil {
@@ -261,7 +263,7 @@ func NewEngineAPIFromConfig(config *EngineConfig, logger hclog.Logger) (*Client,
 
 		logger.Info("Loaded JWT secret file", "path", config.EngineTokenPath, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
 
-		engineClient, err = NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID)
+		engineClient, err = NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID, feeRecipient)
 		if err != nil {
 			return nil, err
 		}

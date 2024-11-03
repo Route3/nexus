@@ -181,5 +181,6 @@ func (p *serverParams) generateConfig() *server.Config {
 			EngineJWTID:     p.rawConfig.EngineJWTID,
 		},
 		ExecutionGenesisHash: p.rawConfig.ExecutionGenesisHash,
+		SuggestedFeeRecipient: p.rawConfig.SuggestedFeeRecipient,
 	}
 }

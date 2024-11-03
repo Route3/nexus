@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/apex-fusion/nexus/archive"
@@ -16,6 +18,7 @@ import (
 	"github.com/apex-fusion/nexus/chain"
 	"github.com/apex-fusion/nexus/consensus"
 	"github.com/apex-fusion/nexus/crypto"
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/common"
 	configHelper "github.com/apex-fusion/nexus/helper/config"
 	"github.com/apex-fusion/nexus/helper/progress"
@@ -122,6 +125,34 @@ func newLoggerFromConfig(config *Config) (hclog.Logger, error) {
 	return newCLILogger(config), nil
 }
 
+// newEngineAPIFromConfig creates a Engine API
+func newEngineAPIFromConfig(config *Config, logger hclog.Logger, feeRecipient string) (*engine.Client, error) {
+	var engineClient *engine.Client
+
+	if data, err := os.ReadFile(config.EngineConfig.EngineTokenPath); err == nil {
+		trimmed := strings.TrimSpace(string(data))
+		jwtSecret, err := types.ParseBytes(&trimmed)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(jwtSecret) != 32 {
+			return nil, fmt.Errorf("invalid JWT secret")
+		}
+
+		logger.Info("Loaded JWT secret file", "path", config.EngineConfig.EngineTokenPath, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
+
+		engineClient, err = engine.NewClient(logger, config.EngineConfig.EngineURL, jwtSecret, config.EngineConfig.EngineJWTID, feeRecipient)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, err
+	}
+
+	return engineClient, nil
+}
+
 // NewServer creates a new Minimal server, using the passed in configuration
 func NewServer(config *Config) (*Server, error) {
 	logger, err := newLoggerFromConfig(config)
@@ -136,6 +167,8 @@ func NewServer(config *Config) (*Server, error) {
 		grpcServer:         grpc.NewServer(),
 		restoreProgression: progress.NewProgressionWrapper(progress.ChainSyncRestore),
 	}
+
+	
 
 	m.logger.Info("Data dir", "path", config.DataDir)
 
@@ -202,8 +235,9 @@ func NewServer(config *Config) (*Server, error) {
 	// use the eip155 signer
 	signer := crypto.NewEIP155Signer(uint64(m.config.Chain.Params.ChainID))
 
+	
 	// blockchain object
-	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, m.executor, signer, m.config.ExecutionGenesisHash, &m.config.EngineConfig)
+	m.blockchain, err = blockchain.NewBlockchain(logger,  m.config.DataDir, config.Chain, nil, m.executor, signer, m.config.ExecutionGenesisHash, &m.config.EngineConfig, &m.secretsManager, config.SuggestedFeeRecipient)
 	if err != nil {
 		return nil, err
 	}
@@ -292,8 +326,6 @@ func NewServer(config *Config) (*Server, error) {
 	if err := m.consensus.Start(); err != nil {
 		return nil, err
 	}
-
-	m.txpool.Start()
 
 	return m, nil
 }

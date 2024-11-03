@@ -3,7 +3,6 @@ package blockchain
 import (
 	"errors"
 	"fmt"
-	"github.com/apex-fusion/nexus/engine"
 	"math/big"
 	"path/filepath"
 	"sync"
@@ -13,7 +12,10 @@ import (
 	"github.com/apex-fusion/nexus/blockchain/storage/leveldb"
 	"github.com/apex-fusion/nexus/blockchain/storage/memory"
 	"github.com/apex-fusion/nexus/chain"
+	consensusSigner "github.com/apex-fusion/nexus/consensus/ibft/signer"
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/common"
+	"github.com/apex-fusion/nexus/secrets"
 	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/types/buildroot"
@@ -194,22 +196,29 @@ func (b *Blockchain) GetAvgGasPrice() *big.Int {
 func NewBlockchain(
 	logger hclog.Logger,
 	dataDir string,
-	config *chain.Chain,
+	chainConfig *chain.Chain,
 	consensus Verifier,
 	executor Executor,
 	txSigner TxSigner,
 	executionGenesisHash string,
 	engineConfig *engine.EngineConfig,
+	secretsManager *secrets.SecretsManager,
+	feeRecipientFromConfig string,
 ) (*Blockchain, error) {
 
-	engineClient, engineErr := engine.NewEngineAPIFromConfig(engineConfig, logger)
+	ecdsaValidatorSigner, _ := consensusSigner.NewECDSAKeyManager(*secretsManager)
+	feeRecipient := ecdsaValidatorSigner.Address().String()
+	if feeRecipientFromConfig != "" {
+		feeRecipient = feeRecipientFromConfig
+	}
+	engineClient, engineErr := engine.NewEngineAPIFromConfig(engineConfig, logger, feeRecipient)
 	if engineErr != nil {
 		return nil, fmt.Errorf("Engine API setup failed", "err", engineErr.Error())
 	}
 
 	b := &Blockchain{
 		logger:               logger.Named("blockchain"),
-		config:               config,
+		config:               chainConfig,
 		consensus:            consensus,
 		executor:             executor,
 		txSigner:             txSigner,

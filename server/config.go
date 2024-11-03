@@ -48,6 +48,7 @@ type Config struct {
 	EngineConfig engine.EngineConfig
 
 	ExecutionGenesisHash string
+	SuggestedFeeRecipient string
 }
 
 // Telemetry holds the config details for metric services
