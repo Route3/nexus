@@ -13,7 +13,6 @@ import (
 	"github.com/apex-fusion/nexus/helper/progress"
 	"github.com/apex-fusion/nexus/network"
 	"github.com/apex-fusion/nexus/secrets"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/syncer"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/validators"
@@ -70,7 +69,6 @@ type backendIBFT struct {
 	logger         hclog.Logger           // Reference to the logging
 	blockchain     *blockchain.Blockchain // Reference to the blockchain layer
 	network        *network.Server        // Reference to the networking layer
-	executor       *state.Executor        // Reference to the state executor
 	txpool         txPoolInterface        // Reference to the transaction pool
 	syncer         syncer.Syncer          // Reference to the sync protocol
 	secretsManager secrets.SecretsManager // Reference to the secret manager
@@ -127,7 +125,6 @@ func Factory(params *consensus.Params) (consensus.Consensus, error) {
 	forkManager, err := fork.NewForkManager(
 		logger,
 		params.Blockchain,
-		params.Executor,
 		params.SecretsManager,
 		params.Config.Path,
 		epochSize,
@@ -142,7 +139,6 @@ func Factory(params *consensus.Params) (consensus.Consensus, error) {
 		logger:     logger,
 		blockchain: params.Blockchain,
 		network:    params.Network,
-		executor:   params.Executor,
 		syncer: syncer.NewSyncer(
 			params.Logger,
 			params.Network,
@@ -478,10 +474,10 @@ func (i *backendIBFT) GetBlockCreator(header *types.Header) (types.Address, erro
 }
 
 // PreCommitState a hook to be called before finalizing state transition on inserting block
-func (i *backendIBFT) PreCommitState(header *types.Header, txn *state.Transition) error {
+func (i *backendIBFT) PreCommitState(header *types.Header) error {
 	hooks := i.forkManager.GetHooks(header.Number)
 
-	return hooks.PreCommitState(header, txn)
+	return hooks.PreCommitState(header)
 }
 
 // GetEpoch returns the current epoch

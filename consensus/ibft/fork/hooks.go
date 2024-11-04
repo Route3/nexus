@@ -4,10 +4,7 @@ import (
 	"errors"
 
 	"github.com/apex-fusion/nexus/consensus/ibft/hook"
-	"github.com/apex-fusion/nexus/contracts/staking"
-	"github.com/apex-fusion/nexus/helper/hex"
 	stakingHelper "github.com/apex-fusion/nexus/helper/staking"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/validators"
 	"github.com/apex-fusion/nexus/validators/store"
@@ -87,34 +84,6 @@ func registerStakingContractDeploymentHooks(
 	hooks *hook.Hooks,
 	fork *IBFTFork,
 ) {
-	hooks.PreCommitStateFunc = func(header *types.Header, txn *state.Transition) error {
-		// safe check
-		if header.Number != fork.Deployment.Value {
-			return nil
-		}
-
-		if txn.AccountExists(staking.AddrStakingContract) {
-			// update bytecode of deployed contract
-			codeBytes, err := hex.DecodeHex(stakingHelper.StakingSCBytecode)
-			if err != nil {
-				return err
-			}
-
-			return txn.SetCodeDirectly(staking.AddrStakingContract, codeBytes)
-		} else {
-			// deploy contract
-			contractState, err := stakingHelper.PredeployStakingSC(
-				fork.Validators,
-				getPreDeployParams(fork),
-			)
-
-			if err != nil {
-				return err
-			}
-
-			return txn.SetAccountDirectly(staking.AddrStakingContract, contractState)
-		}
-	}
 }
 
 // getPreDeployParams returns PredeployParams for Staking Contract from IBFTFork

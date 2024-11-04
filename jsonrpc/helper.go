@@ -120,7 +120,7 @@ type nonceGetter interface {
 	Header() *types.Header
 	GetHeaderByNumber(uint64) (*types.Header, bool)
 	GetNonce(types.Address) uint64
-	GetAccount(root types.Hash, addr types.Address) (*Account, error)
+	GetAccount(root types.Hash, addr types.Address) (error)
 }
 
 func GetNextNonce(address types.Address, number BlockNumber, store nonceGetter) (uint64, error) {
@@ -131,23 +131,12 @@ func GetNextNonce(address types.Address, number BlockNumber, store nonceGetter) 
 		return store.GetNonce(address), nil
 	}
 
-	header, err := GetBlockHeader(number, store)
+	_, err := GetBlockHeader(number, store)
 	if err != nil {
 		return 0, err
 	}
 
-	acc, err := store.GetAccount(header.StateRoot, address)
-
-	//nolint:govet
-	if errors.Is(err, ErrStateNotFound) {
-		// If the account doesn't exist / isn't initialized,
-		// return a nonce value of 0
-		return 0, nil
-	} else if err != nil {
-		return 0, err
-	}
-
-	return acc.Nonce, nil
+	return 0, err
 }
 
 func DecodeTxn(arg *txnArgs, store nonceGetter) (*types.Transaction, error) {

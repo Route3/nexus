@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/validators"
 	"github.com/apex-fusion/nexus/validators/store"
@@ -33,7 +32,7 @@ type ContractValidatorStore struct {
 }
 
 type Executor interface {
-	BeginTxn(types.Hash, *types.Header, types.Address) (*state.Transition, error)
+	BeginTxn(types.Hash, *types.Header, types.Address) (error)
 }
 
 func NewContractValidatorStore(
@@ -78,12 +77,7 @@ func (s *ContractValidatorStore) GetValidatorsByHeight(
 		return cachedValidators, nil
 	}
 
-	transition, err := s.getTransitionForQuery(height)
-	if err != nil {
-		return nil, err
-	}
-
-	fetchedValidators, err := FetchValidators(validatorType, transition, types.ZeroAddress)
+	fetchedValidators, err := FetchValidators(validatorType, types.ZeroAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -93,13 +87,8 @@ func (s *ContractValidatorStore) GetValidatorsByHeight(
 	return fetchedValidators, nil
 }
 
-func (s *ContractValidatorStore) getTransitionForQuery(height uint64) (*state.Transition, error) {
-	header, ok := s.blockchain.GetHeaderByNumber(height)
-	if !ok {
-		return nil, fmt.Errorf("header not found at %d", height)
-	}
-
-	return s.executor.BeginTxn(header.StateRoot, header, types.ZeroAddress)
+func (s *ContractValidatorStore) getTransitionForQuery(height uint64) (error) {
+	return nil
 }
 
 // loadCachedValidatorSet loads validators from validatorSetCache

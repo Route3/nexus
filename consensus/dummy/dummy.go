@@ -4,7 +4,6 @@ import (
 	"github.com/apex-fusion/nexus/blockchain"
 	"github.com/apex-fusion/nexus/consensus"
 	"github.com/apex-fusion/nexus/helper/progress"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/hashicorp/go-hclog"
 )
@@ -14,21 +13,10 @@ type Dummy struct {
 	notifyCh   chan struct{}
 	closeCh    chan struct{}
 	blockchain *blockchain.Blockchain
-	executor   *state.Executor
 }
 
 func Factory(params *consensus.Params) (consensus.Consensus, error) {
-	logger := params.Logger.Named("dummy")
-
-	d := &Dummy{
-		logger:     logger,
-		notifyCh:   make(chan struct{}),
-		closeCh:    make(chan struct{}),
-		blockchain: params.Blockchain,
-		executor:   params.Executor,
-	}
-
-	return d, nil
+	return nil, nil
 }
 
 // Initialize initializes the consensus
@@ -57,7 +45,7 @@ func (d *Dummy) GetBlockCreator(header *types.Header) (types.Address, error) {
 }
 
 // PreCommitState a hook to be called before finalizing state transition on inserting block
-func (d *Dummy) PreCommitState(_header *types.Header, _txn *state.Transition) error {
+func (d *Dummy) PreCommitState(_header *types.Header) error {
 	return nil
 }
 

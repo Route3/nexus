@@ -7,7 +7,6 @@ import (
 	"github.com/apex-fusion/nexus/blockchain"
 	"github.com/apex-fusion/nexus/consensus"
 	"github.com/apex-fusion/nexus/helper/progress"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/hashicorp/go-hclog"
 )
@@ -26,7 +25,6 @@ type Dev struct {
 	interval uint64
 
 	blockchain *blockchain.Blockchain
-	executor   *state.Executor
 }
 
 // Factory implements the base factory method
@@ -40,7 +38,6 @@ func Factory(
 		notifyCh:   make(chan struct{}),
 		closeCh:    make(chan struct{}),
 		blockchain: params.Blockchain,
-		executor:   params.Executor,
 	}
 
 	rawInterval, ok := params.Config.Config["interval"]
@@ -132,40 +129,6 @@ func (d *Dev) writeNewBlock(parent *types.Header) error {
 
 	header.GasLimit = gasLimit
 
-	miner, err := d.GetBlockCreator(header)
-	if err != nil {
-		return err
-	}
-
-	transition, err := d.executor.BeginTxn(parent.StateRoot, header, miner)
-
-	if err != nil {
-		return err
-	}
-
-	// Commit the changes
-	_, root := transition.Commit()
-
-	// Update the header
-	header.StateRoot = root
-	header.GasUsed = transition.TotalGas()
-
-	// Build the actual block
-	// The header hash is computed inside buildBlock
-	block := consensus.BuildBlock(consensus.BuildBlockParams{
-		Header:   header,
-		Receipts: transition.Receipts(),
-	})
-
-	if err := d.blockchain.VerifyFinalizedBlock(block); err != nil {
-		return err
-	}
-
-	// Write the block to the blockchain
-	if err := d.blockchain.WriteBlock(block, devConsensus); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -185,7 +148,7 @@ func (d *Dev) GetBlockCreator(header *types.Header) (types.Address, error) {
 }
 
 // PreCommitState a hook to be called before finalizing state transition on inserting block
-func (d *Dev) PreCommitState(_header *types.Header, _txn *state.Transition) error {
+func (d *Dev) PreCommitState(_header *types.Header) error {
 	return nil
 }
 

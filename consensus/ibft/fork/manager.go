@@ -6,7 +6,6 @@ import (
 	"github.com/apex-fusion/nexus/consensus/ibft/hook"
 	"github.com/apex-fusion/nexus/consensus/ibft/signer"
 	"github.com/apex-fusion/nexus/secrets"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/validators"
 	"github.com/apex-fusion/nexus/validators/store"
@@ -50,7 +49,7 @@ type HooksInterface interface {
 	VerifyHeader(*types.Header) error
 	VerifyBlock(*types.Block) error
 	ProcessHeader(*types.Header) error
-	PreCommitState(*types.Header, *state.Transition) error
+	PreCommitState(*types.Header) error
 	PostInsertBlock(*types.Block) error
 }
 
@@ -77,7 +76,6 @@ type ForkManager struct {
 func NewForkManager(
 	logger hclog.Logger,
 	blockchain store.HeaderGetter,
-	executor contract.Executor,
 	secretManager secrets.SecretsManager,
 	filePath string,
 	epochSize uint64,
@@ -91,7 +89,6 @@ func NewForkManager(
 	fm := &ForkManager{
 		logger:          logger.Named(loggerName),
 		blockchain:      blockchain,
-		executor:        executor,
 		secretsManager:  secretManager,
 		filePath:        filePath,
 		epochSize:       epochSize,

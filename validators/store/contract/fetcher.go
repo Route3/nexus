@@ -5,7 +5,6 @@ import (
 
 	"github.com/apex-fusion/nexus/contracts/staking"
 	"github.com/apex-fusion/nexus/crypto"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/validators"
 )
@@ -13,14 +12,13 @@ import (
 // FetchValidators fetches validators from a contract switched by validator type
 func FetchValidators(
 	validatorType validators.ValidatorType,
-	transition *state.Transition,
 	from types.Address,
 ) (validators.Validators, error) {
 	switch validatorType {
 	case validators.ECDSAValidatorType:
-		return FetchECDSAValidators(transition, from)
+		return FetchECDSAValidators(from)
 	case validators.BLSValidatorType:
-		return FetchBLSValidators(transition, from)
+		return FetchBLSValidators(from)
 	}
 
 	return nil, fmt.Errorf("unsupported validator type: %s", validatorType)
@@ -28,10 +26,9 @@ func FetchValidators(
 
 // FetchECDSAValidators queries a contract for validator addresses and returns ECDSAValidators
 func FetchECDSAValidators(
-	transition *state.Transition,
 	from types.Address,
 ) (validators.Validators, error) {
-	valAddrs, err := staking.QueryValidators(transition, from)
+	valAddrs, err := staking.QueryValidators(nil, from)
 	if err != nil {
 		return nil, err
 	}
@@ -48,15 +45,14 @@ func FetchECDSAValidators(
 
 // FetchBLSValidators queries a contract for validator addresses & BLS Public Keys and returns ECDSAValidators
 func FetchBLSValidators(
-	transition *state.Transition,
 	from types.Address,
 ) (validators.Validators, error) {
-	valAddrs, err := staking.QueryValidators(transition, from)
+	valAddrs, err := staking.QueryValidators(nil, from)
 	if err != nil {
 		return nil, err
 	}
 
-	blsPublicKeys, err := staking.QueryBLSPublicKeys(transition, from)
+	blsPublicKeys, err := staking.QueryBLSPublicKeys(nil, from)
 	if err != nil {
 		return nil, err
 	}

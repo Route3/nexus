@@ -1,7 +1,6 @@
 package hook
 
 import (
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 )
 
@@ -15,7 +14,7 @@ type VerifyBlockFunc func(*types.Block) error
 
 type ProcessHeaderFunc func(*types.Header) error
 
-type PreCommitStateFunc func(*types.Header, *state.Transition) error
+type PreCommitStateFunc func(*types.Header) error
 
 type PostInsertBlockFunc func(*types.Block) error
 
@@ -69,9 +68,9 @@ func (m *Hooks) ProcessHeader(header *types.Header) error {
 	return nil
 }
 
-func (m *Hooks) PreCommitState(header *types.Header, txn *state.Transition) error {
+func (m *Hooks) PreCommitState(header *types.Header) error {
 	if m.PreCommitStateFunc != nil {
-		return m.PreCommitStateFunc(header, txn)
+		return m.PreCommitStateFunc(header)
 	}
 
 	return nil

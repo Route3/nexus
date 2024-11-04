@@ -9,7 +9,6 @@ import (
 	"github.com/apex-fusion/nexus/helper/progress"
 	"github.com/apex-fusion/nexus/network"
 	"github.com/apex-fusion/nexus/secrets"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
@@ -28,7 +27,7 @@ type Consensus interface {
 	GetBlockCreator(header *types.Header) (types.Address, error)
 
 	// PreCommitState a hook to be called before finalizing state transition on inserting block
-	PreCommitState(header *types.Header, txn *state.Transition) error
+	PreCommitState(header *types.Header) error
 
 	// GetSyncProgression retrieves the current sync progression, if any
 	GetSyncProgression() *progress.Progression
@@ -63,7 +62,6 @@ type Params struct {
 	Config         *Config
 	Network        *network.Server
 	Blockchain     *blockchain.Blockchain
-	Executor       *state.Executor
 	Grpc           *grpc.Server
 	Logger         hclog.Logger
 	SecretsManager secrets.SecretsManager

@@ -17,7 +17,6 @@ import (
 	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/common"
 	"github.com/apex-fusion/nexus/secrets"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/types/buildroot"
 
@@ -50,7 +49,6 @@ type Blockchain struct {
 
 	db        storage.Storage // The Storage object (database)
 	consensus Verifier
-	executor  Executor
 	txSigner  TxSigner
 
 	EngineClient         engine.Client
@@ -97,11 +95,6 @@ type Verifier interface {
 	VerifyHeader(header *types.Header) error
 	ProcessHeaders(headers []*types.Header) error
 	GetBlockCreator(header *types.Header) (types.Address, error)
-	PreCommitState(header *types.Header, txn *state.Transition) error
-}
-
-type Executor interface {
-	ProcessBlock(parentRoot types.Hash, block *types.Block, blockCreator types.Address) (*state.Transition, error)
 }
 
 type TxSigner interface {
@@ -199,7 +192,6 @@ func NewBlockchain(
 	dataDir string,
 	chainConfig *chain.Chain,
 	consensus Verifier,
-	executor Executor,
 	txSigner TxSigner,
 	executionGenesisHash string,
 	engineConfig *engine.EngineConfig,
@@ -221,7 +213,6 @@ func NewBlockchain(
 		logger:               logger.Named("blockchain"),
 		config:               chainConfig,
 		consensus:            consensus,
-		executor:             executor,
 		txSigner:             txSigner,
 		executionGenesisHash: executionGenesisHash,
 		EngineClient:         *engineClient,

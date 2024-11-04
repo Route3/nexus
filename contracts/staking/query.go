@@ -7,7 +7,6 @@ import (
 	"github.com/umbracle/ethgo"
 
 	"github.com/apex-fusion/nexus/contracts/abis"
-	"github.com/apex-fusion/nexus/state/runtime"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/umbracle/ethgo/abi"
 )
@@ -30,7 +29,7 @@ var (
 
 // TxQueryHandler is a interface to call view method in the contract
 type TxQueryHandler interface {
-	Apply(*types.Transaction) (*runtime.ExecutionResult, error)
+	Apply(*types.Transaction) (error)
 	GetNonce(types.Address) uint64
 }
 
@@ -103,22 +102,7 @@ func QueryValidators(t TxQueryHandler, from types.Address) ([]types.Address, err
 		return nil, ErrMethodNotFoundInABI
 	}
 
-	res, err := t.Apply(createCallViewTx(
-		from,
-		AddrStakingContract,
-		method.ID(),
-		t.GetNonce(from),
-	))
-
-	if err != nil {
-		return nil, err
-	}
-
-	if res.Failed() {
-		return nil, res.Err
-	}
-
-	return DecodeValidators(method, res.ReturnValue)
+	return DecodeValidators(method, nil)
 }
 
 // decodeBLSPublicKeys parses contract call result and returns array of bytes
@@ -146,20 +130,5 @@ func QueryBLSPublicKeys(t TxQueryHandler, from types.Address) ([][]byte, error) 
 		return nil, ErrMethodNotFoundInABI
 	}
 
-	res, err := t.Apply(createCallViewTx(
-		from,
-		AddrStakingContract,
-		method.ID(),
-		t.GetNonce(from),
-	))
-
-	if err != nil {
-		return nil, err
-	}
-
-	if res.Failed() {
-		return nil, res.Err
-	}
-
-	return decodeBLSPublicKeys(method, res.ReturnValue)
+	return decodeBLSPublicKeys(method, nil)
 }
