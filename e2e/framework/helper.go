@@ -19,7 +19,6 @@ import (
 	"github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/helper/tests"
 	"github.com/apex-fusion/nexus/server/proto"
-	txpoolProto "github.com/apex-fusion/nexus/txpool/proto"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/umbracle/ethgo"
@@ -308,36 +307,6 @@ func WaitUntilPeerConnects(ctx context.Context, srv *TestServer, requiredNum int
 	return peersListResponse, nil
 }
 
-// WaitUntilTxPoolFilled waits until node has required number of transactions in txpool,
-// otherwise returns timeout
-func WaitUntilTxPoolFilled(
-	ctx context.Context,
-	srv *TestServer,
-	requiredNum uint64,
-) (*txpoolProto.TxnPoolStatusResp, error) {
-	clt := srv.TxnPoolOperator()
-	res, err := tests.RetryUntilTimeout(ctx, func() (interface{}, bool) {
-		subCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		res, _ := clt.Status(subCtx, &empty.Empty{})
-		if res != nil && res.Length >= requiredNum {
-			return res, false
-		}
-
-		return nil, true
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	status, ok := res.(*txpoolProto.TxnPoolStatusResp)
-	if !ok {
-		return nil, errors.New("invalid type assertion")
-	}
-
-	return status, nil
-}
 
 // WaitUntilBlockMined waits until server mined block with bigger height than given height
 // otherwise returns timeout

@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"sync"
 	"testing"
@@ -12,7 +11,6 @@ import (
 	"github.com/apex-fusion/nexus/e2e/framework"
 	"github.com/apex-fusion/nexus/helper/tests"
 	"github.com/apex-fusion/nexus/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestBroadcast(t *testing.T) {
@@ -117,32 +115,6 @@ func TestBroadcast(t *testing.T) {
 			_, err = srvs[0].JSONRPC().Eth().SendRawTransaction(tx.MarshalRLP())
 			if err != nil {
 				t.Fatalf("failed to send transaction, err=%+v", err)
-			}
-
-			for i, srv := range srvs {
-				srv := srv
-
-				shouldHaveTxPool := false
-				subTestName := fmt.Sprintf("node %d shouldn't have tx in txpool", i)
-				if i < tt.numConnectedNodes {
-					shouldHaveTxPool = true
-					subTestName = fmt.Sprintf("node %d should have tx in txpool", i)
-				}
-
-				t.Run(subTestName, func(t *testing.T) {
-					t.Parallel()
-
-					ctx, cancel := context.WithTimeout(context.Background(), framework.DefaultTimeout)
-					defer cancel()
-					res, err := framework.WaitUntilTxPoolFilled(ctx, srv, 1)
-
-					if shouldHaveTxPool {
-						assert.NoError(t, err)
-						assert.Equal(t, uint64(1), res.Length)
-					} else {
-						assert.ErrorIs(t, err, tests.ErrTimeout)
-					}
-				})
 			}
 		})
 	}

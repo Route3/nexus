@@ -37,7 +37,6 @@ import (
 	"github.com/apex-fusion/nexus/secrets"
 	"github.com/apex-fusion/nexus/secrets/local"
 	"github.com/apex-fusion/nexus/server/proto"
-	txpoolProto "github.com/apex-fusion/nexus/txpool/proto"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/validators"
 	"github.com/hashicorp/go-hclog"
@@ -136,16 +135,6 @@ func (t *TestServer) Operator() proto.SystemClient {
 	return proto.NewSystemClient(conn)
 }
 
-func (t *TestServer) TxnPoolOperator() txpoolProto.TxnPoolOperatorClient {
-	conn, err := grpc.Dial(
-		t.GrpcAddr(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		t.t.Fatal(err)
-	}
-
-	return txpoolProto.NewTxnPoolOperatorClient(conn)
-}
 
 func (t *TestServer) IBFTOperator() ibftOp.IbftOperatorClient {
 	conn, err := grpc.Dial(
