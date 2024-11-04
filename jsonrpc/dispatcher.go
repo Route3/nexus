@@ -93,9 +93,6 @@ func (d *Dispatcher) registerEndpoints(store JSONRPCStore) {
 		d.params.chainID,
 		d.params.chainName,
 	}
-	d.endpoints.TxPool = &TxPool{
-		store,
-	}
 	d.endpoints.Debug = &Debug{
 		store,
 	}
@@ -103,7 +100,6 @@ func (d *Dispatcher) registerEndpoints(store JSONRPCStore) {
 	d.registerService("eth", d.endpoints.Eth)
 	d.registerService("net", d.endpoints.Net)
 	d.registerService("web3", d.endpoints.Web3)
-	d.registerService("txpool", d.endpoints.TxPool)
 	d.registerService("debug", d.endpoints.Debug)
 }
 

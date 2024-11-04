@@ -36,7 +36,6 @@ func BuildBlock(params BuildBlockParams) *types.Block {
 
 	return &types.Block{
 		Header:           header,
-		Transactions:     txs,
 		ExecutionPayload: payload,
 	}
 }

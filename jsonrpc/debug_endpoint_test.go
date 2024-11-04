@@ -417,9 +417,6 @@ func TestTraceTransaction(t *testing.T) {
 
 	blockWithTx := &types.Block{
 		Header: testBlock10.Header,
-		Transactions: []*types.Transaction{
-			testTx1,
-		},
 	}
 
 	tests := []struct {
@@ -526,9 +523,6 @@ func TestTraceTransaction(t *testing.T) {
 
 					return &types.Block{
 						Header: testGenesisHeader,
-						Transactions: []*types.Transaction{
-							testTx1,
-						},
 					}, true
 				},
 			},

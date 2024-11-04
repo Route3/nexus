@@ -73,7 +73,7 @@ func registerTxInclusionGuardHooks(hooks *hook.Hooks, epochSize uint64) {
 	}
 
 	hooks.VerifyBlockFunc = func(block *types.Block) error {
-		if isLastEpoch(block.Number()) && len(block.Transactions) > 0 {
+		if isLastEpoch(block.Number()) {
 			return ErrTxInLastEpochOfBlock
 		}
 

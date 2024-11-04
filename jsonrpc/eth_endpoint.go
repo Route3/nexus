@@ -135,18 +135,8 @@ func (e *Eth) GetBlockByHash(hash types.Hash, fullTx bool) (interface{}, error) 
 }
 
 func (e *Eth) GetBlockTransactionCountByNumber(number BlockNumber) (interface{}, error) {
-	num, err := GetNumericBlockNumber(number, e.store)
-	if err != nil {
-		return nil, err
-	}
 
-	block, ok := e.store.GetBlockByNumber(num, true)
-
-	if !ok {
-		return nil, nil
-	}
-
-	return len(block.Transactions), nil
+	return  0, nil
 }
 
 // BlockNumber returns current block number
@@ -189,30 +179,6 @@ func (e *Eth) GetTransactionByHash(hash types.Hash) (interface{}, error) {
 	// for the transaction with the provided hash
 	findSealedTx := func() *transaction {
 		// Check the chain state for the transaction
-		blockHash, ok := e.store.ReadTxLookup(hash)
-		if !ok {
-			// Block not found in storage
-			return nil
-		}
-
-		block, ok := e.store.GetBlockByHash(blockHash, true)
-
-		if !ok {
-			// Block receipts not found in storage
-			return nil
-		}
-
-		// Find the transaction within the block
-		for idx, txn := range block.Transactions {
-			if txn.Hash == hash {
-				return toTransaction(
-					txn,
-					argUintPtr(block.Number()),
-					argHashPtr(block.Hash()),
-					&idx,
-				)
-			}
-		}
 
 		return nil
 	}
@@ -249,91 +215,7 @@ func (e *Eth) GetTransactionByHash(hash types.Hash) (interface{}, error) {
 
 // GetTransactionReceipt returns a transaction receipt by his hash
 func (e *Eth) GetTransactionReceipt(hash types.Hash) (interface{}, error) {
-	blockHash, ok := e.store.ReadTxLookup(hash)
-	if !ok {
-		// txn not found
-		return nil, nil
-	}
-
-	block, ok := e.store.GetBlockByHash(blockHash, true)
-	if !ok {
-		// block not found
-		e.logger.Warn(
-			fmt.Sprintf("Block with hash [%s] not found", blockHash.String()),
-		)
-
-		return nil, nil
-	}
-
-	receipts, err := e.store.GetReceiptsByHash(blockHash)
-	if err != nil {
-		// block receipts not found
-		e.logger.Warn(
-			fmt.Sprintf("Receipts for block with hash [%s] not found", blockHash.String()),
-		)
-
-		return nil, nil
-	}
-
-	if len(receipts) == 0 {
-		// Receipts not written yet on the db
-		e.logger.Warn(
-			fmt.Sprintf("No receipts found for block with hash [%s]", blockHash.String()),
-		)
-
-		return nil, nil
-	}
-	// find the transaction in the body
-	indx := -1
-
-	for i, txn := range block.Transactions {
-		if txn.Hash == hash {
-			indx = i
-
-			break
-		}
-	}
-
-	if indx == -1 {
-		// txn not found
-		return nil, nil
-	}
-
-	txn := block.Transactions[indx]
-	raw := receipts[indx]
-
-	logs := make([]*Log, len(raw.Logs))
-	for indx, elem := range raw.Logs {
-		logs[indx] = &Log{
-			Address:     elem.Address,
-			Topics:      elem.Topics,
-			Data:        argBytes(elem.Data),
-			BlockHash:   block.Hash(),
-			BlockNumber: argUint64(block.Number()),
-			TxHash:      txn.Hash,
-			TxIndex:     argUint64(indx),
-			LogIndex:    argUint64(indx),
-			Removed:     false,
-		}
-	}
-
-	res := &receipt{
-		Root:              raw.Root,
-		CumulativeGasUsed: argUint64(raw.CumulativeGasUsed),
-		LogsBloom:         raw.LogsBloom,
-		Status:            argUint64(*raw.Status),
-		TxHash:            txn.Hash,
-		TxIndex:           argUint64(indx),
-		BlockHash:         block.Hash(),
-		BlockNumber:       argUint64(block.Number()),
-		GasUsed:           argUint64(raw.GasUsed),
-		ContractAddress:   raw.ContractAddress,
-		FromAddr:          txn.From,
-		ToAddr:            txn.To,
-		Logs:              logs,
-	}
-
-	return res, nil
+	return nil, nil
 }
 
 // GetStorageAt returns the contract storage at the index position

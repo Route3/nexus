@@ -6,10 +6,8 @@ import (
 	"time"
 
 	"github.com/Route3/go-ibft/messages"
-	"github.com/apex-fusion/nexus/consensus"
 	"github.com/apex-fusion/nexus/consensus/ibft/signer"
 	"github.com/apex-fusion/nexus/helper/hex"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 )
 
@@ -123,10 +121,6 @@ func (i *backendIBFT) InsertBlock(
 
 		return
 	}
-
-	// after the block has been written we reset the txpool so that
-	// the old transactions are removed
-	i.txpool.ResetWithHeaders(newBlock.Header)
 }
 
 func (i *backendIBFT) ID() []byte {
@@ -184,7 +178,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 	}
 
 	// set the timestamp
-	header.Timestamp = uint64(time.Now().Unix())
+	header.Timestamp = uint64(time.Now().UnixMilli())
 
 	parentCommittedSeals, err := i.extractParentCommittedSeals(parent)
 	if err != nil {
@@ -193,12 +187,10 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 
 	i.currentSigner.InitIBFTExtra(header, i.currentValidators, parentCommittedSeals)
 
-	transition, err := i.executor.BeginTxn(parent.StateRoot, header, i.currentSigner.Address())
-	if err != nil {
-		return nil, err
-	}
-
-	txs := i.writeTransactions(gasLimit, header.Number, transition)
+	// transition, err := i.executor.BeginTxn(parent.StateRoot, header, i.currentSigner.Address())
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	payloadResponse, err := i.blockchain.EngineClient.GetPayloadV3(i.blockchain.GetPayloadId())
 	if err != nil {
@@ -209,21 +201,23 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 
 	header.PayloadHash = payloadResponse.Result.ExecutionPayload.BlockHash
 
-	if err := i.PreCommitState(header, transition); err != nil {
-		return nil, err
-	}
+	// marshaledTxs := payloadResponse.Result.ExecutionPayload.Transactions
+	// var txs []*types.Transaction
 
-	_, root := transition.Commit()
-	header.StateRoot = root
-	header.GasUsed = transition.TotalGas()
+	// for i := 0; i < len(marshaledTxs); i++ {
+	// 	var tx types.Transaction
+	// 	tx.UnmarshalRLP(marshaledTxs[i])
+	// 	txs = append(txs, &tx)
+	// }
 
-	// build the block
-	block := consensus.BuildBlock(consensus.BuildBlockParams{
-		Header:   header,
-		Txns:     txs,
-		Receipts: transition.Receipts(),
-		Payload:  &payloadResponse.Result.ExecutionPayload,
-	})
+	// if err := i.PreCommitState(header, transition); err != nil {
+	// 	return nil, err
+	// }
+
+	var block types.Block
+
+	header.StateRoot = payloadResponse.Result.ExecutionPayload.StateRoot
+	header.GasUsed = uint64(payloadResponse.Result.ExecutionPayload.GasUsed)
 
 	// write the seal of the block after all the fields are completed
 	header, err = i.currentSigner.WriteProposerSeal(header)
@@ -232,14 +226,13 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 	}
 
 	block.Header = header
+	block.ExecutionPayload = &payloadResponse.Result.ExecutionPayload
 
 	// compute the hash, this is only a provisional hash since the final one
 	// is sealed after all the committed seals
 	block.Header.ComputeHash()
 
-	i.logger.Info("build block", "number", header.Number, "txs", len(txs))
-
-	return block, nil
+	return &block, nil
 }
 
 type status uint8
@@ -266,66 +259,8 @@ func (i *backendIBFT) writeTransactions(
 	transition transitionInterface,
 ) (executed []*types.Transaction) {
 	executed = make([]*types.Transaction, 0)
-
-	if !i.currentHooks.ShouldWriteTransactions(blockNumber) {
-		return
-	}
-
-	var (
-		blockTimer = time.NewTimer(i.blockTime)
-
-		successful = 0
-		failed     = 0
-		skipped    = 0
-	)
-
-	defer func() {
-		i.logger.Info(
-			"executed txs",
-			"successful", successful,
-			"failed", failed,
-			"skipped", skipped,
-			"remaining", i.txpool.Length(),
-		)
-	}()
-
-	i.txpool.Prepare()
-
-write:
-	for {
-		select {
-		case <-blockTimer.C:
-			return
-		default:
-			// execute transactions one by one
-			result, ok := i.writeTransaction(
-				i.txpool.Peek(),
-				transition,
-				gasLimit,
-			)
-
-			if !ok {
-				break write
-			}
-
-			tx := result.tx
-
-			switch result.status {
-			case success:
-				executed = append(executed, tx)
-				successful++
-			case fail:
-				failed++
-			case skip:
-				skipped++
-			}
-		}
-	}
-
-	//	wait for the timer to expire
-	<-blockTimer.C
-
-	return
+	
+	return executed
 }
 
 func (i *backendIBFT) writeTransaction(
@@ -333,44 +268,7 @@ func (i *backendIBFT) writeTransaction(
 	transition transitionInterface,
 	gasLimit uint64,
 ) (*txExeResult, bool) {
-	if tx == nil {
-		return nil, false
-	}
-
-	if tx.ExceedsBlockGasLimit(gasLimit) {
-		i.txpool.Drop(tx)
-
-		if err := transition.WriteFailedReceipt(tx); err != nil {
-			i.logger.Error(
-				fmt.Sprintf(
-					"unable to write failed receipt for transaction %s",
-					tx.Hash,
-				),
-			)
-		}
-
-		// continue processing
-		return &txExeResult{tx, fail}, true
-	}
-
-	if err := transition.Write(tx); err != nil {
-		if _, ok := err.(*state.GasLimitReachedTransitionApplicationError); ok { //nolint:errorlint
-			// stop processing
-			return nil, false
-		} else if appErr, ok := err.(*state.TransitionApplicationError); ok && appErr.IsRecoverable { //nolint:errorlint
-			i.txpool.Demote(tx)
-
-			return &txExeResult{tx, skip}, true
-		} else {
-			i.txpool.Drop(tx)
-
-			return &txExeResult{tx, fail}, true
-		}
-	}
-
-	i.txpool.Pop(tx)
-
-	return &txExeResult{tx, success}, true
+	return nil, false
 }
 
 // extractCommittedSeals extracts CommittedSeals from header

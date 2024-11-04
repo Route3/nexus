@@ -10,18 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/any"
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/umbracle/ethgo"
 
 	"github.com/apex-fusion/nexus/crypto"
-	txpoolOp "github.com/apex-fusion/nexus/txpool/proto"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/umbracle/ethgo/jsonrpc"
-	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 var (
@@ -94,38 +91,6 @@ func RetryUntilTimeout(ctx context.Context, f func() (interface{}, bool)) (inter
 	res := <-resCh
 
 	return res.data, res.err
-}
-
-// WaitUntilTxPoolEmpty waits until node has 0 transactions in txpool,
-// otherwise returns timeout
-func WaitUntilTxPoolEmpty(
-	ctx context.Context,
-	client txpoolOp.TxnPoolOperatorClient,
-) (
-	*txpoolOp.TxnPoolStatusResp,
-	error,
-) {
-	res, err := RetryUntilTimeout(ctx, func() (interface{}, bool) {
-		subCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		res, _ := client.Status(subCtx, &empty.Empty{})
-		if res != nil && res.Length == 0 {
-			return res, false
-		}
-
-		return nil, true
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	status, ok := res.(*txpoolOp.TxnPoolStatusResp)
-	if !ok {
-		return nil, errors.New("invalid type assertion to txpool status response")
-	}
-
-	return status, nil
 }
 
 func WaitForNonce(
@@ -254,20 +219,4 @@ func generateTx(params GenerateTxReqParams) (*types.Transaction, error) {
 	}
 
 	return signedTx, nil
-}
-
-func GenerateAddTxnReq(params GenerateTxReqParams) (*txpoolOp.AddTxnReq, error) {
-	txn, err := generateTx(params)
-	if err != nil {
-		return nil, err
-	}
-
-	msg := &txpoolOp.AddTxnReq{
-		Raw: &any.Any{
-			Value: txn.MarshalRLP(),
-		},
-		From: types.ZeroAddress.String(),
-	}
-
-	return msg, nil
 }

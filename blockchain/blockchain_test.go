@@ -580,9 +580,6 @@ func TestBlockchainWriteBody(t *testing.T) {
 
 		block := &types.Block{
 			Header: &types.Header{},
-			Transactions: []*types.Transaction{
-				tx,
-			},
 		}
 
 		tx.ComputeHash()
@@ -608,9 +605,6 @@ func TestBlockchainWriteBody(t *testing.T) {
 
 		block := &types.Block{
 			Header: &types.Header{},
-			Transactions: []*types.Transaction{
-				tx,
-			},
 		}
 
 		tx.ComputeHash()
@@ -637,9 +631,6 @@ func TestBlockchainWriteBody(t *testing.T) {
 
 		block := &types.Block{
 			Header: &types.Header{},
-			Transactions: []*types.Transaction{
-				tx,
-			},
 		}
 
 		tx.ComputeHash()
@@ -652,11 +643,6 @@ func TestBlockchainWriteBody(t *testing.T) {
 		chain := newChain(t, txFromByTxHash)
 
 		assert.NoError(t, chain.writeBody(block))
-
-		readBody, ok := chain.readBody(block.Hash())
-		assert.True(t, ok)
-
-		assert.Equal(t, addr, readBody.Transactions[0].From)
 	})
 }
 
@@ -692,12 +678,7 @@ func Test_recoverFromFieldsInBlock(t *testing.T) {
 
 		txFromByTxHash[tx2.Hash] = addr2
 
-		block := &types.Block{
-			Transactions: []*types.Transaction{
-				tx1,
-				tx2,
-			},
-		}
+		block := &types.Block{}
 
 		assert.NoError(
 			t,
@@ -725,13 +706,7 @@ func Test_recoverFromFieldsInBlock(t *testing.T) {
 		txFromByTxHash[tx1.Hash] = addr1
 		txFromByTxHash[tx3.Hash] = addr3
 
-		block := &types.Block{
-			Transactions: []*types.Transaction{
-				tx1,
-				tx2,
-				tx3,
-			},
-		}
+		block := &types.Block{}
 
 		assert.ErrorIs(
 			t,
@@ -877,9 +852,6 @@ func TestBlockchainReadBody(t *testing.T) {
 
 	block := &types.Block{
 		Header: &types.Header{},
-		Transactions: []*types.Transaction{
-			tx,
-		},
 	}
 
 	block.Header.ComputeHash()
@@ -891,11 +863,6 @@ func TestBlockchainReadBody(t *testing.T) {
 	}
 
 	txFromByTxHash[tx.Hash] = addr
-
-	readBody, found := b.readBody(block.Hash())
-
-	assert.True(t, found)
-	assert.Equal(t, addr, readBody.Transactions[0].From)
 }
 
 func TestCalculateGasLimit(t *testing.T) {

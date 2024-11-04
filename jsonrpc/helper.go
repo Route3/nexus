@@ -80,21 +80,7 @@ type txLookupAndBlockGetter interface {
 
 // GetTxAndBlockByTxHash returns the tx and the block including the tx by given tx hash
 func GetTxAndBlockByTxHash(txHash types.Hash, store txLookupAndBlockGetter) (*types.Transaction, *types.Block) {
-	blockHash, ok := store.ReadTxLookup(txHash)
-	if !ok {
-		return nil, nil
-	}
 
-	block, ok := store.GetBlockByHash(blockHash, true)
-	if !ok {
-		return nil, nil
-	}
-
-	for _, txn := range block.Transactions {
-		if txn.Hash == txHash {
-			return txn, block
-		}
-	}
 
 	return nil, nil
 }

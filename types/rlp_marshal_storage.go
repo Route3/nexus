@@ -14,15 +14,6 @@ func (b *Body) MarshalRLPTo(dst []byte) []byte {
 
 func (b *Body) MarshalRLPWith(ar *fastrlp.Arena) *fastrlp.Value {
 	vv := ar.NewArray()
-	if len(b.Transactions) == 0 {
-		vv.Set(ar.NewNullArray())
-	} else {
-		v0 := ar.NewArray()
-		for _, tx := range b.Transactions {
-			v0.Set(tx.MarshalStoreRLPWith(ar))
-		}
-		vv.Set(v0)
-	}
 
 	if len(b.Uncles) == 0 {
 		vv.Set(ar.NewNullArray())

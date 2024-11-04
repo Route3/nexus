@@ -53,7 +53,6 @@ type dispatcher interface {
 type JSONRPCStore interface {
 	ethStore
 	networkStore
-	txPoolStore
 	filterManagerStore
 	debugStore
 }

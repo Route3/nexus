@@ -5,7 +5,6 @@ import (
 	"github.com/apex-fusion/nexus/consensus"
 	"github.com/apex-fusion/nexus/helper/progress"
 	"github.com/apex-fusion/nexus/state"
-	"github.com/apex-fusion/nexus/txpool"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/hashicorp/go-hclog"
 )
@@ -14,7 +13,6 @@ type Dummy struct {
 	logger     hclog.Logger
 	notifyCh   chan struct{}
 	closeCh    chan struct{}
-	txpool     *txpool.TxPool
 	blockchain *blockchain.Blockchain
 	executor   *state.Executor
 }
@@ -28,7 +26,6 @@ func Factory(params *consensus.Params) (consensus.Consensus, error) {
 		closeCh:    make(chan struct{}),
 		blockchain: params.Blockchain,
 		executor:   params.Executor,
-		txpool:     params.TxPool,
 	}
 
 	return d, nil
@@ -36,7 +33,6 @@ func Factory(params *consensus.Params) (consensus.Consensus, error) {
 
 // Initialize initializes the consensus
 func (d *Dummy) Initialize() error {
-	d.txpool.SetSealing(true)
 
 	return nil
 }

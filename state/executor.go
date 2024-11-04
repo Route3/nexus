@@ -89,26 +89,7 @@ func (e *Executor) ProcessBlock(
 	block *types.Block,
 	blockCreator types.Address,
 ) (*Transition, error) {
-	txn, err := e.BeginTxn(parentRoot, block.Header, blockCreator)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, t := range block.Transactions {
-		if t.ExceedsBlockGasLimit(block.Header.GasLimit) {
-			if err := txn.WriteFailedReceipt(t); err != nil {
-				return nil, err
-			}
-
-			continue
-		}
-
-		if err := txn.Write(t); err != nil {
-			return nil, err
-		}
-	}
-
-	return txn, nil
+	return nil, nil
 }
 
 // StateAt returns snapshot at given root

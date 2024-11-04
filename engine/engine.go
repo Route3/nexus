@@ -67,7 +67,7 @@ func (c *Client) Init(latestPayloadHash types.Hash, parentBeaconBlockRoot string
 		return
 	}
 
-	res, err := c.ForkChoiceUpdatedV3(latestPayloadHash, parentBeaconBlockRoot, true)
+	res, err := c.ForkChoiceUpdatedV3(latestPayloadHash, parentBeaconBlockRoot, true, time.Now().Unix())
 	if err != nil {
 		return
 	}
@@ -196,40 +196,57 @@ func (c *Client) NewPayloadV3(payload *types.Payload, beaconBlockRoot string) (r
 	return
 }
 
-func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot string, buildPayload bool) (responseData *ForkchoiceUpdatedV3Response, err error) {
-	c.logger.Debug("Running ForkChoiceUpdatedV3", "blockHash", blockHash)
 
-	blockTimestamp := "0x" + fmt.Sprintf("%X", time.Now().Unix())
+func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot string, buildPayload bool, timestamp int64) (responseData *ForkchoiceUpdatedV3Response, err error) {
+	responseData = new (ForkchoiceUpdatedV3Response)
+	for {
+		c.logger.Debug("Running ForkChoiceUpdatedV3", "blockHash", blockHash)
 
-	params := []ForkchoiceUpdatedV3Param{
-		ForkchoiceStateParam{
-			HeadBlockHash:      blockHash.String(),
-			SafeBlockHash:      blockHash.String(),
-			FinalizedBlockHash: blockHash.String(),
-		},
-		nil,
-	}
+		blockTimestamp := "0x" + fmt.Sprintf("%X", timestamp)
 
-	if buildPayload {
-		params[1] = ForkchoicePayloadAttributes{
-			Timestamp:             blockTimestamp,
-			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
-			SuggestedFeeRecipient: c.FeeRecipient,
-			Withdrawals:           make([]string, 0),
-			ParentBeaconBlockroot: parentBeaconBlockRoot,
+		params := []ForkchoiceUpdatedV3Param{
+			ForkchoiceStateParam{
+				HeadBlockHash:      blockHash.String(),
+				SafeBlockHash:      blockHash.String(),
+				FinalizedBlockHash: blockHash.String(),
+			},
+			nil,
 		}
-	}
-	requestData := ForkchoiceUpdatedV3Request{
-		RequestBase: getRequestBase(ForkchoiceUpdatedV3Method),
-		Params:      params,
+
+		if buildPayload {
+			params[1] = ForkchoicePayloadAttributes{
+				Timestamp:             blockTimestamp,
+				PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000",
+				SuggestedFeeRecipient: c.FeeRecipient,
+				Withdrawals:           make([]string, 0),
+				ParentBeaconBlockroot: parentBeaconBlockRoot,
+			}
+		}
+		requestData := ForkchoiceUpdatedV3Request{
+			RequestBase: getRequestBase(ForkchoiceUpdatedV3Method),
+			Params:      params,
+		}
+
+		err = c.handleRequest(requestData, responseData)
+
+		// If no error, stop retrying
+		if err == nil {
+			break
+		}
+
+		c.logger.Error("engine API error, retrying indefinitely", "error", err)
+
+		time.Sleep(200 * time.Millisecond)
 	}
 
-	c.retryIndefinitely(&requestData, &responseData)
+	fmt.Println("out of loop")
 
 	if responseData.Result.PayloadStatus.Status == "SYNCING" {
 		c.logger.Error("payload status is not VALID!", "status", responseData.Result.PayloadStatus.Status)
 		return nil, fmt.Errorf("payload status is not VALID!")
 	}
+
+	c.logger.Debug("Running ForkChoiceUpdatedV3", "completed!", blockHash)
 
 	return
 }

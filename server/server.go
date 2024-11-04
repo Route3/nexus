@@ -20,7 +20,6 @@ import (
 	"github.com/apex-fusion/nexus/crypto"
 	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/common"
-	configHelper "github.com/apex-fusion/nexus/helper/config"
 	"github.com/apex-fusion/nexus/helper/progress"
 	"github.com/apex-fusion/nexus/jsonrpc"
 	"github.com/apex-fusion/nexus/network"
@@ -31,7 +30,6 @@ import (
 	itrie "github.com/apex-fusion/nexus/state/immutable-trie"
 	"github.com/apex-fusion/nexus/state/runtime"
 	"github.com/apex-fusion/nexus/state/runtime/tracer"
-	"github.com/apex-fusion/nexus/txpool"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/prometheus/client_golang/prometheus"
@@ -63,9 +61,6 @@ type Server struct {
 
 	// libp2p network
 	network *network.Server
-
-	// transaction pool
-	txpool *txpool.TxPool
 
 	prometheusServer *http.Server
 
@@ -243,38 +238,6 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	m.executor.GetHash = m.blockchain.GetHashHelper
-
-	{
-		hub := &txpoolHub{
-			state:      m.state,
-			Blockchain: m.blockchain,
-		}
-
-		deploymentWhitelist, err := configHelper.GetDeploymentWhitelist(config.Chain)
-		if err != nil {
-			return nil, err
-		}
-
-		// start transaction pool
-		m.txpool, err = txpool.NewTxPool(
-			logger,
-			m.chain.Params.Forks.At(0),
-			hub,
-			m.grpcServer,
-			m.network,
-			&txpool.Config{
-				MaxSlots:            m.config.MaxSlots,
-				PriceLimit:          m.config.PriceLimit,
-				MaxAccountEnqueued:  m.config.MaxAccountEnqueued,
-				DeploymentWhitelist: deploymentWhitelist,
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		m.txpool.SetSigner(signer)
-	}
 
 	{
 		// Setup consensus
@@ -457,7 +420,6 @@ func (s *Server) setupConsensus() error {
 		&consensus.Params{
 			Context:        context.Background(),
 			Config:         config,
-			TxPool:         s.txpool,
 			Network:        s.network,
 			Blockchain:     s.blockchain,
 			Executor:       s.executor,
@@ -481,10 +443,25 @@ type jsonRPCHub struct {
 	restoreProgression *progress.ProgressionWrapper
 
 	*blockchain.Blockchain
-	*txpool.TxPool
 	*state.Executor
 	*network.Server
 	consensus.Consensus
+}
+
+func (j *jsonRPCHub) AddTx(*types.Transaction) (error) {
+	return nil
+}
+
+func (j *jsonRPCHub) GetCapacity() (uint64, uint64) {
+	return 0, 0
+}
+
+func (j *jsonRPCHub) GetNonce(types.Address) (uint64) {
+	return 0
+}
+
+func (j *jsonRPCHub) GetPendingTx(types.Hash) (*types.Transaction, bool) {
+	return nil, false
 }
 
 func (j *jsonRPCHub) GetPeers() int {
@@ -564,42 +541,7 @@ func (j *jsonRPCHub) TraceBlock(
 	block *types.Block,
 	tracer tracer.Tracer,
 ) ([]interface{}, error) {
-	if block.Number() == 0 {
-		return nil, errors.New("genesis block can't have transaction")
-	}
-
-	parentHeader, ok := j.GetHeaderByHash(block.ParentHash())
-	if !ok {
-		return nil, errors.New("parent header not found")
-	}
-
-	blockCreator, err := j.GetConsensus().GetBlockCreator(block.Header)
-	if err != nil {
-		return nil, err
-	}
-
-	transition, err := j.BeginTxn(parentHeader.StateRoot, block.Header, blockCreator)
-	if err != nil {
-		return nil, err
-	}
-
-	transition.SetTracer(tracer)
-
-	results := make([]interface{}, len(block.Transactions))
-
-	for idx, tx := range block.Transactions {
-		tracer.Clear()
-
-		if _, err := transition.Apply(tx); err != nil {
-			return nil, err
-		}
-
-		if results[idx], err = tracer.GetResult(); err != nil {
-			return nil, err
-		}
-	}
-
-	return results, nil
+	return nil, nil
 }
 
 // TraceTxn traces a transaction in the block, associated with the given hash
@@ -608,51 +550,7 @@ func (j *jsonRPCHub) TraceTxn(
 	targetTxHash types.Hash,
 	tracer tracer.Tracer,
 ) (interface{}, error) {
-	if block.Number() == 0 {
-		return nil, errors.New("genesis block can't have transaction")
-	}
-
-	parentHeader, ok := j.GetHeaderByHash(block.ParentHash())
-	if !ok {
-		return nil, errors.New("parent header not found")
-	}
-
-	blockCreator, err := j.GetConsensus().GetBlockCreator(block.Header)
-	if err != nil {
-		return nil, err
-	}
-
-	transition, err := j.BeginTxn(parentHeader.StateRoot, block.Header, blockCreator)
-	if err != nil {
-		return nil, err
-	}
-
-	var targetTx *types.Transaction
-
-	for _, tx := range block.Transactions {
-		if tx.Hash == targetTxHash {
-			targetTx = tx
-
-			break
-		}
-
-		// Execute transactions without tracer until reaching the target transaction
-		if _, err := transition.Apply(tx); err != nil {
-			return nil, err
-		}
-	}
-
-	if targetTx == nil {
-		return nil, errors.New("target tx not found")
-	}
-
-	transition.SetTracer(tracer)
-
-	if _, err := transition.Apply(targetTx); err != nil {
-		return nil, err
-	}
-
-	return tracer.GetResult()
+	return nil, nil
 }
 
 func (j *jsonRPCHub) TraceCall(
@@ -701,14 +599,13 @@ func (s *Server) setupJSONRPC() error {
 		state:              s.state,
 		restoreProgression: s.restoreProgression,
 		Blockchain:         s.blockchain,
-		TxPool:             s.txpool,
 		Executor:           s.executor,
 		Consensus:          s.consensus,
 		Server:             s.network,
 	}
 
 	conf := &jsonrpc.Config{
-		Store:                    hub,
+		Store:                    hub, 
 		Addr:                     s.config.JSONRPC.JSONRPCAddr,
 		ChainID:                  uint64(s.config.Chain.Params.ChainID),
 		ChainName:                s.chain.Name,
@@ -785,9 +682,6 @@ func (s *Server) Close() {
 			s.logger.Error("Prometheus server shutdown error", err)
 		}
 	}
-
-	// close the txpool's main loop
-	s.txpool.Close()
 
 	// close DataDog profiler
 	s.closeDataDogProfiler()

@@ -18,7 +18,6 @@ var (
 
 	testBlock = &types.Block{
 		Header:       testHeader,
-		Transactions: []*types.Transaction{},
 		Uncles:       []*types.Header{},
 	}
 
@@ -167,7 +166,6 @@ func TestVerifyBlock(t *testing.T) {
 
 		block := &types.Block{
 			Header:       testBlock.Header.Copy(),
-			Transactions: []*types.Transaction{},
 			Uncles:       []*types.Header{},
 		}
 
@@ -182,7 +180,6 @@ func TestVerifyBlock(t *testing.T) {
 
 		block := &types.Block{
 			Header:       testBlock.Header.Copy(),
-			Transactions: []*types.Transaction{},
 			Uncles:       []*types.Header{},
 		}
 
@@ -302,7 +299,6 @@ func TestPostInsertBlock(t *testing.T) {
 
 		block := &types.Block{
 			Header:       testBlock.Header.Copy(),
-			Transactions: []*types.Transaction{},
 			Uncles:       []*types.Header{},
 		}
 
@@ -317,7 +313,6 @@ func TestPostInsertBlock(t *testing.T) {
 
 		block := &types.Block{
 			Header:       testBlock.Header.Copy(),
-			Transactions: []*types.Transaction{},
 			Uncles:       []*types.Header{},
 		}
 

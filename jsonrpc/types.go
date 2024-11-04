@@ -142,25 +142,6 @@ func toBlock(b *types.Block, fullTx bool) *block {
 		Uncles:          []types.Hash{},
 	}
 
-	for idx, txn := range b.Transactions {
-		if fullTx {
-			res.Transactions = append(
-				res.Transactions,
-				toTransaction(
-					txn,
-					argUintPtr(b.Number()),
-					argHashPtr(b.Hash()),
-					&idx,
-				),
-			)
-		} else {
-			res.Transactions = append(
-				res.Transactions,
-				transactionHash(txn.Hash),
-			)
-		}
-	}
-
 	for _, uncle := range b.Uncles {
 		res.Uncles = append(res.Uncles, uncle.Hash)
 	}

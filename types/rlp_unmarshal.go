@@ -54,23 +54,8 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
-	// transactions
-	txns, err := elems[1].GetElems()
-	if err != nil {
-		return err
-	}
-
-	for _, txn := range txns {
-		bTxn := &Transaction{}
-		if err := bTxn.UnmarshalRLPFrom(p, txn); err != nil {
-			return err
-		}
-
-		b.Transactions = append(b.Transactions, bTxn)
-	}
-
 	// uncles
-	uncles, err := elems[2].GetElems()
+	uncles, err := elems[1].GetElems()
 	if err != nil {
 		return err
 	}
@@ -86,7 +71,7 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 
 	// payload
 	b.ExecutionPayload = &Payload{}
-	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, elems[3]); err != nil {
+	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, elems[2]); err != nil {
 		return err
 	}
 

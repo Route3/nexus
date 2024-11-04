@@ -143,7 +143,6 @@ func Factory(params *consensus.Params) (consensus.Consensus, error) {
 		blockchain: params.Blockchain,
 		network:    params.Network,
 		executor:   params.Executor,
-		txpool:     params.TxPool,
 		syncer: syncer.NewSyncer(
 			params.Logger,
 			params.Network,
@@ -301,8 +300,6 @@ func (i *backendIBFT) startConsensus() {
 
 		isValidator = i.isActiveValidator()
 
-		i.txpool.SetSealing(isValidator)
-
 		if isValidator {
 			sequenceCh = i.consensus.runSequence(pending)
 		}
@@ -348,8 +345,7 @@ func (i *backendIBFT) updateMetrics(block *types.Block) {
 		metrics.SetGauge([]string{consensusMetrics, "block_interval"}, float32(headerTime.Sub(parentTime).Seconds()))
 	}
 
-	// Update the Number of transactions in the block metric
-	metrics.SetGauge([]string{consensusMetrics, "num_txs"}, float32(len(block.Body().Transactions)))
+	metrics.SetGauge([]string{consensusMetrics, "num_txs"}, float32(len(block.ExecutionPayload.Transactions)))
 }
 
 // verifyHeaderImpl verifies fields including Extra

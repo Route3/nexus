@@ -24,23 +24,8 @@ func (b *Body) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return fmt.Errorf("incorrect number of elements to decode header, expected 2 but found %d", len(tuple))
 	}
 
-	// transactions
-	txns, err := tuple[0].GetElems()
-	if err != nil {
-		return err
-	}
-
-	for _, txn := range txns {
-		bTxn := &Transaction{}
-		if err := bTxn.UnmarshalStoreRLPFrom(p, txn); err != nil {
-			return err
-		}
-
-		b.Transactions = append(b.Transactions, bTxn)
-	}
-
 	// uncles
-	uncles, err := tuple[1].GetElems()
+	uncles, err := tuple[0].GetElems()
 	if err != nil {
 		return err
 	}
@@ -56,7 +41,7 @@ func (b *Body) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 
 	// execution payload
 	b.ExecutionPayload = &Payload{}
-	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, tuple[2]); err != nil {
+	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, tuple[1]); err != nil {
 		return err
 	}
 

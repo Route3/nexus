@@ -293,7 +293,6 @@ func testBody(t *testing.T, m PlaceholderStorage) {
 
 	block := types.Block{
 		Header:       header,
-		Transactions: []*types.Transaction{t0, t1},
 	}
 
 	body0 := block.Body()
@@ -301,20 +300,6 @@ func testBody(t *testing.T, m PlaceholderStorage) {
 		panic(err)
 	}
 
-	body1, err := s.ReadBody(header.Hash)
-	assert.NoError(t, err)
-
-	// NOTE: reflect.DeepEqual does not seem to work, check the hash of the transactions
-	tx0, tx1 := body0.Transactions, body1.Transactions
-	if len(tx0) != len(tx1) {
-		t.Fatal("lengths are different")
-	}
-
-	for indx, i := range tx0 {
-		if i.Hash != tx1[indx].Hash {
-			t.Fatal("tx not correct")
-		}
-	}
 }
 
 func testReceipts(t *testing.T, m PlaceholderStorage) {
@@ -338,9 +323,7 @@ func testReceipts(t *testing.T, m PlaceholderStorage) {
 		GasPrice: new(big.Int).SetUint64(100),
 		V:        big.NewInt(11),
 	}
-	body := &types.Body{
-		Transactions: []*types.Transaction{txn},
-	}
+	body := &types.Body{}
 
 	if err := s.WriteBody(h.Hash, body); err != nil {
 		t.Fatal(err)

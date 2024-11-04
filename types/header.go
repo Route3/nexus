@@ -92,14 +92,12 @@ func (h *Header) Copy() *Header {
 }
 
 type Body struct {
-	Transactions     []*Transaction
 	Uncles           []*Header
 	ExecutionPayload *Payload
 }
 
 type Block struct {
 	Header           *Header
-	Transactions     []*Transaction
 	Uncles           []*Header
 	ExecutionPayload *Payload
 	// Cache
@@ -256,7 +254,6 @@ func (b *Block) ParentHash() Hash {
 
 func (b *Block) Body() *Body {
 	return &Body{
-		Transactions:     b.Transactions,
 		Uncles:           b.Uncles,
 		ExecutionPayload: b.ExecutionPayload,
 	}
@@ -293,7 +290,6 @@ func (b *Block) WithSeal(header *Header) *Block {
 
 	return &Block{
 		Header:       &cpy,
-		Transactions: b.Transactions,
 		Uncles:       b.Uncles,
 	}
 }
