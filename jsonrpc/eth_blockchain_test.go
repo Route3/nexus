@@ -7,7 +7,6 @@ import (
 
 	"github.com/apex-fusion/nexus/blockchain"
 	"github.com/apex-fusion/nexus/helper/progress"
-	"github.com/apex-fusion/nexus/state/runtime"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -201,7 +200,6 @@ func TestEth_Call(t *testing.T) {
 }
 
 type testStore interface {
-	ethStore
 }
 
 type mockBlockStore struct {
@@ -368,10 +366,6 @@ func (m *mockBlockStore) GetSyncProgression() *progress.Progression {
 
 func (m *mockBlockStore) GetAvgGasPrice() *big.Int {
 	return big.NewInt(m.averageGasPrice)
-}
-
-func (m *mockBlockStore) ApplyTxn(header *types.Header, txn *types.Transaction) (*runtime.ExecutionResult, error) {
-	return &runtime.ExecutionResult{Err: m.ethCallError}, nil
 }
 
 func (m *mockBlockStore) SubscribeEvents() blockchain.Subscription {

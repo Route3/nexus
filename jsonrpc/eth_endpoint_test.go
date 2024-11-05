@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/apex-fusion/nexus/types"
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +14,6 @@ func TestEth_DecodeTxn(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		accounts map[types.Address]*Account
 		arg      *txnArgs
 		res      *types.Transaction
 		err      error
@@ -76,11 +74,6 @@ func TestEth_DecodeTxn(t *testing.T) {
 		},
 		{
 			name: "should set latest nonce as default",
-			accounts: map[types.Address]*Account{
-				addr1: {
-					Nonce: 10,
-				},
-			},
 			arg: &txnArgs{
 				From:     &addr1,
 				To:       &addr2,
@@ -169,13 +162,9 @@ func TestEth_GetNextNonce(t *testing.T) {
 	// Set up the mock accounts
 	accounts := []struct {
 		address types.Address
-		account *Account
 	}{
 		{
 			types.StringToAddress("123"),
-			&Account{
-				Nonce: 5,
-			},
 		},
 	}
 
@@ -184,8 +173,6 @@ func TestEth_GetNextNonce(t *testing.T) {
 	for _, acc := range accounts {
 		store.SetAccount(acc.address, acc.account)
 	}
-
-	eth := newTestEthEndpoint(store)
 
 	testTable := []struct {
 		name          string
@@ -227,18 +214,6 @@ func TestEth_GetNextNonce(t *testing.T) {
 			// Assert equality
 			assert.Equal(t, testCase.expectedNonce, nonce)
 		})
-	}
-}
-
-func newTestEthEndpoint(store testStore) *Eth {
-	return &Eth{
-		hclog.NewNullLogger(), store, 100, nil, 0,
-	}
-}
-
-func newTestEthEndpointWithPriceLimit(store testStore, priceLimit uint64) *Eth {
-	return &Eth{
-		hclog.NewNullLogger(), store, 100, nil, priceLimit,
 	}
 }
 

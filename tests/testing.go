@@ -12,9 +12,6 @@ import (
 	"github.com/apex-fusion/nexus/chain"
 	"github.com/apex-fusion/nexus/crypto"
 	"github.com/apex-fusion/nexus/helper/hex"
-	"github.com/apex-fusion/nexus/state"
-	itrie "github.com/apex-fusion/nexus/state/immutable-trie"
-	"github.com/apex-fusion/nexus/state/runtime"
 	"github.com/apex-fusion/nexus/types"
 )
 
@@ -148,18 +145,6 @@ func (e *env) ToHeader(t *testing.T) *types.Header {
 	}
 }
 
-func (e *env) ToEnv(t *testing.T) runtime.TxContext {
-	t.Helper()
-
-	return runtime.TxContext{
-		Coinbase:   stringToAddressT(t, e.Coinbase),
-		Difficulty: stringToHashT(t, e.Difficulty),
-		GasLimit:   stringToInt64T(t, e.GasLimit),
-		Number:     stringToInt64T(t, e.Number),
-		Timestamp:  stringToInt64T(t, e.Timestamp),
-	}
-}
-
 type exec struct {
 	Address  types.Address
 	Caller   types.Address
@@ -220,34 +205,6 @@ func (e *exec) UnmarshalJSON(input []byte) error {
 	}
 
 	return nil
-}
-
-func buildState(
-	allocs map[types.Address]*chain.GenesisAccount,
-) (state.State, state.Snapshot, types.Hash) {
-	s := itrie.NewState(itrie.NewMemoryStorage())
-	snap := s.NewSnapshot()
-
-	txn := state.NewTxn(snap)
-
-	for addr, alloc := range allocs {
-		txn.CreateAccount(addr)
-		txn.SetNonce(addr, alloc.Nonce)
-		txn.SetBalance(addr, alloc.Balance)
-
-		if len(alloc.Code) != 0 {
-			txn.SetCode(addr, alloc.Code)
-		}
-
-		for k, v := range alloc.Storage {
-			txn.SetState(addr, k, v)
-		}
-	}
-
-	objs := txn.Commit(false)
-	snap, root := snap.Commit(objs)
-
-	return s, snap, types.BytesToHash(root)
 }
 
 type indexes struct {

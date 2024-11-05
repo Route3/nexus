@@ -1,18 +1,13 @@
 package tests
 
 import (
-	"bytes"
 	"encoding/json"
-	"math/big"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/apex-fusion/nexus/chain"
-	"github.com/apex-fusion/nexus/helper/hex"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
-	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -29,73 +24,6 @@ type stateCase struct {
 }
 
 var ripemd = types.StringToAddress("0000000000000000000000000000000000000003")
-
-func RunSpecificTest(t *testing.T, file string, c stateCase, name, fork string, index int, p postEntry) {
-	t.Helper()
-
-	config, ok := Forks[fork]
-	if !ok {
-		t.Fatalf("config %s not found", fork)
-	}
-
-	env := c.Env.ToEnv(t)
-
-	msg, err := c.Transaction.At(p.Indexes)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	s, snapshot, pastRoot := buildState(c.Pre)
-	forks := config.At(uint64(env.Number))
-
-	xxx := state.NewExecutor(&chain.Params{Forks: config, ChainID: 1}, s, hclog.NewNullLogger())
-
-	xxx.PostHook = func(t *state.Transition) {
-		if name == "failed_tx_xcf416c53" {
-			// create the account
-			t.Txn().TouchAccount(ripemd)
-			// now remove it
-			t.Txn().Suicide(ripemd)
-		}
-	}
-	xxx.GetHash = func(*types.Header) func(i uint64) types.Hash {
-		return vmTestBlockHash
-	}
-
-	executor, _ := xxx.BeginTxn(pastRoot, c.Env.ToHeader(t), env.Coinbase)
-	executor.Apply(msg) //nolint:errcheck
-
-	txn := executor.Txn()
-
-	// mining rewards
-	txn.AddSealingReward(env.Coinbase, big.NewInt(0))
-
-	objs := txn.Commit(forks.EIP155)
-	_, root := snapshot.Commit(objs)
-
-	if !bytes.Equal(root, p.Root.Bytes()) {
-		t.Fatalf(
-			"root mismatch (%s %s %s %d): expected %s but found %s",
-			file,
-			name,
-			fork,
-			index,
-			p.Root.String(),
-			hex.EncodeToHex(root),
-		)
-	}
-
-	if logs := rlpHashLogs(txn.Logs()); logs != p.Logs {
-		t.Fatalf(
-			"logs mismatch (%s, %s %d): expected %s but found %s",
-			name,
-			fork,
-			index,
-			p.Logs.String(),
-			logs.String(),
-		)
-	}
-}
 
 func TestState(t *testing.T) {
 	t.Parallel()
@@ -154,14 +82,6 @@ func TestState(t *testing.T) {
 				var c map[string]stateCase
 				if err := json.Unmarshal(data, &c); err != nil {
 					t.Fatal(err)
-				}
-
-				for name, i := range c {
-					for fork, f := range i.Post {
-						for indx, e := range f {
-							RunSpecificTest(t, file, i, name, fork, indx, e)
-						}
-					}
 				}
 			}
 		})

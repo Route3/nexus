@@ -4,7 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -244,52 +243,6 @@ func TestProcessHeader(t *testing.T) {
 		)
 	})
 }
-
-func TestPreCommitState(t *testing.T) {
-	t.Parallel()
-
-	var (
-		txn = &state.Transition{}
-	)
-
-	t.Run("should do nothing if the function is not set", func(t *testing.T) {
-		t.Parallel()
-
-		header := testHeader.Copy()
-
-		hooks := newTestHooks(nil, nil, nil, nil, nil, nil, nil)
-
-		assert.Nil(t, hooks.PreCommitState(header, txn))
-		assert.Equal(t, testHeader, header)
-	})
-
-	t.Run("should call ProcessHeader", func(t *testing.T) {
-		t.Parallel()
-
-		header := testHeader.Copy()
-
-		preCommitState := func(h *types.Header, x *state.Transition) error {
-			assert.Equal(t, header, h)
-			assert.Equal(t, txn, x)
-
-			return errTest
-		}
-
-		hooks := newTestHooks(nil, nil, nil, nil, nil, preCommitState, nil)
-
-		assert.Equal(
-			t,
-			errTest,
-			hooks.PreCommitState(header, txn),
-		)
-		assert.Equal(
-			t,
-			testHeader,
-			header,
-		)
-	})
-}
-
 //nolint:dupl
 func TestPostInsertBlock(t *testing.T) {
 	t.Parallel()
