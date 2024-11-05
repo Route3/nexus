@@ -187,11 +187,6 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 
 	i.currentSigner.InitIBFTExtra(header, i.currentValidators, parentCommittedSeals)
 
-	// transition, err := i.executor.BeginTxn(parent.StateRoot, header, i.currentSigner.Address())
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	payloadResponse, err := i.blockchain.EngineClient.GetPayloadV3(i.blockchain.GetPayloadId())
 	if err != nil {
 		i.logger.Error("cannot get engine's payload", "err", err)
@@ -200,19 +195,6 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 	}
 
 	header.PayloadHash = payloadResponse.Result.ExecutionPayload.BlockHash
-
-	// marshaledTxs := payloadResponse.Result.ExecutionPayload.Transactions
-	// var txs []*types.Transaction
-
-	// for i := 0; i < len(marshaledTxs); i++ {
-	// 	var tx types.Transaction
-	// 	tx.UnmarshalRLP(marshaledTxs[i])
-	// 	txs = append(txs, &tx)
-	// }
-
-	// if err := i.PreCommitState(header, transition); err != nil {
-	// 	return nil, err
-	// }
 
 	var block types.Block
 

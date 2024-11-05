@@ -815,7 +815,8 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 	}
 
 	currentBlockBeaconRoot := block.Hash().String()
-	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true, time.Now().Unix()+int64(block.Number()))
+	time.Sleep(2*time.Second)
+	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true, time.Now().Unix())
 	if err != nil {
 		b.logger.Error("cannot run FCU for block insertion", "err", err)
 		return err
@@ -886,8 +887,7 @@ func (b *Blockchain) writeBody(block *types.Block) error {
 		return err
 	}
 
-	// Write the full body (txns + receipts)
-	fmt.Println("writeBody:: block.Header.Hash", block.Header.Hash, " block.Header.PayloadHash", block.Header.PayloadHash)
+	// Write the full body
 	if err := b.db.WriteBody(block.Header.Hash, block.Body()); err != nil {
 		return err
 	}
