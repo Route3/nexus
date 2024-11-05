@@ -1,9 +1,9 @@
 package ibft
 
 import (
+	"github.com/Route3/go-ibft/messages/proto"
 	"github.com/apex-fusion/nexus/network"
 	"github.com/apex-fusion/nexus/types"
-	"github.com/Route3/go-ibft/messages/proto"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 

@@ -216,9 +216,8 @@ func NewServer(config *Config) (*Server, error) {
 	// use the eip155 signer
 	signer := crypto.NewEIP155Signer(uint64(m.config.Chain.Params.ChainID))
 
-	
 	// blockchain object
-	m.blockchain, err = blockchain.NewBlockchain(logger,  m.config.DataDir, config.Chain, nil, signer, m.config.ExecutionGenesisHash, &m.config.EngineConfig, &m.secretsManager, config.SuggestedFeeRecipient)
+	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, signer, m.config.ExecutionGenesisHash, &m.config.EngineConfig, &m.secretsManager, config.SuggestedFeeRecipient)
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +387,7 @@ func (j *jsonRPCHub) GetCapacity() (uint64, uint64) {
 	return 0, 0
 }
 
-func (j *jsonRPCHub) GetNonce(types.Address) (uint64) {
+func (j *jsonRPCHub) GetNonce(types.Address) uint64 {
 	return 0
 }
 
@@ -396,7 +395,7 @@ func (j *jsonRPCHub) GetPeers() int {
 	return len(j.Server.Peers())
 }
 
-func (j *jsonRPCHub) GetAccount(root types.Hash, addr types.Address) (error) {
+func (j *jsonRPCHub) GetAccount(root types.Hash, addr types.Address) error {
 	return nil
 }
 func (j *jsonRPCHub) GetCode(root types.Hash, addr types.Address) ([]byte, error) {
@@ -453,7 +452,7 @@ func (s *Server) setupJSONRPC() error {
 	}
 
 	conf := &jsonrpc.Config{
-		Store:                    hub, 
+		Store:                    hub,
 		Addr:                     s.config.JSONRPC.JSONRPCAddr,
 		ChainID:                  uint64(s.config.Chain.Params.ChainID),
 		ChainName:                s.chain.Name,

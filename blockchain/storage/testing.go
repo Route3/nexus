@@ -268,7 +268,7 @@ func testBody(t *testing.T, m PlaceholderStorage) {
 	}
 
 	block := types.Block{
-		Header:       header,
+		Header: header,
 	}
 
 	body0 := block.Body()

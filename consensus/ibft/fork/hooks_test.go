@@ -163,8 +163,8 @@ func Test_registerUpdateValidatorsHooks(t *testing.T) {
 			err               = errors.New("test")
 
 			block = &types.Block{
-				Header:       &types.Header{},
-				Uncles:       []*types.Header{},
+				Header: &types.Header{},
+				Uncles: []*types.Header{},
 			}
 		)
 
@@ -230,7 +230,7 @@ func Test_registerTxInclusionGuardHooks(t *testing.T) {
 		}
 
 		blockWithoutTransactions = &types.Block{
-			Header:       &types.Header{},
+			Header: &types.Header{},
 		}
 
 		blockWithTransactions = &types.Block{

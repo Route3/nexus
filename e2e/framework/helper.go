@@ -182,7 +182,6 @@ func WaitUntilPeerConnects(ctx context.Context, srv *TestServer, requiredNum int
 	return peersListResponse, nil
 }
 
-
 // WaitUntilBlockMined waits until server mined block with bigger height than given height
 // otherwise returns timeout
 func WaitUntilBlockMined(ctx context.Context, srv *TestServer, desiredHeight uint64) (uint64, error) {

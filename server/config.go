@@ -47,7 +47,7 @@ type Config struct {
 
 	EngineConfig engine.EngineConfig
 
-	ExecutionGenesisHash string
+	ExecutionGenesisHash  string
 	SuggestedFeeRecipient string
 }
 

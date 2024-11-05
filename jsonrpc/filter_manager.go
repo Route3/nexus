@@ -421,7 +421,6 @@ func (f *FilterManager) GetLogsForQuery(query *LogQuery) ([]*Log, error) {
 			return nil, ErrBlockNotFound
 		}
 
-		
 		return []*Log{}, nil
 	}
 

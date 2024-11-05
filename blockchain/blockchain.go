@@ -768,7 +768,6 @@ func (b *Blockchain) verifyBlockParent(childBlock *types.Block) error {
 // - The receipts match up
 // - The execution result matches up
 func (b *Blockchain) verifyBlockBody(block *types.Block) error {
-	
 
 	return nil
 }
@@ -816,7 +815,7 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 	}
 
 	currentBlockBeaconRoot := block.Hash().String()
-	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true, time.Now().Unix() + int64(block.Number()))
+	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true, time.Now().Unix()+int64(block.Number()))
 	if err != nil {
 		b.logger.Error("cannot run FCU for block insertion", "err", err)
 		return err

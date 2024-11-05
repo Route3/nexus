@@ -16,8 +16,8 @@ var (
 	}
 
 	testBlock = &types.Block{
-		Header:       testHeader,
-		Uncles:       []*types.Header{},
+		Header: testHeader,
+		Uncles: []*types.Header{},
 	}
 
 	addr1 = types.StringToAddress("1")
@@ -164,8 +164,8 @@ func TestVerifyBlock(t *testing.T) {
 		t.Parallel()
 
 		block := &types.Block{
-			Header:       testBlock.Header.Copy(),
-			Uncles:       []*types.Header{},
+			Header: testBlock.Header.Copy(),
+			Uncles: []*types.Header{},
 		}
 
 		hooks := newTestHooks(nil, nil, nil, nil, nil, nil, nil)
@@ -178,8 +178,8 @@ func TestVerifyBlock(t *testing.T) {
 		t.Parallel()
 
 		block := &types.Block{
-			Header:       testBlock.Header.Copy(),
-			Uncles:       []*types.Header{},
+			Header: testBlock.Header.Copy(),
+			Uncles: []*types.Header{},
 		}
 
 		verifyBlock := func(b *types.Block) error {
@@ -243,6 +243,7 @@ func TestProcessHeader(t *testing.T) {
 		)
 	})
 }
+
 //nolint:dupl
 func TestPostInsertBlock(t *testing.T) {
 	t.Parallel()
@@ -251,8 +252,8 @@ func TestPostInsertBlock(t *testing.T) {
 		t.Parallel()
 
 		block := &types.Block{
-			Header:       testBlock.Header.Copy(),
-			Uncles:       []*types.Header{},
+			Header: testBlock.Header.Copy(),
+			Uncles: []*types.Header{},
 		}
 
 		hooks := newTestHooks(nil, nil, nil, nil, nil, nil, nil)
@@ -265,8 +266,8 @@ func TestPostInsertBlock(t *testing.T) {
 		t.Parallel()
 
 		block := &types.Block{
-			Header:       testBlock.Header.Copy(),
-			Uncles:       []*types.Header{},
+			Header: testBlock.Header.Copy(),
+			Uncles: []*types.Header{},
 		}
 
 		postBlock := func(b *types.Block) error {

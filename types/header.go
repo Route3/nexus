@@ -289,7 +289,7 @@ func (b *Block) WithSeal(header *Header) *Block {
 	cpy := *header
 
 	return &Block{
-		Header:       &cpy,
-		Uncles:       b.Uncles,
+		Header: &cpy,
+		Uncles: b.Uncles,
 	}
 }

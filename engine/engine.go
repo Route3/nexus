@@ -26,10 +26,10 @@ const (
 )
 
 type Client struct {
-	logger hclog.Logger
-	client *http.Client
-	url    *url.URL
-	token  []byte
+	logger       hclog.Logger
+	client       *http.Client
+	url          *url.URL
+	token        []byte
 	FeeRecipient string
 }
 
@@ -196,9 +196,8 @@ func (c *Client) NewPayloadV3(payload *types.Payload, beaconBlockRoot string) (r
 	return
 }
 
-
 func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot string, buildPayload bool, timestamp int64) (responseData *ForkchoiceUpdatedV3Response, err error) {
-	responseData = new (ForkchoiceUpdatedV3Response)
+	responseData = new(ForkchoiceUpdatedV3Response)
 	for {
 		c.logger.Debug("Running ForkChoiceUpdatedV3", "blockHash", blockHash)
 

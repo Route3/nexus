@@ -19,7 +19,7 @@ func BuildBlock(params BuildBlockParams) *types.Block {
 	header.TxRoot = types.EmptyRootHash
 
 	header.ReceiptsRoot = types.EmptyRootHash
-	
+
 	header.Sha3Uncles = types.EmptyUncleHash
 	header.ComputeHash()
 

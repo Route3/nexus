@@ -133,7 +133,6 @@ func (t *TestServer) Operator() proto.SystemClient {
 	return proto.NewSystemClient(conn)
 }
 
-
 func (t *TestServer) IBFTOperator() ibftOp.IbftOperatorClient {
 	conn, err := grpc.Dial(
 		t.GrpcAddr(),
@@ -493,7 +492,6 @@ func (t *TestServer) SwitchIBFTType(typ fork.IBFTType, from uint64, to, deployme
 
 	return t.cmd.Run()
 }
-
 
 const (
 	DefaultGasPrice = 1879048192 // 0x70000000

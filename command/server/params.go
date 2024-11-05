@@ -180,7 +180,7 @@ func (p *serverParams) generateConfig() *server.Config {
 			EngineTokenPath: p.rawConfig.EngineTokenPath,
 			EngineJWTID:     p.rawConfig.EngineJWTID,
 		},
-		ExecutionGenesisHash: p.rawConfig.ExecutionGenesisHash,
+		ExecutionGenesisHash:  p.rawConfig.ExecutionGenesisHash,
 		SuggestedFeeRecipient: p.rawConfig.SuggestedFeeRecipient,
 	}
 }

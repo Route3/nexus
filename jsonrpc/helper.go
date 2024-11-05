@@ -77,7 +77,6 @@ type txLookupAndBlockGetter interface {
 	GetBlockByHash(types.Hash, bool) (*types.Block, bool)
 }
 
-
 type blockGetter interface {
 	Header() *types.Header
 	GetHeaderByNumber(uint64) (*types.Header, bool)
@@ -113,7 +112,7 @@ type nonceGetter interface {
 	Header() *types.Header
 	GetHeaderByNumber(uint64) (*types.Header, bool)
 	GetNonce(types.Address) uint64
-	GetAccount(root types.Hash, addr types.Address) (error)
+	GetAccount(root types.Hash, addr types.Address) error
 }
 
 func GetNextNonce(address types.Address, number BlockNumber, store nonceGetter) (uint64, error) {
