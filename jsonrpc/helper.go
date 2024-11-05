@@ -3,7 +3,6 @@ package jsonrpc
 import (
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/apex-fusion/nexus/types"
 )
@@ -78,12 +77,6 @@ type txLookupAndBlockGetter interface {
 	GetBlockByHash(types.Hash, bool) (*types.Block, bool)
 }
 
-// GetTxAndBlockByTxHash returns the tx and the block including the tx by given tx hash
-func GetTxAndBlockByTxHash(txHash types.Hash, store txLookupAndBlockGetter) (*types.Transaction, *types.Block) {
-
-
-	return nil, nil
-}
 
 type blockGetter interface {
 	Header() *types.Header
@@ -137,62 +130,4 @@ func GetNextNonce(address types.Address, number BlockNumber, store nonceGetter) 
 	}
 
 	return 0, err
-}
-
-func DecodeTxn(arg *txnArgs, store nonceGetter) (*types.Transaction, error) {
-	// set default values
-	if arg.From == nil {
-		arg.From = &types.ZeroAddress
-		arg.Nonce = argUintPtr(0)
-	} else if arg.Nonce == nil {
-		// get nonce from the pool
-		nonce, err := GetNextNonce(*arg.From, LatestBlockNumber, store)
-		if err != nil {
-			return nil, err
-		}
-		arg.Nonce = argUintPtr(nonce)
-	}
-
-	if arg.Value == nil {
-		arg.Value = argBytesPtr([]byte{})
-	}
-
-	if arg.GasPrice == nil {
-		arg.GasPrice = argBytesPtr([]byte{})
-	}
-
-	var input []byte
-	if arg.Data != nil {
-		input = *arg.Data
-	} else if arg.Input != nil {
-		input = *arg.Input
-	}
-
-	if arg.To == nil && input == nil {
-		return nil, ErrNoDataInContractCreation
-	}
-
-	if input == nil {
-		input = []byte{}
-	}
-
-	if arg.Gas == nil {
-		arg.Gas = argUintPtr(0)
-	}
-
-	txn := &types.Transaction{
-		From:     *arg.From,
-		Gas:      uint64(*arg.Gas),
-		GasPrice: new(big.Int).SetBytes(*arg.GasPrice),
-		Value:    new(big.Int).SetBytes(*arg.Value),
-		Input:    input,
-		Nonce:    uint64(*arg.Nonce),
-	}
-	if arg.To != nil {
-		txn.To = arg.To
-	}
-
-	txn.ComputeHash()
-
-	return txn, nil
 }

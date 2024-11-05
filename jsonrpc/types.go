@@ -42,45 +42,6 @@ func (h transactionHash) MarshalText() ([]byte, error) {
 	return []byte(types.Hash(h).String()), nil
 }
 
-func toPendingTransaction(t *types.Transaction) *transaction {
-	return toTransaction(t, nil, nil, nil)
-}
-
-func toTransaction(
-	t *types.Transaction,
-	blockNumber *argUint64,
-	blockHash *types.Hash,
-	txIndex *int,
-) *transaction {
-	res := &transaction{
-		Nonce:    argUint64(t.Nonce),
-		GasPrice: argBig(*t.GasPrice),
-		Gas:      argUint64(t.Gas),
-		To:       t.To,
-		Value:    argBig(*t.Value),
-		Input:    t.Input,
-		V:        argBig(*t.V),
-		R:        argBig(*t.R),
-		S:        argBig(*t.S),
-		Hash:     t.Hash,
-		From:     t.From,
-	}
-
-	if blockNumber != nil {
-		res.BlockNumber = blockNumber
-	}
-
-	if blockHash != nil {
-		res.BlockHash = blockHash
-	}
-
-	if txIndex != nil {
-		res.TxIndex = argUintPtr(uint64(*txIndex))
-	}
-
-	return res
-}
-
 type block struct {
 	ParentHash      types.Hash          `json:"parentHash"`
 	Sha3Uncles      types.Hash          `json:"sha3Uncles"`

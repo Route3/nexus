@@ -32,7 +32,6 @@ func (f *funcData) numParams() int {
 type endpoints struct {
 	Web3   *Web3
 	Net    *Net
-	TxPool *TxPool
 }
 
 // Dispatcher handles all json rpc requests by delegating

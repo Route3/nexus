@@ -267,30 +267,6 @@ func testBody(t *testing.T, m PlaceholderStorage) {
 		panic(err)
 	}
 
-	addr1 := types.StringToAddress("11")
-	t0 := &types.Transaction{
-		Nonce:    0,
-		To:       &addr1,
-		Value:    big.NewInt(1),
-		Gas:      11,
-		GasPrice: big.NewInt(11),
-		Input:    []byte{1, 2},
-		V:        big.NewInt(1),
-	}
-	t0.ComputeHash()
-
-	addr2 := types.StringToAddress("22")
-	t1 := &types.Transaction{
-		Nonce:    0,
-		To:       &addr2,
-		Value:    big.NewInt(1),
-		Gas:      22,
-		GasPrice: big.NewInt(11),
-		Input:    []byte{4, 5},
-		V:        big.NewInt(2),
-	}
-	t1.ComputeHash()
-
 	block := types.Block{
 		Header:       header,
 	}
@@ -317,63 +293,12 @@ func testReceipts(t *testing.T, m PlaceholderStorage) {
 		t.Fatal(err)
 	}
 
-	txn := &types.Transaction{
-		Nonce:    1000,
-		Gas:      50,
-		GasPrice: new(big.Int).SetUint64(100),
-		V:        big.NewInt(11),
-	}
 	body := &types.Body{}
 
 	if err := s.WriteBody(h.Hash, body); err != nil {
 		t.Fatal(err)
 	}
 
-	r0 := &types.Receipt{
-		Root:              types.StringToHash("1"),
-		CumulativeGasUsed: 10,
-		TxHash:            txn.Hash,
-		LogsBloom:         types.Bloom{0x1},
-		Logs: []*types.Log{
-			{
-				Address: addr1,
-				Topics:  []types.Hash{hash1, hash2},
-				Data:    []byte{0x1, 0x2},
-			},
-			{
-				Address: addr2,
-				Topics:  []types.Hash{hash1},
-			},
-		},
-	}
-	r1 := &types.Receipt{
-		Root:              types.StringToHash("1"),
-		CumulativeGasUsed: 10,
-		TxHash:            txn.Hash,
-		LogsBloom:         types.Bloom{0x1},
-		GasUsed:           10,
-		ContractAddress:   &types.Address{0x1},
-		Logs: []*types.Log{
-			{
-				Address: addr2,
-				Topics:  []types.Hash{hash1},
-			},
-		},
-	}
-
-	receipts := []*types.Receipt{r0, r1}
-
-	if err := s.WriteReceipts(h.Hash, receipts); err != nil {
-		t.Fatal(err)
-	}
-
-	found, err := s.ReadReceipts(h.Hash)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.True(t, reflect.DeepEqual(receipts, found))
 }
 
 func testWriteCanonicalHeader(t *testing.T, m PlaceholderStorage) {

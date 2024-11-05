@@ -386,20 +386,12 @@ type jsonRPCHub struct {
 	consensus.Consensus
 }
 
-func (j *jsonRPCHub) AddTx(*types.Transaction) (error) {
-	return nil
-}
-
 func (j *jsonRPCHub) GetCapacity() (uint64, uint64) {
 	return 0, 0
 }
 
 func (j *jsonRPCHub) GetNonce(types.Address) (uint64) {
 	return 0
-}
-
-func (j *jsonRPCHub) GetPendingTx(types.Hash) (*types.Transaction, bool) {
-	return nil, false
 }
 
 func (j *jsonRPCHub) GetPeers() int {
@@ -416,7 +408,6 @@ func (j *jsonRPCHub) GetCode(root types.Hash, addr types.Address) ([]byte, error
 
 func (j *jsonRPCHub) ApplyTxn(
 	header *types.Header,
-	txn *types.Transaction,
 ) (err error) {
 
 	return nil

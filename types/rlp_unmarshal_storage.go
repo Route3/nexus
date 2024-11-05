@@ -48,32 +48,6 @@ func (b *Body) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 	return nil
 }
 
-func (t *Transaction) UnmarshalStoreRLP(input []byte) error {
-	return UnmarshalRlp(t.UnmarshalStoreRLPFrom, input)
-}
-
-func (t *Transaction) UnmarshalStoreRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
-	elems, err := v.GetElems()
-	if err != nil {
-		return err
-	}
-
-	if len(elems) < 2 {
-		return fmt.Errorf("incorrect number of elements to decode transaction, expected 2 but found %d", len(elems))
-	}
-
-	// consensus part
-	if err := t.UnmarshalRLPFrom(p, elems[0]); err != nil {
-		return err
-	}
-	// context part
-	if err = elems[1].GetAddr(t.From[:]); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (r *Receipts) UnmarshalStoreRLP(input []byte) error {
 	return UnmarshalRlp(r.UnmarshalStoreRLPFrom, input)
 }

@@ -98,8 +98,6 @@ type Verifier interface {
 }
 
 type TxSigner interface {
-	// Sender returns the sender of the transaction
-	Sender(tx *types.Transaction) (types.Address, error)
 }
 
 type BlockResult struct {
@@ -910,30 +908,6 @@ func (b *Blockchain) ReadTxLookup(hash types.Hash) (types.Hash, bool) {
 func (b *Blockchain) recoverFromFieldsInBlock(block *types.Block) error {
 
 	return nil
-}
-
-// recoverFromFieldsInTransactions recovers 'from' fields in the transactions
-// log as warning if failing to recover one address
-func (b *Blockchain) recoverFromFieldsInTransactions(transactions []*types.Transaction) bool {
-	updated := false
-
-	for _, tx := range transactions {
-		if tx.From != types.ZeroAddress {
-			continue
-		}
-
-		sender, err := b.txSigner.Sender(tx)
-		if err != nil {
-			b.logger.Warn("failed to recover from address in Tx", "hash", tx.Hash, "err", err)
-
-			continue
-		}
-
-		tx.From = sender
-		updated = true
-	}
-
-	return updated
 }
 
 // verifyGasLimit is a helper function for validating a gas limit in a header

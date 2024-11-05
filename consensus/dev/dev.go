@@ -98,17 +98,6 @@ func (d *Dev) run() {
 	}
 }
 
-type transitionInterface interface {
-	Write(txn *types.Transaction) error
-}
-
-func (d *Dev) writeTransactions(gasLimit uint64, transition transitionInterface) []*types.Transaction {
-	var successful []*types.Transaction
-
-	
-	return successful
-}
-
 // writeNewBLock generates a new block based on transactions from the pool,
 // and writes them to the blockchain
 func (d *Dev) writeNewBlock(parent *types.Header) error {

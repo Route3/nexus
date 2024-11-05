@@ -243,34 +243,6 @@ const (
 	skip
 )
 
-type txExeResult struct {
-	tx     *types.Transaction
-	status status
-}
-
-type transitionInterface interface {
-	Write(txn *types.Transaction) error
-	WriteFailedReceipt(txn *types.Transaction) error
-}
-
-func (i *backendIBFT) writeTransactions(
-	gasLimit,
-	blockNumber uint64,
-	transition transitionInterface,
-) (executed []*types.Transaction) {
-	executed = make([]*types.Transaction, 0)
-	
-	return executed
-}
-
-func (i *backendIBFT) writeTransaction(
-	tx *types.Transaction,
-	transition transitionInterface,
-	gasLimit uint64,
-) (*txExeResult, bool) {
-	return nil, false
-}
-
 // extractCommittedSeals extracts CommittedSeals from header
 func (i *backendIBFT) extractCommittedSeals(
 	header *types.Header,

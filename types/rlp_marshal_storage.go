@@ -32,20 +32,6 @@ func (b *Body) MarshalRLPWith(ar *fastrlp.Arena) *fastrlp.Value {
 	return vv
 }
 
-func (t *Transaction) MarshalStoreRLPTo(dst []byte) []byte {
-	return MarshalRLPTo(t.MarshalStoreRLPWith, dst)
-}
-
-func (t *Transaction) MarshalStoreRLPWith(a *fastrlp.Arena) *fastrlp.Value {
-	vv := a.NewArray()
-	// consensus part
-	vv.Set(t.MarshalRLPWith(a))
-	// context part
-	vv.Set(a.NewBytes(t.From.Bytes()))
-
-	return vv
-}
-
 func (r Receipts) MarshalStoreRLPTo(dst []byte) []byte {
 	return MarshalRLPTo(r.MarshalStoreRLPWith, dst)
 }

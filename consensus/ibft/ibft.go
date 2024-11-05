@@ -41,17 +41,6 @@ var (
 	ErrParentCommittedSealsNotFound = errors.New("parent committed seals not found")
 )
 
-type txPoolInterface interface {
-	Prepare()
-	Length() uint64
-	Peek() *types.Transaction
-	Pop(tx *types.Transaction)
-	Drop(tx *types.Transaction)
-	Demote(tx *types.Transaction)
-	ResetWithHeaders(headers ...*types.Header)
-	SetSealing(bool)
-}
-
 type forkManagerInterface interface {
 	Initialize() error
 	Close() error
@@ -69,7 +58,6 @@ type backendIBFT struct {
 	logger         hclog.Logger           // Reference to the logging
 	blockchain     *blockchain.Blockchain // Reference to the blockchain layer
 	network        *network.Server        // Reference to the networking layer
-	txpool         txPoolInterface        // Reference to the transaction pool
 	syncer         syncer.Syncer          // Reference to the sync protocol
 	secretsManager secrets.SecretsManager // Reference to the secret manager
 	Grpc           *grpc.Server           // Reference to the gRPC manager
@@ -210,8 +198,6 @@ func (i *backendIBFT) startSyncing() {
 		if err := i.updateCurrentModules(block.Number() + 1); err != nil {
 			i.logger.Error("failed to update sub modules", "height", block.Number()+1, "err", err)
 		}
-
-		i.txpool.ResetWithHeaders(block.Header)
 
 		return false
 	}
