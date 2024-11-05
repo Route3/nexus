@@ -23,8 +23,6 @@ type stateCase struct {
 	Transaction *stTransaction                          `json:"transaction"`
 }
 
-var ripemd = types.StringToAddress("0000000000000000000000000000000000000003")
-
 func TestState(t *testing.T) {
 	t.Parallel()
 

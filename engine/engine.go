@@ -239,8 +239,6 @@ func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot
 		time.Sleep(200 * time.Millisecond)
 	}
 
-	fmt.Println("out of loop")
-
 	if responseData.Result.PayloadStatus.Status == "SYNCING" {
 		c.logger.Error("payload status is not VALID!", "status", responseData.Result.PayloadStatus.Status)
 		return nil, fmt.Errorf("payload status is not VALID!")

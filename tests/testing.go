@@ -11,7 +11,6 @@ import (
 
 	"github.com/apex-fusion/nexus/chain"
 	"github.com/apex-fusion/nexus/crypto"
-	"github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/types"
 )
 
@@ -248,33 +247,6 @@ type stTransaction struct {
 	Nonce    uint64         `json:"nonce"`
 	From     types.Address  `json:"secretKey"`
 	To       *types.Address `json:"to"`
-}
-
-func (t *stTransaction) At(i indexes) (*types.Transaction, error) {
-	if i.Data > len(t.Data) {
-		return nil, fmt.Errorf("data index %d out of bounds (%d)", i.Data, len(t.Data))
-	}
-
-	if i.Gas > len(t.GasLimit) {
-		return nil, fmt.Errorf("gas index %d out of bounds (%d)", i.Gas, len(t.GasLimit))
-	}
-
-	if i.Value > len(t.Value) {
-		return nil, fmt.Errorf("value index %d out of bounds (%d)", i.Value, len(t.Value))
-	}
-
-	msg := &types.Transaction{
-		To:       t.To,
-		Nonce:    t.Nonce,
-		Value:    new(big.Int).Set(t.Value[i.Value]),
-		Gas:      t.GasLimit[i.Gas],
-		GasPrice: new(big.Int).Set(t.GasPrice),
-		Input:    hex.MustDecodeHex(t.Data[i.Data]),
-	}
-
-	msg.From = t.From
-
-	return msg, nil
 }
 
 func (t *stTransaction) UnmarshalJSON(input []byte) error {
