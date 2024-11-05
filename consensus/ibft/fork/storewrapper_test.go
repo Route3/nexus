@@ -10,7 +10,6 @@ import (
 
 	"github.com/apex-fusion/nexus/consensus/ibft/signer"
 	testHelper "github.com/apex-fusion/nexus/helper/tests"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/validators"
 	"github.com/apex-fusion/nexus/validators/store"
@@ -256,43 +255,18 @@ func TestSnapshotValidatorStoreWrapperClose(t *testing.T) {
 	)
 }
 
-type MockExecutor struct {
-	BeginTxnFunc func(types.Hash, *types.Header, types.Address) (*state.Transition, error)
-}
-
-func (m *MockExecutor) BeginTxn(hash types.Hash, header *types.Header, addr types.Address) (*state.Transition, error) {
-	return m.BeginTxnFunc(hash, header, addr)
-}
-
 func TestNewContractValidatorStoreWrapper(t *testing.T) {
 	t.Parallel()
 
 	_, err := NewContractValidatorStoreWrapper(
 		hclog.NewNullLogger(),
 		&store.MockBlockchain{},
-		&MockExecutor{},
 		func(u uint64) (signer.Signer, error) {
 			return nil, nil
 		},
 	)
 
 	assert.NoError(t, err)
-}
-
-func TestNewContractValidatorStoreWrapperClose(t *testing.T) {
-	t.Parallel()
-
-	wrapper, err := NewContractValidatorStoreWrapper(
-		hclog.NewNullLogger(),
-		&store.MockBlockchain{},
-		&MockExecutor{},
-		func(u uint64) (signer.Signer, error) {
-			return nil, nil
-		},
-	)
-
-	assert.NoError(t, err)
-	assert.NoError(t, wrapper.Close())
 }
 
 func TestNewContractValidatorStoreWrapperGetValidators(t *testing.T) {
@@ -304,7 +278,6 @@ func TestNewContractValidatorStoreWrapperGetValidators(t *testing.T) {
 		wrapper, err := NewContractValidatorStoreWrapper(
 			hclog.NewNullLogger(),
 			&store.MockBlockchain{},
-			&MockExecutor{},
 			func(u uint64) (signer.Signer, error) {
 				return nil, errTest
 			},
@@ -327,7 +300,6 @@ func TestNewContractValidatorStoreWrapperGetValidators(t *testing.T) {
 					return nil, false
 				},
 			},
-			&MockExecutor{},
 			func(u uint64) (signer.Signer, error) {
 				return signer.NewSigner(
 					&signer.ECDSAKeyManager{},

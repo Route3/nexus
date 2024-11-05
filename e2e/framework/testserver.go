@@ -3,8 +3,6 @@ package framework
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -259,11 +257,6 @@ func (t *TestServer) GenerateGenesis() error {
 		genesisCmd.Use,
 	}
 
-	// add pre-mined accounts
-	for _, acct := range t.Config.PremineAccts {
-		args = append(args, "--premine", acct.Addr.String()+":0x"+acct.Balance.Text(16))
-	}
-
 	// add consensus flags
 	switch t.Config.Consensus {
 	case ConsensusIBFT:
@@ -501,42 +494,6 @@ func (t *TestServer) SwitchIBFTType(typ fork.IBFTType, from uint64, to, deployme
 	return t.cmd.Run()
 }
 
-// SignTx is a helper method for signing transactions
-func (t *TestServer) SignTx(
-	transaction *types.Transaction,
-	privateKey *ecdsa.PrivateKey,
-) (*types.Transaction, error) {
-	return t.Config.Signer.SignTx(transaction, privateKey)
-}
-
-// DeployContract deploys a contract with account 0 and returns the address
-func (t *TestServer) DeployContract(
-	ctx context.Context,
-	binary string,
-	privateKey *ecdsa.PrivateKey,
-) (ethgo.Address, error) {
-	buf, err := hex.DecodeString(binary)
-	if err != nil {
-		return ethgo.Address{}, err
-	}
-
-	sender, err := crypto.GetAddressFromKey(privateKey)
-	if err != nil {
-		return ethgo.ZeroAddress, fmt.Errorf("unable to extract key, %w", err)
-	}
-
-	receipt, err := t.SendRawTx(ctx, &PreparedTransaction{
-		From:     sender,
-		Gas:      DefaultGasLimit,
-		GasPrice: big.NewInt(DefaultGasPrice),
-		Input:    buf,
-	}, privateKey)
-	if err != nil {
-		return ethgo.Address{}, err
-	}
-
-	return receipt.ContractAddress, nil
-}
 
 const (
 	DefaultGasPrice = 1879048192 // 0x70000000
@@ -717,40 +674,6 @@ func (t *TestServer) Txn(key *wallet.Key) *Txn {
 	return tt
 }
 
-// SendRawTx signs the transaction with the provided private key, executes it, and returns the receipt
-func (t *TestServer) SendRawTx(
-	ctx context.Context,
-	tx *PreparedTransaction,
-	signerKey *ecdsa.PrivateKey,
-) (*ethgo.Receipt, error) {
-	client := t.JSONRPC()
-
-	nextNonce, err := client.Eth().GetNonce(ethgo.Address(tx.From), ethgo.Latest)
-	if err != nil {
-		return nil, err
-	}
-
-	signedTx, err := t.SignTx(&types.Transaction{
-		From:     tx.From,
-		GasPrice: tx.GasPrice,
-		Gas:      tx.Gas,
-		To:       tx.To,
-		Value:    tx.Value,
-		Input:    tx.Input,
-		Nonce:    nextNonce,
-	}, signerKey)
-	if err != nil {
-		return nil, err
-	}
-
-	txHash, err := client.Eth().SendRawTransaction(signedTx.MarshalRLP())
-	if err != nil {
-		return nil, err
-	}
-
-	return tests.WaitForReceipt(ctx, t.JSONRPC().Eth(), txHash)
-}
-
 func (t *TestServer) WaitForReceipt(ctx context.Context, hash ethgo.Hash) (*ethgo.Receipt, error) {
 	client := t.JSONRPC()
 
@@ -842,34 +765,6 @@ func (t *TestServer) WaitForReady(ctx context.Context) error {
 	})
 
 	return err
-}
-
-func (t *TestServer) InvokeMethod(
-	ctx context.Context,
-	contractAddress types.Address,
-	method string,
-	fromKey *ecdsa.PrivateKey,
-) *ethgo.Receipt {
-	sig := MethodSig(method)
-
-	fromAddress, err := crypto.GetAddressFromKey(fromKey)
-	if err != nil {
-		t.t.Fatalf("unable to extract key, %v", err)
-	}
-
-	receipt, err := t.SendRawTx(ctx, &PreparedTransaction{
-		Gas:      DefaultGasLimit,
-		GasPrice: big.NewInt(DefaultGasPrice),
-		To:       &contractAddress,
-		From:     fromAddress,
-		Input:    sig,
-	}, fromKey)
-
-	if err != nil {
-		t.t.Fatal(err)
-	}
-
-	return receipt
 }
 
 func (t *TestServer) CallJSONRPC(req map[string]interface{}) map[string]interface{} {

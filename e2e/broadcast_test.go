@@ -2,15 +2,11 @@ package e2e
 
 import (
 	"context"
-	"math/big"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/apex-fusion/nexus/crypto"
 	"github.com/apex-fusion/nexus/e2e/framework"
-	"github.com/apex-fusion/nexus/helper/tests"
-	"github.com/apex-fusion/nexus/types"
 )
 
 func TestBroadcast(t *testing.T) {
@@ -36,13 +32,8 @@ func TestBroadcast(t *testing.T) {
 		},
 	}
 
-	signer := &crypto.FrontierSigner{}
-	senderKey, senderAddr := tests.GenerateKeyAndAddr(t)
-	_, receiverAddr := tests.GenerateKeyAndAddr(t)
-
 	conf := func(config *framework.TestServerConfig) {
 		config.SetConsensus(framework.ConsensusDummy)
-		config.Premine(senderAddr, framework.EthToWei(10))
 	}
 
 	for _, tt := range testCases {
@@ -98,24 +89,6 @@ func TestBroadcast(t *testing.T) {
 			// wait until gossip protocol build mesh network
 			// (https://github.com/libp2p/specs/blob/master/pubsub/gossipsub/gossipsub-v1.0.md)
 			time.Sleep(time.Second * 2)
-
-			tx, err := signer.SignTx(&types.Transaction{
-				Nonce:    0,
-				From:     senderAddr,
-				To:       &receiverAddr,
-				Value:    framework.EthToWei(1),
-				Gas:      1000000,
-				GasPrice: big.NewInt(10000),
-				Input:    []byte{},
-			}, senderKey)
-			if err != nil {
-				t.Fatalf("failed to sign transaction, err=%+v", err)
-			}
-
-			_, err = srvs[0].JSONRPC().Eth().SendRawTransaction(tx.MarshalRLP())
-			if err != nil {
-				t.Fatalf("failed to send transaction, err=%+v", err)
-			}
 		})
 	}
 }
