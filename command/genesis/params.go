@@ -19,7 +19,6 @@ import (
 const (
 	dirFlag           = "dir"
 	nameFlag          = "name"
-	premineFlag       = "premine"
 	chainIDFlag       = "chain-id"
 	epochSizeFlag     = "epoch-size"
 	blockGasLimitFlag = "block-gas-limit"
@@ -48,7 +47,6 @@ type genesisParams struct {
 	name                string
 	consensusRaw        string
 	validatorPrefixPath string
-	premine             []string
 	bootnodes           []string
 	ibftValidators      validators.Validators
 
@@ -299,10 +297,6 @@ func (p *genesisParams) initGenesisConfig() error {
 			Engine:  p.consensusEngineConfig,
 		},
 		Bootnodes: p.bootnodes,
-	}
-
-	if err := fillPremineMap(chainConfig.Genesis.Alloc, p.premine); err != nil {
-		return err
 	}
 
 	p.genesisConfig = chainConfig

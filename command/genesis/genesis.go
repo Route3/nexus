@@ -57,16 +57,6 @@ func setFlags(cmd *cobra.Command) {
 		"the name for the chain",
 	)
 
-	cmd.Flags().StringArrayVar(
-		&params.premine,
-		premineFlag,
-		[]string{},
-		fmt.Sprintf(
-			"the premined accounts and balances (format: <address>:<balance>). Default premined balance: %s",
-			command.DefaultPremineBalance,
-		),
-	)
-
 	cmd.Flags().Uint64Var(
 		&params.blockGasLimit,
 		blockGasLimitFlag,

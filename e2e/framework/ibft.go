@@ -7,8 +7,6 @@ import (
 	"path"
 	"testing"
 	"time"
-
-	"github.com/apex-fusion/nexus/types"
 )
 
 type IBFTServersManager struct {
@@ -81,15 +79,6 @@ func NewIBFTServersManager(
 
 	srv := srvs[0]
 	srv.Config.SetBootnodes(bootnodes)
-	// Set genesis staking balance for genesis validators
-	for i, v := range genesisValidators {
-		addr := types.StringToAddress(v)
-		conf := srvs[i].Config
-
-		if conf.GenesisValidatorBalance != nil {
-			srv.Config.Premine(addr, conf.GenesisValidatorBalance)
-		}
-	}
 
 	if err := srv.GenerateGenesis(); err != nil {
 		t.Fatal(err)
