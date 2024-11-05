@@ -9,7 +9,6 @@ import (
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/validators"
 	"github.com/apex-fusion/nexus/validators/store"
-	"github.com/apex-fusion/nexus/validators/store/contract"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -58,7 +57,6 @@ type HooksInterface interface {
 type ForkManager struct {
 	logger         hclog.Logger
 	blockchain     store.HeaderGetter
-	executor       contract.Executor
 	secretsManager secrets.SecretsManager
 
 	// configuration
@@ -276,13 +274,6 @@ func (m *ForkManager) initializeValidatorStore(setType store.SourceType) error {
 			m.GetSigner,
 			m.filePath,
 			m.epochSize,
-		)
-	case store.Contract:
-		valStore, err = NewContractValidatorStoreWrapper(
-			m.logger,
-			m.blockchain,
-			m.executor,
-			m.GetSigner,
 		)
 	}
 
