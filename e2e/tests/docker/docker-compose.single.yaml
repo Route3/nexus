@@ -1,0 +1,63 @@
+services:
+  geth-init:
+    image: "ghcr.io/route3/nexus-geth:latest"
+    command: --datadir=/geth init /geth-init/genesis.json
+    volumes:
+      - ../shared/single/geth:/geth-init
+      - geth:/geth
+
+  geth:
+    image: "ghcr.io/route3/nexus-geth:latest"
+    command:
+      - --verbosity=5
+      - --http
+      - --http.api=eth,net,web3
+      - --http.addr=0.0.0.0
+      - --http.corsdomain=*
+      - --ws
+      - --ws.api=eth,net,web3
+      - --ws.addr=0.0.0.0
+      - --ws.origins=*
+      - --authrpc.vhosts=*
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.jwtsecret=/geth-init/jwt.hex
+      - --datadir=/geth
+      - --nodiscover
+      - --syncmode=full
+    ports:
+      - 8551:8551
+      - 8545:8545
+      - 8546:8546
+    volumes:
+      - ../shared/single/geth:/geth-init
+      - geth:/geth
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:8545/",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      geth-init:
+        condition: service_completed_successfully
+
+  nexus:
+    image: "nexus-dev:latest"
+    command: server --config=/nexus-init/config.yaml
+    #entrypoint: sleep
+    #command: infinity
+    volumes:
+      - ../shared/single/geth:/geth-init
+      - ../shared/single/nexus:/nexus-init
+      - nexus:/nexus
+    depends_on:
+      geth:
+        condition: service_healthy
+
+volumes:
+  geth:
+  nexus:
