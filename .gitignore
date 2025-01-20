@@ -1,5 +1,5 @@
 peers.json
-genesis.json
+# genesis.json
 secretsManagerConfig.json
 *-packr.go
 config*.json
@@ -9,8 +9,11 @@ bin/
 test-chain*
 .idea
 
+.env
+
 # Exclude the build .exe file from version control
 nexus
+!nexus/
 
 # MacOS Leftovers
 .DS_Store
@@ -25,5 +28,6 @@ artifacts
 vendor/
 shared/
 
-multi-validator-shared
 .envrc
+
+!shared/single/geth/genesis.json

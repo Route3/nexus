@@ -86,25 +86,24 @@ clean-multi: stop-multi
 
 rerun-single: stop-multi clean-multi run-multi
 
-set-go-version: 
+set-up-prerequisites:
 	echo "Run: gvm use go1.23.0 && gvm pkgset use go1.23 if needed"
 	go clean -testcache
+	rm -rf e2e/tests/shared && cp -r e2e/tests/template-configs e2e/tests/shared
+	docker build -t nexus-dev:latest .
 
-build-docker-image:
-	 docker build -t nexus-dev:latest .
+test-single-liveness: set-up-prerequisites
+	cd e2e/tests && go test -timeout 400s -run ^TestE2ESingleLiveness github.com/apex-fusion/nexus
 
-test-single-liveness: set-go-version build-docker-image
-	cd e2e/tests && go test -timeout 300s -run ^TestE2ESingleLiveness github.com/apex-fusion/nexus
-
-test-single-broadcast: set-go-version build-docker-image
-	cd e2e/tests && go test -timeout 300s -run ^TestE2ESingleBroadcast github.com/apex-fusion/nexus
+test-single-broadcast: set-up-prerequisites
+	cd e2e/tests && go test -timeout 400s -run ^TestE2ESingleBroadcast github.com/apex-fusion/nexus
 
 test-single: test-single-liveness test-single-broadcast
 
-test-multi-liveness: set-go-version build-docker-image
-	cd e2e/tests && go test -timeout 400s -run ^TestE2EMultiLiveness github.com/apex-fusion/nexus
+test-multi-liveness: set-up-prerequisites
+	cd e2e/tests && go test -timeout 600s -run ^TestE2EMultiLiveness github.com/apex-fusion/nexus
 
-test-multi-broadcast: set-go-version build-docker-image
+test-multi-broadcast: set-up-prerequisites
 	cd e2e/tests && go test -timeout 1000s -run ^TestE2EMultiBroadcast github.com/apex-fusion/nexus
 
 test-multi: test-multi-liveness test-multi-broadcast

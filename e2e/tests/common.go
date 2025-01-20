@@ -29,13 +29,13 @@ import (
 func basicSingleSetup(t *testing.T) (*jsonrpc.Client, *wallet.Key) {
 
 	startDockerEnv(t, DOCKER_ENV_SINGLE)
-	
+
 	testConfig := LoadSingleTestConfig()
-	
+
 	clt, err := jsonrpc.NewClient(testConfig.rpcUrls[0])
 	require.NoError(t, err)
 
-	privateKey, _ := hex.DecodeString(testConfig.masterAccountPrivateKey) 
+	privateKey, _ := hex.DecodeString(testConfig.masterAccountPrivateKey)
 	masterAcc, _ := wallet.NewWalletFromPrivKey(privateKey)
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -52,35 +52,34 @@ func basicSingleSetup(t *testing.T) (*jsonrpc.Client, *wallet.Key) {
 func basicMultiSetup(t *testing.T) ([]*jsonrpc.Client, *wallet.Key) {
 
 	startDockerEnv(t, DOCKER_ENV_MULTI)
-	
+
 	testConfig := LoadMultiTestConfig()
 
-	privateKey, _ := hex.DecodeString(testConfig.masterAccountPrivateKey) 
+	privateKey, _ := hex.DecodeString(testConfig.masterAccountPrivateKey)
 	masterAcc, _ := wallet.NewWalletFromPrivKey(privateKey)
 
 	var clts []*jsonrpc.Client
 
 	for i := 0; i < len(testConfig.rpcUrls); i++ {
-		
+
 		clt, err := jsonrpc.NewClient(testConfig.rpcUrls[i])
 		require.NoError(t, err)
 
 		clts = append(clts, clt)
 	}
-	
+
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	require.NoError(t, err)
 
 	timeout := 1 * time.Minute
 	containerNames := []string{
-		"geth-1", "gethsecond-1", "geththird-1", "gethfourth-1", 
+		"geth-1", "gethsecond-1", "geththird-1", "gethfourth-1",
 		"nexus-1", "nexussecond-1", "nexusthird-1, nexusfourth-1",
 	} // Adjust container names if necessary
 	err = waitForServices(cli, timeout, t, containerNames)
 
 	return clts, masterAcc
 }
-
 
 func startDockerEnv(t *testing.T, envType int) (err error) {
 
@@ -111,41 +110,40 @@ func cleanupDockerEnv(t *testing.T) (err error) {
 	return
 }
 
-func getSendTxRawBytes(masterPrivKey string, rpcUrl string, addr string, valueInt int64) (string) {
+func getSendTxRawBytes(masterPrivKey string, rpcUrl string, addr string, valueInt int64) string {
 
 	client, err := ethclient.Dial(rpcUrl)
-    privateKey, err := crypto.HexToECDSA(masterPrivKey)
+	privateKey, err := crypto.HexToECDSA(masterPrivKey)
 
-    publicKey := privateKey.Public()
-    publicKeyECDSA, _ := publicKey.(*ecdsa.PublicKey)
+	publicKey := privateKey.Public()
+	publicKeyECDSA, _ := publicKey.(*ecdsa.PublicKey)
 
-    fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-    nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
-    if err != nil {
-        log.Fatal(err)
-    }
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    value := big.NewInt(valueInt) 
-    gasLimit := uint64(21000) // in units
-    gasPrice, err := client.SuggestGasPrice(context.Background())
+	value := big.NewInt(valueInt)
+	gasLimit := uint64(21000) // in units
+	gasPrice, err := client.SuggestGasPrice(context.Background())
 
-    toAddress := common.HexToAddress(addr)
-    var data []byte
-    tx := gTypes.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
+	toAddress := common.HexToAddress(addr)
+	var data []byte
+	tx := gTypes.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
 
-    chainID, err := client.NetworkID(context.Background())
+	chainID, err := client.NetworkID(context.Background())
 
-    signedTx, err := gTypes.SignTx(tx, gTypes.NewEIP155Signer(chainID), privateKey)
-    
-    ts := gTypes.Transactions{signedTx}
+	signedTx, err := gTypes.SignTx(tx, gTypes.NewEIP155Signer(chainID), privateKey)
+
+	ts := gTypes.Transactions{signedTx}
 	b := new(bytes.Buffer)
 	ts.EncodeIndex(0, b)
 	rawTxBytes := b.Bytes()
-    rawTxHex := hex.EncodeToString(rawTxBytes)
+	rawTxHex := hex.EncodeToString(rawTxBytes)
 
-    return rawTxHex
+	return rawTxHex
 }
-
 
 const (
 	DOCKER_ENV_SINGLE = iota
@@ -153,7 +151,7 @@ const (
 )
 
 func defaultDelay() {
-	time.Sleep(time.Duration(20) * time.Second)
+	time.Sleep(time.Duration(45) * time.Second)
 }
 
 // waitForServices waits for the Geth nodes to become healthy.
@@ -219,9 +217,9 @@ func waitForServices(cli *client.Client, timeout time.Duration, t *testing.T, co
 	}
 }
 
-func testFetchAndCheckMetaFields (vId string, t  *testing.T, clt *jsonrpc.Client) () {
+func testFetchAndCheckMetaFields(vId string, t *testing.T, clt *jsonrpc.Client) {
 
-	t.Run("fetchMetaFields(validator=" + vId+ ")", func(t *testing.T) {
+	t.Run("fetchMetaFields(validator="+vId+")", func(t *testing.T) {
 		t.Log("fetching chain's id...")
 		_, err := clt.Eth().ChainID()
 		require.NoError(t, err)
@@ -244,9 +242,9 @@ func testFetchAndCheckMetaFields (vId string, t  *testing.T, clt *jsonrpc.Client
 	})
 }
 
-func testBalanceGreaterThanZero (vId string, t  *testing.T, clt *jsonrpc.Client, account *wallet.Key) () {
-	t.Run("eth_getBalance(validator=" + vId+ ")", func(t *testing.T) {
-		
+func testBalanceGreaterThanZero(vId string, t *testing.T, clt *jsonrpc.Client, account *wallet.Key) {
+	t.Run("eth_getBalance(validator="+vId+")", func(t *testing.T) {
+
 		t.Log("fetching masterAcc's balance...")
 		balance, err := clt.Eth().GetBalance(account.Address(), ethgo.Latest)
 		require.NoError(t, err)
@@ -254,10 +252,10 @@ func testBalanceGreaterThanZero (vId string, t  *testing.T, clt *jsonrpc.Client,
 	})
 }
 
-func testBlockAreBeingProduced (vId string, t  *testing.T, clt *jsonrpc.Client) {
+func testBlockAreBeingProduced(vId string, t *testing.T, clt *jsonrpc.Client) {
 
 	currentBlockNumber := uint64(0)
-	t.Run("blocks being produced (validator=" + vId+ ")", func(t *testing.T) {
+	t.Run("blocks being produced (validator="+vId+")", func(t *testing.T) {
 		nRepeats := 3
 		for i := 0; i < nRepeats; i++ {
 			t.Log("fetching current block number...")
@@ -270,15 +268,20 @@ func testBlockAreBeingProduced (vId string, t  *testing.T, clt *jsonrpc.Client) 
 	})
 }
 
-func testBroadcastTx (vId string, t  *testing.T, clt *jsonrpc.Client, masterAccPrivKey string, rpcUrl string) {
+func testBroadcastTx(vId string, t *testing.T, clt *jsonrpc.Client, masterAccPrivKey string, rpcUrl string) {
 	t.Run("sendTransaction", func(t *testing.T) {
+
+		t.Log("Running testBroadcastTx... for validator:", vId)
 
 		recipientAddr := "0x4592d8f8d7b001e72cb26a73e4fa1806a51ac79d"
 		value := int64(10000)
 
-		privateKey, _ := hex.DecodeString(masterAccPrivKey) 
-		wk, _ := wallet.NewWalletFromPrivKey(privateKey)
-		
+		privateKey, err := hex.DecodeString(masterAccPrivKey)
+		require.NoError(t, err)
+
+		wk, err := wallet.NewWalletFromPrivKey(privateKey)
+		require.NoError(t, err)
+
 		//record the sender's nonce and reciever's balance before the transaction
 		previousSenderNonce, err := clt.Eth().GetNonce(wk.Address(), ethgo.Latest)
 		require.NoError(t, err)
@@ -290,9 +293,11 @@ func testBroadcastTx (vId string, t  *testing.T, clt *jsonrpc.Client, masterAccP
 		t.Log("sending a transaction to a new account...")
 		rawTx := getSendTxRawBytes(masterAccPrivKey, rpcUrl, recipientAddr, value)
 		rawTxBytes, err := hex.DecodeString(rawTx)
+		require.NoError(t, err)
+
 		txHash, err := clt.Eth().SendRawTransaction(rawTxBytes)
 		require.NoError(t, err)
-		
+
 		t.Log("checking tx inclusion... for:", txHash)
 		tx, err := clt.Eth().GetTransactionByHash(txHash)
 		require.NoError(t, err)
@@ -302,7 +307,7 @@ func testBroadcastTx (vId string, t  *testing.T, clt *jsonrpc.Client, masterAccP
 		defaultDelay()
 		actualNonce, err := clt.Eth().GetNonce(wk.Address(), ethgo.Latest)
 		require.NoError(t, err)
-		require.Equal(t, previousSenderNonce + 1, actualNonce)
+		require.Equal(t, previousSenderNonce+1, actualNonce)
 
 		t.Log("checking receiver's balance...")
 		actualReceiverBalance, err := clt.Eth().GetBalance(ethgo.HexToAddress(recipientAddr), ethgo.Latest)

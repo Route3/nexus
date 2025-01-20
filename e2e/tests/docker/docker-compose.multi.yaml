@@ -89,11 +89,13 @@ services:
       - --authrpc.jwtsecret=/multi/v-0/geth/jwt.hex
       - --datadir=/multi/v-0/geth
       - --syncmode=full
-      - --nodiscover
+      - --nodekeyhex=2ad3a9ccd99926514e77501c33c5fdbae6ecfdc6fc82853bc8f28772b13cd2df
     ports:
       - 8551:8551
       - 8545:8545
       - 8546:8546
+      - 30303:30303
+      - 30301:30301
     volumes:
       - ../shared/multi/v-0:/multi/v-0
       - ../shared/multi/v-0/geth/genesis.json:/multi/v-0/geth-genesis.json
@@ -124,7 +126,7 @@ services:
       - --authrpc.jwtsecret=/multi/v-1/geth/jwt.hex
       - --datadir=/multi/v-1/geth
       - --syncmode=full
-      - --nodiscover
+      - --bootnodes=enode://565f2cd2c5fd4f8798daaa65c858e4040d2b0db31b7d354177e126b34fea6163194c926a1cf3ffa1be29252518d6217a114479703e0f01ba5642a7d3bdc1137e@127.0.0.1:30303?discport=30303
     ports:
       - 18551:8551
       - 18545:8545
@@ -153,7 +155,7 @@ services:
       - --authrpc.jwtsecret=/multi/v-2/geth/jwt.hex
       - --datadir=/multi/v-2/geth
       - --syncmode=full
-      - --nodiscover
+      - --bootnodes=enode://565f2cd2c5fd4f8798daaa65c858e4040d2b0db31b7d354177e126b34fea6163194c926a1cf3ffa1be29252518d6217a114479703e0f01ba5642a7d3bdc1137e@127.0.0.1:30303?discport=30303
     ports:
       - 28551:8551
       - 28545:8545
@@ -182,7 +184,7 @@ services:
       - --authrpc.jwtsecret=/multi/v-3/geth/jwt.hex
       - --datadir=/multi/v-3/geth
       - --syncmode=full
-      - --nodiscover
+      - --bootnodes=enode://565f2cd2c5fd4f8798daaa65c858e4040d2b0db31b7d354177e126b34fea6163194c926a1cf3ffa1be29252518d6217a114479703e0f01ba5642a7d3bdc1137e@127.0.0.1:30303?discport=30303
     ports:
       - 38551:8551
       - 38545:8545
@@ -206,6 +208,10 @@ services:
       - ../shared/multi/v-0/geth:/geth-init
       - ../shared/multi/v-0/nexus:/nexus-init
       - nexus:/nexus
+    ports:
+      - 10000:10000
+      - 10001:10001
+      - 10002:10002
     depends_on:
       waitforit:
         condition: service_completed_successfully
@@ -218,6 +224,9 @@ services:
       - ../shared/multi/v-1/geth:/geth-init
       - ../shared/multi/v-1/nexus:/nexus-init
       - nexussecond:/nexussecond
+    ports:
+      - 20001:20001
+      - 20002:20002
     depends_on:
       waitforit:
         condition: service_completed_successfully
@@ -230,6 +239,9 @@ services:
       - ../shared/multi/v-2/geth:/geth-init
       - ../shared/multi/v-2/nexus:/nexus-init
       - nexusthird:/nexusthird
+    ports:
+      - 30001:30001
+      - 30002:30002
     depends_on:
       waitforit:
         condition: service_completed_successfully
@@ -242,6 +254,9 @@ services:
       - ../shared/multi/v-3/geth:/geth-init
       - ../shared/multi/v-3/nexus:/nexus-init
       - nexusfourth:/nexusfourth
+    ports:
+      - 40001:40001
+      - 40002:40002
     depends_on:
       waitforit:
         condition: service_completed_successfully

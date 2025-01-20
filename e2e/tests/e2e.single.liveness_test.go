@@ -18,7 +18,7 @@ func TestE2ESingleLiveness(t *testing.T) {
 	testBalanceGreaterThanZero("0", t, clt, masterAcc)
 
 	testBlockAreBeingProduced("0", t, clt)
-	
+
 	//test teardown
 	t.Cleanup(func() { cleanupDockerEnv(t) })
 }

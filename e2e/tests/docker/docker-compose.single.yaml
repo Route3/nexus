@@ -45,6 +45,18 @@ services:
       geth-init:
         condition: service_completed_successfully
 
+  mitmproxy:
+    image: mitmproxy/mitmproxy
+    command: >
+      mitmweb
+      --mode reverse:http://geth:8551
+      --listen-port 8550
+      --web-host 0.0.0.0
+      --set block_global=false
+    ports:
+      - 8550:8550
+      - 8081:8081
+
   nexus:
     image: "nexus-dev:latest"
     command: server --config=/nexus-init/config.yaml
@@ -54,6 +66,11 @@ services:
       - ../shared/single/geth:/geth-init
       - ../shared/single/nexus:/nexus-init
       - nexus:/nexus
+    ports:
+      - 10001:10001
+      - 10002:10002
+      - 10003:10003
+      - 80:1234
     depends_on:
       geth:
         condition: service_healthy
