@@ -353,7 +353,7 @@ func (p *Payload) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
 
 	for i, transaction := range transactions {
 
-		p.Transactions[i], err = transaction.GetBytes(p.Transactions[i][:])
+		p.Transactions[i], err = transaction.GetBytes(p.Transactions[i])
 		if err != nil {
 			return err
 		}
