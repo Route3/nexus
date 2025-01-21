@@ -124,7 +124,7 @@ type Payload struct {
 	ExcessBlobGas *uint64             `json:"excessBlobGas"`*/
 }
 
-type _RawPayload struct {
+type RawPayload struct {
 	ParentHash    Hash     `json:"parentHash"`
 	FeeRecipient  Address  `json:"feeRecipient"`
 	StateRoot     Hash     `json:"stateRoot"`
@@ -186,8 +186,11 @@ func (p *Payload) MarshalJSON() ([]byte, error) {
 }
 
 func (p *Payload) UnmarshalJSON(data []byte) error {
-	var rawPayload _RawPayload
+	var rawPayload RawPayload
 	err := json.Unmarshal(data, &rawPayload)
+	if err != nil {
+		return fmt.Errorf("failed to decode rawPayload")
+	}
 
 	p.BaseFeePerGas = hex.DecodeHexToBig(string(hex.DropHexPrefix([]byte(rawPayload.BaseFeePerGas))))
 	p.BlockHash = rawPayload.BlockHash
