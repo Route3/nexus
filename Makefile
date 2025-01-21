@@ -24,7 +24,7 @@ build:
 	$(eval TIME = $(shell date))
 	go build -o nexus -tags netgo -ldflags="\
 		-s -w -linkmode external -extldflags "-static" \
-    	-X 'github.com/apex-fusion/nexus/versioning.Version=$(LATEST_VERSION)' \
+		-X 'github.com/apex-fusion/nexus/versioning.Version=$(LATEST_VERSION)' \
 		-X 'github.com/apex-fusion/nexus/versioning.Commit=$(COMMIT_HASH)'\
 		-X 'github.com/apex-fusion/nexus/versioning.Branch=$(BRANCH)'\
 		-X 'github.com/apex-fusion/nexus/versioning.BuildTime=$(TIME)'" \

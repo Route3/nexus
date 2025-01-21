@@ -46,6 +46,10 @@ func basicSingleSetup(t *testing.T) (*jsonrpc.Client, *wallet.Key) {
 	containerNames := []string{"geth-1", "nexus-1"}
 	err = waitForServices(cli, timeout, t, containerNames)
 
+	if err != nil {
+		panic(err)
+	}
+
 	return clt, masterAcc
 }
 
@@ -73,10 +77,14 @@ func basicMultiSetup(t *testing.T) ([]*jsonrpc.Client, *wallet.Key) {
 
 	timeout := 1 * time.Minute
 	containerNames := []string{
-		"geth-1", "gethsecond-1", "geththird-1", "gethfourth-1",
-		"nexus-1", "nexussecond-1", "nexusthird-1, nexusfourth-1",
+		"geth-0-1", "geth-1-1", "geth-2-1", "geth-3-1",
+		"nexus-0-1", "nexus-1-1", "nexus-2-1, nexus-3-1",
 	} // Adjust container names if necessary
 	err = waitForServices(cli, timeout, t, containerNames)
+
+	if err != nil {
+		panic(err)
+	}
 
 	return clts, masterAcc
 }

@@ -28,7 +28,7 @@ services:
     image: mitmproxy/mitmproxy
     command: >
       mitmweb
-      --mode reverse:http://geth:8551
+      --mode reverse:http://geth-0:8551
       --listen-port 8550
       --web-host 0.0.0.0
       --set block_global=false
@@ -40,7 +40,7 @@ services:
     image: mitmproxy/mitmproxy
     command: >
       mitmweb
-      --mode reverse:http://gethsecond:8551
+      --mode reverse:http://geth-1:8551
       --listen-port 8550
       --web-host 0.0.0.0
       --set block_global=false
@@ -52,7 +52,7 @@ services:
     image: mitmproxy/mitmproxy
     command: >
       mitmweb
-      --mode reverse:http://geththird:8551
+      --mode reverse:http://geth-2:8551
       --listen-port 8550
       --web-host 0.0.0.0
       --set block_global=false
@@ -64,7 +64,7 @@ services:
     image: mitmproxy/mitmproxy
     command: >
       mitmweb
-      --mode reverse:http://gethfourth:8551
+      --mode reverse:http://geth-3:8551
       --listen-port 8550
       --web-host 0.0.0.0
       --set block_global=false
@@ -72,7 +72,7 @@ services:
       - 38550:8550
       - 38081:8081
 
-  geth:
+  geth-0:
     image: "ghcr.io/route3/nexus-geth:latest"
     command:
       - --verbosity=5
@@ -109,7 +109,7 @@ services:
       retries: 300
       start_period: 1s
 
-  gethsecond:
+  geth-1:
     image: "ghcr.io/route3/nexus-geth:latest"
     command:
       - --verbosity=5
@@ -138,7 +138,7 @@ services:
       geth-init-1:
         condition: service_completed_successfully
 
-  geththird:
+  geth-2:
     image: "ghcr.io/route3/nexus-geth:latest"
     command:
       - --verbosity=5
@@ -167,7 +167,7 @@ services:
       geth-init-2:
         condition: service_completed_successfully
 
-  gethfourth:
+  geth-3:
     image: "ghcr.io/route3/nexus-geth:latest"
     command:
       - --verbosity=5
@@ -196,18 +196,19 @@ services:
       geth-init-3:
         condition: service_completed_successfully
 
+  #needed in order to wait for all geth nodes to be ready
   waitforit:
     image: "ubuntu:latest"
     command: /bin/sh -c "sleep 20"
 
-  nexus:
+  nexus-0:
     image: "nexus-dev:latest"
     network_mode: host
     command: server --config=/nexus-init/config-0.yaml
     volumes:
       - ../shared/multi/v-0/geth:/geth-init
       - ../shared/multi/v-0/nexus:/nexus-init
-      - nexus:/nexus
+      - nexus-0:/nexus-0
     ports:
       - 10000:10000
       - 10001:10001
@@ -216,14 +217,14 @@ services:
       waitforit:
         condition: service_completed_successfully
 
-  nexussecond:
+  nexus-1:
     image: "nexus-dev:latest"
     network_mode: host
     command: server --config=/nexus-init/config-1.yaml
     volumes:
       - ../shared/multi/v-1/geth:/geth-init
       - ../shared/multi/v-1/nexus:/nexus-init
-      - nexussecond:/nexussecond
+      - nexus-1:/nexus-1
     ports:
       - 20001:20001
       - 20002:20002
@@ -231,14 +232,14 @@ services:
       waitforit:
         condition: service_completed_successfully
 
-  nexusthird:
+  nexus-2:
     image: "nexus-dev:latest"
     network_mode: host
     command: server --config=/nexus-init/config-2.yaml
     volumes:
       - ../shared/multi/v-2/geth:/geth-init
       - ../shared/multi/v-2/nexus:/nexus-init
-      - nexusthird:/nexusthird
+      - nexus-2:/nexus-2
     ports:
       - 30001:30001
       - 30002:30002
@@ -246,14 +247,14 @@ services:
       waitforit:
         condition: service_completed_successfully
 
-  nexusfourth:
+  nexus-3:
     image: "nexus-dev:latest"
     network_mode: host
     command: server --config=/nexus-init/config-3.yaml
     volumes:
       - ../shared/multi/v-3/geth:/geth-init
       - ../shared/multi/v-3/nexus:/nexus-init
-      - nexusfourth:/nexusfourth
+      - nexus-3:/nexus-3
     ports:
       - 40001:40001
       - 40002:40002
@@ -262,8 +263,8 @@ services:
         condition: service_completed_successfully
 
 volumes:
-  geth:
-  nexus:
-  nexussecond:
-  nexusthird:
-  nexusfourth:
+  geth-0:
+  nexus-0:
+  nexus-1:
+  nexus-2:
+  nexus-3:
