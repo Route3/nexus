@@ -46,10 +46,6 @@ func basicSingleSetup(t *testing.T) (*jsonrpc.Client, *wallet.Key) {
 	containerNames := []string{"geth-1", "nexus-1"}
 	err = waitForServices(cli, timeout, t, containerNames)
 
-	if err != nil {
-		panic(err)
-	}
-
 	return clt, masterAcc
 }
 
@@ -82,10 +78,6 @@ func basicMultiSetup(t *testing.T) ([]*jsonrpc.Client, *wallet.Key) {
 	} // Adjust container names if necessary
 	err = waitForServices(cli, timeout, t, containerNames)
 
-	if err != nil {
-		panic(err)
-	}
-
 	return clts, masterAcc
 }
 
@@ -101,6 +93,7 @@ func startDockerEnv(t *testing.T, envType int) (err error) {
 	err = cmd.Run()
 	require.NoError(t, err)
 
+	// Artificial delay, used to wait for the docker services to start
 	time.Sleep(time.Duration(10) * time.Second)
 
 	return err

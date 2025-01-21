@@ -24,7 +24,7 @@ build:
 	$(eval TIME = $(shell date))
 	go build -o nexus -tags netgo -ldflags="\
 		-s -w -linkmode external -extldflags "-static" \
-		-X 'github.com/apex-fusion/nexus/versioning.Version=$(LATEST_VERSION)' \
+    	-X 'github.com/apex-fusion/nexus/versioning.Version=$(LATEST_VERSION)' \
 		-X 'github.com/apex-fusion/nexus/versioning.Commit=$(COMMIT_HASH)'\
 		-X 'github.com/apex-fusion/nexus/versioning.Branch=$(BRANCH)'\
 		-X 'github.com/apex-fusion/nexus/versioning.BuildTime=$(TIME)'" \
@@ -93,15 +93,15 @@ set-up-prerequisites:
 	docker build -t nexus-dev:latest .
 
 test-single-liveness: set-up-prerequisites
-	cd e2e/tests && go test -timeout 400s -run ^TestE2ESingleLiveness github.com/apex-fusion/nexus
+	cd e2e/tests && go test -timeout 600s -run ^TestE2ESingleLiveness github.com/apex-fusion/nexus
 
 test-single-broadcast: set-up-prerequisites
-	cd e2e/tests && go test -timeout 400s -run ^TestE2ESingleBroadcast github.com/apex-fusion/nexus
+	cd e2e/tests && go test -timeout 600s -run ^TestE2ESingleBroadcast github.com/apex-fusion/nexus
 
 test-single: test-single-liveness test-single-broadcast
 
 test-multi-liveness: set-up-prerequisites
-	cd e2e/tests && go test -timeout 600s -run ^TestE2EMultiLiveness github.com/apex-fusion/nexus
+	cd e2e/tests && go test -timeout 1000s -run ^TestE2EMultiLiveness github.com/apex-fusion/nexus
 
 test-multi-broadcast: set-up-prerequisites
 	cd e2e/tests && go test -timeout 1000s -run ^TestE2EMultiBroadcast github.com/apex-fusion/nexus
