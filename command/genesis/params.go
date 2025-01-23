@@ -10,7 +10,6 @@ import (
 	"github.com/apex-fusion/nexus/consensus/ibft"
 	"github.com/apex-fusion/nexus/consensus/ibft/fork"
 	"github.com/apex-fusion/nexus/consensus/ibft/signer"
-	"github.com/apex-fusion/nexus/contracts/staking"
 	stakingHelper "github.com/apex-fusion/nexus/helper/staking"
 	"github.com/apex-fusion/nexus/server"
 	"github.com/apex-fusion/nexus/types"
@@ -20,7 +19,6 @@ import (
 const (
 	dirFlag           = "dir"
 	nameFlag          = "name"
-	premineFlag       = "premine"
 	chainIDFlag       = "chain-id"
 	epochSizeFlag     = "epoch-size"
 	blockGasLimitFlag = "block-gas-limit"
@@ -49,7 +47,6 @@ type genesisParams struct {
 	name                string
 	consensusRaw        string
 	validatorPrefixPath string
-	premine             []string
 	bootnodes           []string
 	ibftValidators      validators.Validators
 
@@ -300,20 +297,6 @@ func (p *genesisParams) initGenesisConfig() error {
 			Engine:  p.consensusEngineConfig,
 		},
 		Bootnodes: p.bootnodes,
-	}
-
-	// Predeploy staking smart contract if needed
-	if p.shouldPredeployStakingSC() {
-		stakingAccount, err := p.predeployStakingSC()
-		if err != nil {
-			return err
-		}
-
-		chainConfig.Genesis.Alloc[staking.AddrStakingContract] = stakingAccount
-	}
-
-	if err := fillPremineMap(chainConfig.Genesis.Alloc, p.premine); err != nil {
-		return err
 	}
 
 	p.genesisConfig = chainConfig

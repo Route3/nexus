@@ -1,5 +1,9 @@
 package engine
 
+import (
+	"github.com/apex-fusion/nexus/types"
+)
+
 type RequestBase struct {
 	JsonRPC string `json:"jsonrpc,omitempty"`
 	Method  string `json:"method"`
@@ -33,25 +37,7 @@ type PayloadVersion struct {
 }
 
 type GetPayloadV3ResponseResult struct {
-	ExecutionPayload GetPayloadV3ExecutionPayload `json:"executionPayload"`
-}
-
-// TODO: See if we can de-dupe the payload structs
-type GetPayloadV3ExecutionPayload struct {
-	ParentHash    string   `json:"parentHash"`
-	FeeRecipient  string   `json:"feeRecipient"`
-	StateRoot     string   `json:"stateRoot"`
-	ReceiptsRoot  string   `json:"receiptsRoot"`
-	LogsBloom     string   `json:"logsBloom"`
-	PrevRandao    string   `json:"prevRandao"`
-	BlockNumber   string   `json:"blockNumber"`
-	GasLimit      string   `json:"gasLimit"`
-	GasUsed       string   `json:"gasUsed"`
-	Timestamp     string   `json:"timestamp"`
-	ExtraData     string   `json:"extraData"`
-	BaseFeePerGas string   `json:"baseFeePerGas"`
-	BlockHash     string   `json:"blockHash"`
-	Transactions  []string `json:"transactions"`
+	ExecutionPayload types.Payload `json:"executionPayload"`
 }
 
 type GetPayloadV3Response struct {
@@ -73,7 +59,7 @@ type NewPayloadV3ExecutionPayloadParam struct {
 	StateRoot       string   `json:"stateRoot"     gencodec:"required"`
 	ReceiptsRoot    string   `json:"receiptsRoot"  gencodec:"required"`
 	LogsBloom       string   `json:"logsBloom"     gencodec:"required"`
-	Random          string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+	Random          string   `json:"prevRandao"    gencodec:"required"`
 	Number          string   `json:"blockNumber"   gencodec:"required"`
 	GasLimit        string   `json:"gasLimit"      gencodec:"required"`
 	GasUsed         string   `json:"gasUsed"       gencodec:"required"`
@@ -176,4 +162,10 @@ type EngineErrorBody struct {
 
 type EngineResponseError struct {
 	Error EngineErrorBody `json:"error"`
+}
+
+type EngineConfig struct {
+	EngineTokenPath string `json:"engineTokenPath"`
+	EngineURL       string `json:"engineURL"`
+	EngineJWTID     string `json:"engineJWTID"`
 }

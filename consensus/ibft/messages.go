@@ -3,8 +3,8 @@ package ibft
 import (
 	"google.golang.org/protobuf/proto"
 
-	"github.com/apex-fusion/nexus/types"
 	protoIBFT "github.com/Route3/go-ibft/messages/proto"
+	"github.com/apex-fusion/nexus/types"
 )
 
 func (i *backendIBFT) signMessage(msg *protoIBFT.Message) *protoIBFT.Message {

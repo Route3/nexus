@@ -62,3 +62,48 @@ stop-local:
 destroy-local:
 	docker-compose -f ./docker/local/docker-compose.yml down -v
 
+.PHONY: run-single stop-single clean-single rerun-single
+
+run-single:
+	docker compose -f ./e2e/tests/docker/docker-compose.single.yaml up -d
+
+stop-single:
+	docker compose -f ./e2e/tests/docker/docker-compose.single.yaml stop
+
+clean-single: stop-single
+	docker compose -f ./e2e/tests/docker/docker-compose.single.yaml down -v
+
+rerun-single: stop-single clean-single run-single
+
+run-multi:
+	docker compose -f ./e2e/tests/docker/docker-compose.multi.yaml up -d
+
+stop-multi:
+	docker compose -f ./e2e/tests/docker/docker-compose.multi.yaml stop
+
+clean-multi: stop-multi
+	docker compose -f ./e2e/tests/docker/docker-compose.multi.yaml down -v
+
+rerun-single: stop-multi clean-multi run-multi
+
+set-up-prerequisites:
+	echo "Run: gvm use go1.23.0 && gvm pkgset use go1.23 if needed"
+	go clean -testcache
+	rm -rf e2e/tests/shared && cp -r e2e/tests/template-configs e2e/tests/shared
+	docker build -t nexus-dev:latest .
+
+test-single-liveness: set-up-prerequisites
+	cd e2e/tests && go test -timeout 600s -run ^TestE2ESingleLiveness github.com/apex-fusion/nexus
+
+test-single-broadcast: set-up-prerequisites
+	cd e2e/tests && go test -timeout 600s -run ^TestE2ESingleBroadcast github.com/apex-fusion/nexus
+
+test-single: test-single-liveness test-single-broadcast
+
+test-multi-liveness: set-up-prerequisites
+	cd e2e/tests && go test -timeout 1000s -run ^TestE2EMultiLiveness github.com/apex-fusion/nexus
+
+test-multi-broadcast: set-up-prerequisites
+	cd e2e/tests && go test -timeout 1000s -run ^TestE2EMultiBroadcast github.com/apex-fusion/nexus
+
+test-multi: test-multi-liveness test-multi-broadcast

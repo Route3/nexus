@@ -39,7 +39,6 @@ type TestServerConfig struct {
 	RootDir                 string                   // The root directory for test environment
 	IBFTDirPrefix           string                   // The prefix of data directory for IBFT
 	IBFTDir                 string                   // The name of data directory for IBFT
-	PremineAccts            []*SrvAccount            // Accounts with existing balances (genesis accounts)
 	GenesisValidatorBalance *big.Int                 // Genesis the balance for the validators
 	DevStakers              []types.Address          // List of initial staking addresses for the staking SC
 	Consensus               ConsensusType            // Consensus MechanismType
@@ -95,18 +94,6 @@ func (t *TestServerConfig) PrivateKey() (*ecdsa.PrivateKey, error) {
 }
 
 // CALLBACKS //
-
-// Premine callback specifies an account with a balance (in WEI)
-func (t *TestServerConfig) Premine(addr types.Address, amount *big.Int) {
-	if t.PremineAccts == nil {
-		t.PremineAccts = []*SrvAccount{}
-	}
-
-	t.PremineAccts = append(t.PremineAccts, &SrvAccount{
-		Addr:    addr,
-		Balance: amount,
-	})
-}
 
 // PremineValidatorBalance callback sets the genesis balance of the validator the server manages (in WEI)
 func (t *TestServerConfig) PremineValidatorBalance(balance *big.Int) {

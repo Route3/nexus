@@ -15,7 +15,6 @@ import (
 	"github.com/apex-fusion/nexus/helper/common"
 	"github.com/apex-fusion/nexus/server"
 	"github.com/apex-fusion/nexus/server/proto"
-	txpoolOp "github.com/apex-fusion/nexus/txpool/proto"
 	"github.com/ryanuber/columnize"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -96,19 +95,6 @@ func FormatKV(in []string) string {
 	columnConf.Glue = " = "
 
 	return columnize.Format(in, columnConf)
-}
-
-// GetTxPoolClientConnection returns the TxPool operator client connection
-func GetTxPoolClientConnection(address string) (
-	txpoolOp.TxnPoolOperatorClient,
-	error,
-) {
-	conn, err := GetGRPCConnection(address)
-	if err != nil {
-		return nil, err
-	}
-
-	return txpoolOp.NewTxnPoolOperatorClient(conn), nil
 }
 
 // GetSystemClientConnection returns the System operator client connection

@@ -30,11 +30,8 @@ func (f *funcData) numParams() int {
 }
 
 type endpoints struct {
-	Eth    *Eth
-	Web3   *Web3
-	Net    *Net
-	TxPool *TxPool
-	Debug  *Debug
+	Web3 *Web3
+	Net  *Net
 }
 
 // Dispatcher handles all json rpc requests by delegating
@@ -78,13 +75,6 @@ func newDispatcher(
 }
 
 func (d *Dispatcher) registerEndpoints(store JSONRPCStore) {
-	d.endpoints.Eth = &Eth{
-		d.logger,
-		store,
-		d.params.chainID,
-		d.filterManager,
-		d.params.priceLimit,
-	}
 	d.endpoints.Net = &Net{
 		store,
 		d.params.chainID,
@@ -93,18 +83,9 @@ func (d *Dispatcher) registerEndpoints(store JSONRPCStore) {
 		d.params.chainID,
 		d.params.chainName,
 	}
-	d.endpoints.TxPool = &TxPool{
-		store,
-	}
-	d.endpoints.Debug = &Debug{
-		store,
-	}
 
-	d.registerService("eth", d.endpoints.Eth)
 	d.registerService("net", d.endpoints.Net)
 	d.registerService("web3", d.endpoints.Web3)
-	d.registerService("txpool", d.endpoints.TxPool)
-	d.registerService("debug", d.endpoints.Debug)
 }
 
 func (d *Dispatcher) getFnHandler(req Request) (*serviceData, *funcData, Error) {

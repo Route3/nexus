@@ -6,7 +6,6 @@ import (
 	"github.com/apex-fusion/nexus/consensus/ibft/signer"
 	"github.com/apex-fusion/nexus/validators"
 	"github.com/apex-fusion/nexus/validators/store"
-	"github.com/apex-fusion/nexus/validators/store/contract"
 	"github.com/apex-fusion/nexus/validators/store/snapshot"
 	"github.com/hashicorp/go-hclog"
 )
@@ -90,7 +89,6 @@ func NewSnapshotValidatorStoreWrapper(
 // ContractValidatorStoreWrapper is a wrapper of *contract.ContractValidatorStore
 // in order to add Close and GetValidators
 type ContractValidatorStoreWrapper struct {
-	*contract.ContractValidatorStore
 	getSigner func(uint64) (signer.Signer, error)
 }
 
@@ -98,24 +96,9 @@ type ContractValidatorStoreWrapper struct {
 func NewContractValidatorStoreWrapper(
 	logger hclog.Logger,
 	blockchain store.HeaderGetter,
-	executor contract.Executor,
 	getSigner func(uint64) (signer.Signer, error),
 ) (*ContractValidatorStoreWrapper, error) {
-	contractStore, err := contract.NewContractValidatorStore(
-		logger,
-		blockchain,
-		executor,
-		contract.DefaultValidatorSetCacheSize,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &ContractValidatorStoreWrapper{
-		ContractValidatorStore: contractStore,
-		getSigner:              getSigner,
-	}, nil
+	return nil, nil
 }
 
 // Close is closer process
@@ -127,19 +110,7 @@ func (w *ContractValidatorStoreWrapper) Close() error {
 func (w *ContractValidatorStoreWrapper) GetValidators(
 	height, epochSize, forkFrom uint64,
 ) (validators.Validators, error) {
-	signer, err := w.getSigner(height)
-	if err != nil {
-		return nil, err
-	}
-
-	return w.GetValidatorsByHeight(
-		signer.Type(),
-		calculateContractStoreFetchingHeight(
-			height,
-			epochSize,
-			forkFrom,
-		),
-	)
+	return nil, nil
 }
 
 // calculateContractStoreFetchingHeight calculates the block height at which ContractStore fetches validators

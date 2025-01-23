@@ -30,16 +30,6 @@ func (b *Block) MarshalRLPWith(ar *fastrlp.Arena) *fastrlp.Value {
 	vv := ar.NewArray()
 	vv.Set(b.Header.MarshalRLPWith(ar))
 
-	if len(b.Transactions) == 0 {
-		vv.Set(ar.NewNullArray())
-	} else {
-		v0 := ar.NewArray()
-		for _, tx := range b.Transactions {
-			v0.Set(tx.MarshalRLPWith(ar))
-		}
-		vv.Set(v0)
-	}
-
 	if len(b.Uncles) == 0 {
 		vv.Set(ar.NewNullArray())
 	} else {
@@ -158,40 +148,6 @@ func (l *Log) MarshalRLPWith(a *fastrlp.Arena) *fastrlp.Value {
 	v.Set(a.NewBytes(l.Data))
 
 	return v
-}
-
-func (t *Transaction) MarshalRLP() []byte {
-	return t.MarshalRLPTo(nil)
-}
-
-func (t *Transaction) MarshalRLPTo(dst []byte) []byte {
-	return MarshalRLPTo(t.MarshalRLPWith, dst)
-}
-
-// MarshalRLPWith marshals the transaction to RLP with a specific fastrlp.Arena
-func (t *Transaction) MarshalRLPWith(arena *fastrlp.Arena) *fastrlp.Value {
-	vv := arena.NewArray()
-
-	vv.Set(arena.NewUint(t.Nonce))
-	vv.Set(arena.NewBigInt(t.GasPrice))
-	vv.Set(arena.NewUint(t.Gas))
-
-	// Address may be empty
-	if t.To != nil {
-		vv.Set(arena.NewBytes((*t.To).Bytes()))
-	} else {
-		vv.Set(arena.NewNull())
-	}
-
-	vv.Set(arena.NewBigInt(t.Value))
-	vv.Set(arena.NewCopyBytes(t.Input))
-
-	// signature values
-	vv.Set(arena.NewBigInt(t.V))
-	vv.Set(arena.NewBigInt(t.R))
-	vv.Set(arena.NewBigInt(t.S))
-
-	return vv
 }
 
 func (p *Payload) MarshalRLPWith(arena *fastrlp.Arena) *fastrlp.Value {

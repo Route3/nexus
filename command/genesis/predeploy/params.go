@@ -8,7 +8,6 @@ import (
 	"github.com/apex-fusion/nexus/chain"
 	"github.com/apex-fusion/nexus/command"
 	"github.com/apex-fusion/nexus/command/helper"
-	"github.com/apex-fusion/nexus/contracts/staking"
 	"github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/helper/predeployment"
 	"github.com/apex-fusion/nexus/types"
@@ -32,9 +31,7 @@ var (
 
 var (
 	predeployAddressMin = types.StringToAddress("01100")
-	reservedAddresses   = []types.Address{
-		staking.AddrStakingContract,
-	}
+	reservedAddresses   = []types.Address{}
 )
 
 var (

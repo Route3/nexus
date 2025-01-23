@@ -274,9 +274,6 @@ func TestGetTxAndBlockByTxHash(t *testing.T) {
 
 	blockWithTx := &types.Block{
 		Header: testBlock10.Header,
-		Transactions: []*types.Transaction{
-			testTx1,
-		},
 	}
 
 	tests := []struct {

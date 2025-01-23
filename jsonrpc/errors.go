@@ -3,9 +3,6 @@ package jsonrpc
 import (
 	"errors"
 	"fmt"
-
-	"github.com/apex-fusion/nexus/state/runtime"
-	"github.com/umbracle/ethgo/abi"
 )
 
 var (
@@ -92,13 +89,4 @@ func NewInternalError(msg string) *internalError {
 
 func NewSubscriptionNotFoundError(method string) *subscriptionNotFoundError {
 	return &subscriptionNotFoundError{fmt.Sprintf("subscribe method %s not found", method)}
-}
-
-func constructErrorFromRevert(result *runtime.ExecutionResult) error {
-	revertErrMsg, unpackErr := abi.UnpackRevertError(result.ReturnValue)
-	if unpackErr != nil {
-		return result.Err
-	}
-
-	return fmt.Errorf("%w: %s", result.Err, revertErrMsg)
 }

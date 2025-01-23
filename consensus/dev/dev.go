@@ -7,8 +7,6 @@ import (
 	"github.com/apex-fusion/nexus/blockchain"
 	"github.com/apex-fusion/nexus/consensus"
 	"github.com/apex-fusion/nexus/helper/progress"
-	"github.com/apex-fusion/nexus/state"
-	"github.com/apex-fusion/nexus/txpool"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/hashicorp/go-hclog"
 )
@@ -25,10 +23,8 @@ type Dev struct {
 	closeCh  chan struct{}
 
 	interval uint64
-	txpool   *txpool.TxPool
 
 	blockchain *blockchain.Blockchain
-	executor   *state.Executor
 }
 
 // Factory implements the base factory method
@@ -42,8 +38,6 @@ func Factory(
 		notifyCh:   make(chan struct{}),
 		closeCh:    make(chan struct{}),
 		blockchain: params.Blockchain,
-		executor:   params.Executor,
-		txpool:     params.TxPool,
 	}
 
 	rawInterval, ok := params.Config.Config["interval"]
@@ -61,7 +55,6 @@ func Factory(
 
 // Initialize initializes the consensus
 func (d *Dev) Initialize() error {
-	d.txpool.SetSealing(true)
 
 	return nil
 }
@@ -105,50 +98,6 @@ func (d *Dev) run() {
 	}
 }
 
-type transitionInterface interface {
-	Write(txn *types.Transaction) error
-}
-
-func (d *Dev) writeTransactions(gasLimit uint64, transition transitionInterface) []*types.Transaction {
-	var successful []*types.Transaction
-
-	d.txpool.Prepare()
-
-	for {
-		tx := d.txpool.Peek()
-		if tx == nil {
-			break
-		}
-
-		if tx.ExceedsBlockGasLimit(gasLimit) {
-			d.txpool.Drop(tx)
-
-			continue
-		}
-
-		if err := transition.Write(tx); err != nil {
-			if _, ok := err.(*state.GasLimitReachedTransitionApplicationError); ok { //nolint:errorlint
-				break
-			} else if appErr, ok := err.(*state.TransitionApplicationError); ok && appErr.IsRecoverable { //nolint:errorlint
-				d.txpool.Demote(tx)
-			} else {
-				d.txpool.Drop(tx)
-			}
-
-			continue
-		}
-
-		// no errors, pop the tx from the pool
-		d.txpool.Pop(tx)
-
-		successful = append(successful, tx)
-	}
-
-	d.logger.Info("picked out txns from pool", "num", len(successful), "remaining", d.txpool.Length())
-
-	return successful
-}
-
 // writeNewBLock generates a new block based on transactions from the pool,
 // and writes them to the blockchain
 func (d *Dev) writeNewBlock(parent *types.Header) error {
@@ -169,47 +118,6 @@ func (d *Dev) writeNewBlock(parent *types.Header) error {
 
 	header.GasLimit = gasLimit
 
-	miner, err := d.GetBlockCreator(header)
-	if err != nil {
-		return err
-	}
-
-	transition, err := d.executor.BeginTxn(parent.StateRoot, header, miner)
-
-	if err != nil {
-		return err
-	}
-
-	txns := d.writeTransactions(gasLimit, transition)
-
-	// Commit the changes
-	_, root := transition.Commit()
-
-	// Update the header
-	header.StateRoot = root
-	header.GasUsed = transition.TotalGas()
-
-	// Build the actual block
-	// The header hash is computed inside buildBlock
-	block := consensus.BuildBlock(consensus.BuildBlockParams{
-		Header:   header,
-		Txns:     txns,
-		Receipts: transition.Receipts(),
-	})
-
-	if err := d.blockchain.VerifyFinalizedBlock(block); err != nil {
-		return err
-	}
-
-	// Write the block to the blockchain
-	if err := d.blockchain.WriteBlock(block, devConsensus); err != nil {
-		return err
-	}
-
-	// after the block has been written we reset the txpool so that
-	// the old transactions are removed
-	d.txpool.ResetWithHeaders(block.Header)
-
 	return nil
 }
 
@@ -229,7 +137,7 @@ func (d *Dev) GetBlockCreator(header *types.Header) (types.Address, error) {
 }
 
 // PreCommitState a hook to be called before finalizing state transition on inserting block
-func (d *Dev) PreCommitState(_header *types.Header, _txn *state.Transition) error {
+func (d *Dev) PreCommitState(_header *types.Header) error {
 	return nil
 }
 

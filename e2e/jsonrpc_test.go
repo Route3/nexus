@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/apex-fusion/nexus/e2e/framework"
-	"github.com/apex-fusion/nexus/types"
 	"github.com/stretchr/testify/require"
 	"github.com/umbracle/ethgo"
 	"github.com/umbracle/ethgo/wallet"
@@ -29,7 +28,6 @@ func TestJsonRPC(t *testing.T) {
 		1,
 		IBFTDirPrefix,
 		func(i int, config *framework.TestServerConfig) {
-			config.Premine(types.Address(fund.Address()), framework.EthToWei(10))
 			config.SetBlockTime(1)
 		},
 	)

@@ -3,11 +3,6 @@ package genesis
 import (
 	"fmt"
 	"os"
-	"strings"
-
-	"github.com/apex-fusion/nexus/chain"
-	"github.com/apex-fusion/nexus/command"
-	"github.com/apex-fusion/nexus/types"
 )
 
 const (
@@ -45,37 +40,6 @@ func verifyGenesisExistence(genesisPath string) *GenesisGenError {
 		return &GenesisGenError{
 			message:   fmt.Sprintf("genesis file at path (%s) already exists", genesisPath),
 			errorType: ExistsError,
-		}
-	}
-
-	return nil
-}
-
-// fillPremineMap fills the premine map for the genesis.json file with passed in balances and accounts
-func fillPremineMap(
-	premineMap map[types.Address]*chain.GenesisAccount,
-	premine []string,
-) error {
-	for _, prem := range premine {
-		var addr types.Address
-
-		val := command.DefaultPremineBalance
-
-		if indx := strings.Index(prem, ":"); indx != -1 {
-			// <addr>:<balance>
-			addr, val = types.StringToAddress(prem[:indx]), prem[indx+1:]
-		} else {
-			// <addr>
-			addr = types.StringToAddress(prem)
-		}
-
-		amount, err := types.ParseUint256orHex(&val)
-		if err != nil {
-			return fmt.Errorf("failed to parse amount %s: %w", val, err)
-		}
-
-		premineMap[addr] = &chain.GenesisAccount{
-			Balance: amount,
 		}
 	}
 

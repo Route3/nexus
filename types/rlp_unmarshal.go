@@ -54,23 +54,8 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
-	// transactions
-	txns, err := elems[1].GetElems()
-	if err != nil {
-		return err
-	}
-
-	for _, txn := range txns {
-		bTxn := &Transaction{}
-		if err := bTxn.UnmarshalRLPFrom(p, txn); err != nil {
-			return err
-		}
-
-		b.Transactions = append(b.Transactions, bTxn)
-	}
-
 	// uncles
-	uncles, err := elems[2].GetElems()
+	uncles, err := elems[1].GetElems()
 	if err != nil {
 		return err
 	}
@@ -86,7 +71,7 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 
 	// payload
 	b.ExecutionPayload = &Payload{}
-	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, elems[3]); err != nil {
+	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, elems[2]); err != nil {
 		return err
 	}
 
@@ -298,75 +283,6 @@ func (l *Log) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 	return nil
 }
 
-func (t *Transaction) UnmarshalRLP(input []byte) error {
-	return UnmarshalRlp(t.UnmarshalRLPFrom, input)
-}
-
-// UnmarshalRLPFrom unmarshals a Transaction in RLP format
-func (t *Transaction) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
-	elems, err := v.GetElems()
-	if err != nil {
-		return err
-	}
-
-	if len(elems) < 9 {
-		return fmt.Errorf("incorrect number of elements to decode transaction, expected 9 but found %d", len(elems))
-	}
-
-	p.Hash(t.Hash[:0], v)
-
-	// nonce
-	if t.Nonce, err = elems[0].GetUint64(); err != nil {
-		return err
-	}
-	// gasPrice
-	t.GasPrice = new(big.Int)
-	if err := elems[1].GetBigInt(t.GasPrice); err != nil {
-		return err
-	}
-	// gas
-	if t.Gas, err = elems[2].GetUint64(); err != nil {
-		return err
-	}
-	// to
-	if vv, _ := v.Get(3).Bytes(); len(vv) == 20 {
-		// address
-		addr := BytesToAddress(vv)
-		t.To = &addr
-	} else {
-		// reset To
-		t.To = nil
-	}
-	// value
-	t.Value = new(big.Int)
-	if err := elems[4].GetBigInt(t.Value); err != nil {
-		return err
-	}
-	// input
-	if t.Input, err = elems[5].GetBytes(t.Input[:0]); err != nil {
-		return err
-	}
-
-	// V
-	t.V = new(big.Int)
-	if err = elems[6].GetBigInt(t.V); err != nil {
-		return err
-	}
-
-	// R
-	t.R = new(big.Int)
-	if err = elems[7].GetBigInt(t.R); err != nil {
-		return err
-	}
-	// S
-	t.S = new(big.Int)
-	if err = elems[8].GetBigInt(t.S); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (p *Payload) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
 	elems, err := v.GetElems()
 	if err != nil {
@@ -436,13 +352,11 @@ func (p *Payload) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
 	p.Transactions = make([][]byte, len(transactions))
 
 	for i, transaction := range transactions {
-		tempTransaction := make([]byte, 0)
-		tempTransaction, err = transaction.GetBytes(tempTransaction[:]) // TODO: Remove first variable return value receiver
+
+		p.Transactions[i], err = transaction.GetBytes(p.Transactions[i])
 		if err != nil {
 			return err
 		}
-
-		p.Transactions[i] = tempTransaction
 	}
 
 	return err

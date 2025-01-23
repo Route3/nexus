@@ -26,7 +26,7 @@ require (
 	github.com/prometheus/client_golang v1.13.1
 	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/spf13/cobra v1.6.1
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.9.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/umbracle/ethgo v0.1.4-0.20221117101647-b81ef2f07953
 	github.com/umbracle/fastrlp v0.0.0-20220527094140-59d5dd30e722
@@ -67,6 +67,7 @@ require (
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
+	github.com/docker/docker v27.3.1+incompatible // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/elastic/gosigar v0.14.2 // indirect

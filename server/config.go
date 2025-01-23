@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/apex-fusion/nexus/chain"
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/network"
 	"github.com/apex-fusion/nexus/secrets"
 )
@@ -44,10 +45,9 @@ type Config struct {
 
 	LogFilePath string
 
-	EngineURL            string
-	EngineTokenPath      string
-	EngineJWTID          string
-	ExecutionGenesisHash string
+	EngineConfig engine.EngineConfig
+
+	ExecutionGenesisHash  string
 	SuggestedFeeRecipient string
 }
 

@@ -13,7 +13,6 @@ import (
 	"github.com/apex-fusion/nexus/helper/progress"
 	"github.com/apex-fusion/nexus/network"
 	"github.com/apex-fusion/nexus/secrets"
-	"github.com/apex-fusion/nexus/state"
 	"github.com/apex-fusion/nexus/syncer"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/validators"
@@ -42,17 +41,6 @@ var (
 	ErrParentCommittedSealsNotFound = errors.New("parent committed seals not found")
 )
 
-type txPoolInterface interface {
-	Prepare()
-	Length() uint64
-	Peek() *types.Transaction
-	Pop(tx *types.Transaction)
-	Drop(tx *types.Transaction)
-	Demote(tx *types.Transaction)
-	ResetWithHeaders(headers ...*types.Header)
-	SetSealing(bool)
-}
-
 type forkManagerInterface interface {
 	Initialize() error
 	Close() error
@@ -70,8 +58,6 @@ type backendIBFT struct {
 	logger         hclog.Logger           // Reference to the logging
 	blockchain     *blockchain.Blockchain // Reference to the blockchain layer
 	network        *network.Server        // Reference to the networking layer
-	executor       *state.Executor        // Reference to the state executor
-	txpool         txPoolInterface        // Reference to the transaction pool
 	syncer         syncer.Syncer          // Reference to the sync protocol
 	secretsManager secrets.SecretsManager // Reference to the secret manager
 	Grpc           *grpc.Server           // Reference to the gRPC manager
@@ -127,7 +113,6 @@ func Factory(params *consensus.Params) (consensus.Consensus, error) {
 	forkManager, err := fork.NewForkManager(
 		logger,
 		params.Blockchain,
-		params.Executor,
 		params.SecretsManager,
 		params.Config.Path,
 		epochSize,
@@ -142,8 +127,6 @@ func Factory(params *consensus.Params) (consensus.Consensus, error) {
 		logger:     logger,
 		blockchain: params.Blockchain,
 		network:    params.Network,
-		executor:   params.Executor,
-		txpool:     params.TxPool,
 		syncer: syncer.NewSyncer(
 			params.Logger,
 			params.Network,
@@ -216,8 +199,6 @@ func (i *backendIBFT) startSyncing() {
 			i.logger.Error("failed to update sub modules", "height", block.Number()+1, "err", err)
 		}
 
-		i.txpool.ResetWithHeaders(block.Header)
-
 		return false
 	}
 
@@ -230,15 +211,6 @@ func (i *backendIBFT) startSyncing() {
 
 // Start starts the IBFT consensus
 func (i *backendIBFT) Start() error {
-	// Get the initial payloadId
-	//// TODO: Move to Init
-	//latestPayloadHash := i.blockchain.GetLatestPayloadHash()
-	//res, err := i.engineClient.ForkChoiceUpdatedV1(latestPayloadHash, true)
-	//if err != nil {
-	//	return err
-	//}
-	//i.blockchain.SetPayloadId(res.Result.PayloadID)
-
 	// Start the syncer
 	if err := i.syncer.Start(); err != nil {
 		return err
@@ -310,8 +282,6 @@ func (i *backendIBFT) startConsensus() {
 
 		isValidator = i.isActiveValidator()
 
-		i.txpool.SetSealing(isValidator)
-
 		if isValidator {
 			sequenceCh = i.consensus.runSequence(pending)
 		}
@@ -357,8 +327,7 @@ func (i *backendIBFT) updateMetrics(block *types.Block) {
 		metrics.SetGauge([]string{consensusMetrics, "block_interval"}, float32(headerTime.Sub(parentTime).Seconds()))
 	}
 
-	// Update the Number of transactions in the block metric
-	metrics.SetGauge([]string{consensusMetrics, "num_txs"}, float32(len(block.Body().Transactions)))
+	metrics.SetGauge([]string{consensusMetrics, "num_txs"}, float32(len(block.ExecutionPayload.Transactions)))
 }
 
 // verifyHeaderImpl verifies fields including Extra
@@ -491,10 +460,10 @@ func (i *backendIBFT) GetBlockCreator(header *types.Header) (types.Address, erro
 }
 
 // PreCommitState a hook to be called before finalizing state transition on inserting block
-func (i *backendIBFT) PreCommitState(header *types.Header, txn *state.Transition) error {
+func (i *backendIBFT) PreCommitState(header *types.Header) error {
 	hooks := i.forkManager.GetHooks(header.Number)
 
-	return hooks.PreCommitState(header, txn)
+	return hooks.PreCommitState(header)
 }
 
 // GetEpoch returns the current epoch

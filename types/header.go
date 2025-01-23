@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/binary"
+	encodingHex "encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -91,14 +92,12 @@ func (h *Header) Copy() *Header {
 }
 
 type Body struct {
-	Transactions     []*Transaction
 	Uncles           []*Header
 	ExecutionPayload *Payload
 }
 
 type Block struct {
 	Header           *Header
-	Transactions     []*Transaction
 	Uncles           []*Header
 	ExecutionPayload *Payload
 	// Cache
@@ -111,7 +110,7 @@ type Payload struct {
 	StateRoot     Hash     `json:"stateRoot"     gencodec:"required"`
 	ReceiptsRoot  Hash     `json:"receiptsRoot"  gencodec:"required"`
 	LogsBloom     Bloom    `json:"logsBloom"     gencodec:"required"`
-	Random        Hash     `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+	Random        Hash     `json:"prevRandao"    gencodec:"required"`
 	Number        uint64   `json:"blockNumber"   gencodec:"required"`
 	GasLimit      uint64   `json:"gasLimit"      gencodec:"required"`
 	GasUsed       uint64   `json:"gasUsed"       gencodec:"required"`
@@ -123,6 +122,23 @@ type Payload struct {
 	/*Withdrawals   []*types.Withdrawal `json:"withdrawals"`
 	BlobGasUsed   *uint64             `json:"blobGasUsed"`
 	ExcessBlobGas *uint64             `json:"excessBlobGas"`*/
+}
+
+type RawPayload struct {
+	ParentHash    Hash     `json:"parentHash"`
+	FeeRecipient  Address  `json:"feeRecipient"`
+	StateRoot     Hash     `json:"stateRoot"`
+	ReceiptsRoot  Hash     `json:"receiptsRoot"`
+	LogsBloom     string   `json:"logsBloom"`
+	PrevRandao    string   `json:"prevRandao"`
+	BlockNumber   string   `json:"blockNumber"`
+	GasLimit      string   `json:"gasLimit"`
+	GasUsed       string   `json:"gasUsed"`
+	Timestamp     string   `json:"timestamp"`
+	ExtraData     string   `json:"extraData"`
+	BaseFeePerGas string   `json:"baseFeePerGas"`
+	BlockHash     Hash     `json:"blockHash"`
+	Transactions  []string `json:"transactions"`
 }
 
 func (p *Payload) MarshalJSON() ([]byte, error) {
@@ -142,7 +158,7 @@ func (p *Payload) MarshalJSON() ([]byte, error) {
 		StateRoot     string   `json:"stateRoot"     gencodec:"required"`
 		ReceiptsRoot  string   `json:"receiptsRoot"  gencodec:"required"`
 		LogsBloom     string   `json:"logsBloom"     gencodec:"required"`
-		Random        string   `json:"prevRandao"    gencodec:"required"` // TODO:see if really needed
+		Random        string   `json:"prevRandao"    gencodec:"required"`
 		Number        string   `json:"blockNumber"   gencodec:"required"`
 		GasLimit      string   `json:"gasLimit"      gencodec:"required"`
 		GasUsed       string   `json:"gasUsed"       gencodec:"required"`
@@ -169,6 +185,64 @@ func (p *Payload) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (p *Payload) UnmarshalJSON(data []byte) error {
+	var rawPayload RawPayload
+	err := json.Unmarshal(data, &rawPayload)
+	if err != nil {
+		return fmt.Errorf("failed to decode rawPayload")
+	}
+
+	p.BaseFeePerGas = hex.DecodeHexToBig(string(hex.DropHexPrefix([]byte(rawPayload.BaseFeePerGas))))
+	p.BlockHash = rawPayload.BlockHash
+	p.ExtraData, err = hex.DecodeString(string(hex.DropHexPrefix([]byte(rawPayload.ExtraData))))
+
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal payload.extraData")
+	}
+	p.FeeRecipient = rawPayload.FeeRecipient
+	p.GasLimit, err = hex.DecodeUint64(rawPayload.GasLimit)
+	if err != nil {
+		return fmt.Errorf("failed to decode payload.GasLimit")
+	}
+	p.GasUsed, err = hex.DecodeUint64(rawPayload.GasUsed)
+	if err != nil {
+		return fmt.Errorf("failed to decode payload.GasUsed")
+	}
+
+	// Logs bloom decoding
+	var logsBloom Bloom
+	input := hex.DropHexPrefix([]byte(rawPayload.LogsBloom))
+	if _, err := encodingHex.Decode(logsBloom[:], input); err != nil {
+		return fmt.Errorf("failed to decode payload.logsBloom")
+	}
+	p.LogsBloom = logsBloom
+
+	p.Number, err = hex.DecodeUint64(rawPayload.BlockNumber)
+	if err != nil {
+		return fmt.Errorf("failed to decode payload.BlockNumber")
+	}
+	p.ParentHash = rawPayload.ParentHash
+	p.ReceiptsRoot = rawPayload.ReceiptsRoot
+	p.StateRoot = rawPayload.StateRoot
+	p.Timestamp, err = hex.DecodeUint64(rawPayload.Timestamp)
+	if err != nil {
+		return fmt.Errorf("failed to decode payload.Timestamp")
+	}
+
+	// Transaction decoding
+	p.Transactions = [][]byte{}
+
+	for _, transaction := range rawPayload.Transactions {
+		decoded, err := hex.DecodeHex(transaction)
+		if err != nil {
+			return fmt.Errorf("failed to decode payload.Transactions")
+		}
+		p.Transactions = append(p.Transactions, decoded)
+	}
+
+	return err
+}
+
 func (b *Block) Hash() Hash {
 	return b.Header.Hash
 }
@@ -183,7 +257,6 @@ func (b *Block) ParentHash() Hash {
 
 func (b *Block) Body() *Body {
 	return &Body{
-		Transactions:     b.Transactions,
 		Uncles:           b.Uncles,
 		ExecutionPayload: b.ExecutionPayload,
 	}
@@ -219,8 +292,7 @@ func (b *Block) WithSeal(header *Header) *Block {
 	cpy := *header
 
 	return &Block{
-		Header:       &cpy,
-		Transactions: b.Transactions,
-		Uncles:       b.Uncles,
+		Header: &cpy,
+		Uncles: b.Uncles,
 	}
 }

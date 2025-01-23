@@ -11,10 +11,6 @@ import (
 
 	"github.com/apex-fusion/nexus/chain"
 	"github.com/apex-fusion/nexus/crypto"
-	"github.com/apex-fusion/nexus/helper/hex"
-	"github.com/apex-fusion/nexus/state"
-	itrie "github.com/apex-fusion/nexus/state/immutable-trie"
-	"github.com/apex-fusion/nexus/state/runtime"
 	"github.com/apex-fusion/nexus/types"
 )
 
@@ -148,18 +144,6 @@ func (e *env) ToHeader(t *testing.T) *types.Header {
 	}
 }
 
-func (e *env) ToEnv(t *testing.T) runtime.TxContext {
-	t.Helper()
-
-	return runtime.TxContext{
-		Coinbase:   stringToAddressT(t, e.Coinbase),
-		Difficulty: stringToHashT(t, e.Difficulty),
-		GasLimit:   stringToInt64T(t, e.GasLimit),
-		Number:     stringToInt64T(t, e.Number),
-		Timestamp:  stringToInt64T(t, e.Timestamp),
-	}
-}
-
 type exec struct {
 	Address  types.Address
 	Caller   types.Address
@@ -222,34 +206,6 @@ func (e *exec) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-func buildState(
-	allocs map[types.Address]*chain.GenesisAccount,
-) (state.State, state.Snapshot, types.Hash) {
-	s := itrie.NewState(itrie.NewMemoryStorage())
-	snap := s.NewSnapshot()
-
-	txn := state.NewTxn(snap)
-
-	for addr, alloc := range allocs {
-		txn.CreateAccount(addr)
-		txn.SetNonce(addr, alloc.Nonce)
-		txn.SetBalance(addr, alloc.Balance)
-
-		if len(alloc.Code) != 0 {
-			txn.SetCode(addr, alloc.Code)
-		}
-
-		for k, v := range alloc.Storage {
-			txn.SetState(addr, k, v)
-		}
-	}
-
-	objs := txn.Commit(false)
-	snap, root := snap.Commit(objs)
-
-	return s, snap, types.BytesToHash(root)
-}
-
 type indexes struct {
 	Data  int `json:"data"`
 	Gas   int `json:"gas"`
@@ -291,33 +247,6 @@ type stTransaction struct {
 	Nonce    uint64         `json:"nonce"`
 	From     types.Address  `json:"secretKey"`
 	To       *types.Address `json:"to"`
-}
-
-func (t *stTransaction) At(i indexes) (*types.Transaction, error) {
-	if i.Data > len(t.Data) {
-		return nil, fmt.Errorf("data index %d out of bounds (%d)", i.Data, len(t.Data))
-	}
-
-	if i.Gas > len(t.GasLimit) {
-		return nil, fmt.Errorf("gas index %d out of bounds (%d)", i.Gas, len(t.GasLimit))
-	}
-
-	if i.Value > len(t.Value) {
-		return nil, fmt.Errorf("value index %d out of bounds (%d)", i.Value, len(t.Value))
-	}
-
-	msg := &types.Transaction{
-		To:       t.To,
-		Nonce:    t.Nonce,
-		Value:    new(big.Int).Set(t.Value[i.Value]),
-		Gas:      t.GasLimit[i.Gas],
-		GasPrice: new(big.Int).Set(t.GasPrice),
-		Input:    hex.MustDecodeHex(t.Data[i.Data]),
-	}
-
-	msg.From = t.From
-
-	return msg, nil
 }
 
 func (t *stTransaction) UnmarshalJSON(input []byte) error {

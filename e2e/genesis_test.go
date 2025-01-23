@@ -43,14 +43,11 @@ func TestGenesisBlockGasLimit(t *testing.T) {
 
 	for _, testCase := range testTable {
 		t.Run(testCase.name, func(t *testing.T) {
-			_, addr := tests.GenerateKeyAndAddr(t)
-
 			ibftManager := framework.NewIBFTServersManager(
 				t,
 				1,
 				IBFTDirPrefix,
 				func(i int, config *framework.TestServerConfig) {
-					config.Premine(addr, framework.EthToWei(10))
 					config.SetBlockTime(1)
 
 					if testCase.blockGasLimit != 0 {
@@ -204,7 +201,6 @@ func TestGenesis_Predeployment(t *testing.T) {
 		1,
 		IBFTDirPrefix,
 		func(_ int, config *framework.TestServerConfig) {
-			config.Premine(senderAddr, framework.EthToWei(10))
 			config.SetPredeployParams(&framework.PredeployParams{
 				ArtifactsPath:    artifactsPath,
 				PredeployAddress: contractAddr.String(),

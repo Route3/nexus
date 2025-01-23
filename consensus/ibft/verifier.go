@@ -47,16 +47,6 @@ func (i *backendIBFT) IsValidBlock(proposal []byte) bool {
 		return false
 	}
 
-	//res, err := i.engineClient.NewPayloadV3(newBlock.ExecutionPayload, newBlock.ParentHash().String())
-	//if err != nil {
-	//	i.logger.Error("Payload execution failed", "payloadHash", newBlock.Header.PayloadHash)
-	//	return false
-	//}
-	//
-	//fmt.Println(res)
-	//
-	//// TODO: Here we should check if we got a response that the payload is valid, because the EL might return that it is syncing blocks and still be a 200 response.
-
 	return true
 }
 

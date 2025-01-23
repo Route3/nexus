@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"net"
 	"strconv"
@@ -110,17 +109,6 @@ func Test_GetLogsForQuery(t *testing.T) {
 			Header: &types.Header{
 				Number: uint64(i),
 				Hash:   types.StringToHash(strconv.Itoa(i)),
-			},
-			Transactions: []*types.Transaction{
-				{
-					Value: big.NewInt(10),
-				},
-				{
-					Value: big.NewInt(11),
-				},
-				{
-					Value: big.NewInt(12),
-				},
 			},
 		}
 	}

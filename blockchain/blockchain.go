@@ -7,15 +7,16 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
-
-	"github.com/apex-fusion/nexus/engine"
+	"time"
 
 	"github.com/apex-fusion/nexus/blockchain/storage"
 	"github.com/apex-fusion/nexus/blockchain/storage/leveldb"
 	"github.com/apex-fusion/nexus/blockchain/storage/memory"
 	"github.com/apex-fusion/nexus/chain"
+	consensusSigner "github.com/apex-fusion/nexus/consensus/ibft/signer"
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/common"
-	"github.com/apex-fusion/nexus/state"
+	"github.com/apex-fusion/nexus/secrets"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/types/buildroot"
 
@@ -48,7 +49,6 @@ type Blockchain struct {
 
 	db        storage.Storage // The Storage object (database)
 	consensus Verifier
-	executor  Executor
 	txSigner  TxSigner
 
 	EngineClient         engine.Client
@@ -95,16 +95,9 @@ type Verifier interface {
 	VerifyHeader(header *types.Header) error
 	ProcessHeaders(headers []*types.Header) error
 	GetBlockCreator(header *types.Header) (types.Address, error)
-	PreCommitState(header *types.Header, txn *state.Transition) error
-}
-
-type Executor interface {
-	ProcessBlock(parentRoot types.Hash, block *types.Block, blockCreator types.Address) (*state.Transition, error)
 }
 
 type TxSigner interface {
-	// Sender returns the sender of the transaction
-	Sender(tx *types.Transaction) (types.Address, error)
 }
 
 type BlockResult struct {
@@ -195,18 +188,29 @@ func (b *Blockchain) GetAvgGasPrice() *big.Int {
 func NewBlockchain(
 	logger hclog.Logger,
 	dataDir string,
-	config *chain.Chain,
+	chainConfig *chain.Chain,
 	consensus Verifier,
-	executor Executor,
 	txSigner TxSigner,
 	executionGenesisHash string,
-	engineClient *engine.Client,
+	engineConfig *engine.EngineConfig,
+	secretsManager *secrets.SecretsManager,
+	feeRecipientFromConfig string,
 ) (*Blockchain, error) {
+
+	ecdsaValidatorSigner, _ := consensusSigner.NewECDSAKeyManager(*secretsManager)
+	feeRecipient := ecdsaValidatorSigner.Address().String()
+	if feeRecipientFromConfig != "" {
+		feeRecipient = feeRecipientFromConfig
+	}
+	engineClient, engineErr := engine.NewEngineAPIFromConfig(engineConfig, logger, feeRecipient)
+	if engineErr != nil {
+		return nil, fmt.Errorf("Engine API setup failed", "err", engineErr.Error())
+	}
+
 	b := &Blockchain{
 		logger:               logger.Named("blockchain"),
-		config:               config,
+		config:               chainConfig,
 		consensus:            consensus,
-		executor:             executor,
 		txSigner:             txSigner,
 		executionGenesisHash: executionGenesisHash,
 		EngineClient:         *engineClient,
@@ -589,14 +593,6 @@ func (b *Blockchain) readBody(hash types.Hash) (*types.Body, bool) {
 
 		return nil, false
 	}
-
-	// To return from field in the transactions of the past blocks
-	if updated := b.recoverFromFieldsInTransactions(bb.Transactions); updated {
-		if err := b.db.WriteBody(hash, bb); err != nil {
-			b.logger.Warn("failed to write body into storage", "hash", hash, "err", err)
-		}
-	}
-
 	return bb, true
 }
 
@@ -712,20 +708,6 @@ func (b *Blockchain) VerifyFinalizedBlock(block *types.Block) error {
 // verifyBlock does the base (common) block verification steps by
 // verifying the block body as well as the parent information
 func (b *Blockchain) verifyBlock(block *types.Block) error {
-	// Make sure the block is present
-	if block == nil {
-		return ErrNoBlock
-	}
-
-	// Make sure the block is in line with the parent block
-	if err := b.verifyBlockParent(block); err != nil {
-		return err
-	}
-
-	// Make sure the block body data is valid
-	if err := b.verifyBlockBody(block); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -786,38 +768,6 @@ func (b *Blockchain) verifyBlockParent(childBlock *types.Block) error {
 // - The receipts match up
 // - The execution result matches up
 func (b *Blockchain) verifyBlockBody(block *types.Block) error {
-	// Make sure the Uncles root matches up
-	if hash := buildroot.CalculateUncleRoot(block.Uncles); hash != block.Header.Sha3Uncles {
-		b.logger.Error(fmt.Sprintf(
-			"uncle root hash mismatch: have %s, want %s",
-			hash,
-			block.Header.Sha3Uncles,
-		))
-
-		return ErrInvalidSha3Uncles
-	}
-
-	// Make sure the transactions root matches up
-	if hash := buildroot.CalculateTransactionsRoot(block.Transactions); hash != block.Header.TxRoot {
-		b.logger.Error(fmt.Sprintf(
-			"transaction root hash mismatch: have %s, want %s",
-			hash,
-			block.Header.TxRoot,
-		))
-
-		return ErrInvalidTxRoot
-	}
-
-	// Execute the transactions in the block and grab the result
-	blockResult, executeErr := b.executeBlockTransactions(block)
-	if executeErr != nil {
-		return fmt.Errorf("unable to execute block transactions, %w", executeErr)
-	}
-
-	// Verify the local execution result with the proposed block data
-	if err := blockResult.verifyBlockResult(block); err != nil {
-		return fmt.Errorf("unable to verify block execution result, %w", err)
-	}
 
 	return nil
 }
@@ -825,10 +775,6 @@ func (b *Blockchain) verifyBlockBody(block *types.Block) error {
 // verifyBlockResult verifies that the block transaction execution result
 // matches up to the expected values
 func (br *BlockResult) verifyBlockResult(referenceBlock *types.Block) error {
-	// Make sure the number of receipts matches the number of transactions
-	if len(br.Receipts) != len(referenceBlock.Transactions) {
-		return ErrInvalidReceiptsSize
-	}
 
 	// Make sure the world state root matches up
 	if br.Root != referenceBlock.Header.StateRoot {
@@ -852,37 +798,7 @@ func (br *BlockResult) verifyBlockResult(referenceBlock *types.Block) error {
 // executeBlockTransactions executes the transactions in the block locally,
 // and reports back the block execution result
 func (b *Blockchain) executeBlockTransactions(block *types.Block) (*BlockResult, error) {
-	header := block.Header
-
-	parent, ok := b.readHeader(header.ParentHash)
-	if !ok {
-		return nil, ErrParentNotFound
-	}
-
-	blockCreator, err := b.consensus.GetBlockCreator(header)
-	if err != nil {
-		return nil, err
-	}
-
-	txn, err := b.executor.ProcessBlock(parent.StateRoot, block, blockCreator)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := b.consensus.PreCommitState(header, txn); err != nil {
-		return nil, err
-	}
-
-	_, root := txn.Commit()
-
-	// Append the receipts to the receipts cache
-	b.receiptsCache.Add(header.Hash, txn.Receipts())
-
-	return &BlockResult{
-		Root:     root,
-		Receipts: txn.Receipts(),
-		TotalGas: txn.TotalGas(),
-	}, nil
+	return nil, nil
 }
 
 // WriteBlock writes a single block to the local blockchain.
@@ -899,7 +815,8 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 	}
 
 	currentBlockBeaconRoot := block.Hash().String()
-	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash.String(), currentBlockBeaconRoot, true)
+	time.Sleep(2*time.Second)
+	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true, time.Now().Unix())
 	if err != nil {
 		b.logger.Error("cannot run FCU for block insertion", "err", err)
 		return err
@@ -924,19 +841,6 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 		return err
 	}
 
-	// Fetch the block receipts
-	blockReceipts, receiptsErr := b.extractBlockReceipts(block)
-	if receiptsErr != nil {
-		return receiptsErr
-	}
-
-	// write the receipts, do it only after the header has been written.
-	// Otherwise, a client might ask for a header once the receipt is valid,
-	// but before it is written into the storage
-	if err := b.db.WriteReceipts(block.Hash(), blockReceipts); err != nil {
-		return err
-	}
-
 	// update snapshot
 	if err := b.consensus.ProcessHeaders([]*types.Header{header}); err != nil {
 		return err
@@ -944,12 +848,9 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 
 	b.dispatchEvent(event)
 
-	// Update the average gas price
-	b.updateGasPriceAvgWithBlock(block)
-
 	logArgs := []interface{}{
 		"number", header.Number,
-		"txs", len(block.Transactions),
+		"txs", len(block.ExecutionPayload.Transactions),
 		"hash", header.Hash,
 		"parent", header.ParentHash,
 		"source", source,
@@ -967,42 +868,13 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 
 // extractBlockReceipts extracts the receipts from the passed in block
 func (b *Blockchain) extractBlockReceipts(block *types.Block) ([]*types.Receipt, error) {
-	// Check the cache for the block receipts
-	receipts, ok := b.receiptsCache.Get(block.Header.Hash)
-	if !ok {
-		// No receipts found in the cache, execute the transactions from the block
-		// and fetch them
-		blockResult, err := b.executeBlockTransactions(block)
-		if err != nil {
-			return nil, err
-		}
-
-		return blockResult.Receipts, nil
-	}
-
-	extractedReceipts, ok := receipts.([]*types.Receipt)
-	if !ok {
-		return nil, errors.New("invalid type assertion for receipts")
-	}
-
-	return extractedReceipts, nil
+	return nil, nil
 }
 
 // updateGasPriceAvgWithBlock extracts the gas price information from the
 // block, and updates the average gas price for the chain accordingly
 func (b *Blockchain) updateGasPriceAvgWithBlock(block *types.Block) {
-	if len(block.Transactions) < 1 {
-		// No transactions in the block,
-		// so no gas price average to update
-		return
-	}
-
-	gasPrices := make([]*big.Int, len(block.Transactions))
-	for i, transaction := range block.Transactions {
-		gasPrices[i] = transaction.GasPrice
-	}
-
-	b.updateGasPriceAvg(gasPrices)
+	return
 }
 
 // writeBody writes the block body to the DB.
@@ -1015,16 +887,9 @@ func (b *Blockchain) writeBody(block *types.Block) error {
 		return err
 	}
 
-	// Write the full body (txns + receipts)
+	// Write the full body
 	if err := b.db.WriteBody(block.Header.Hash, block.Body()); err != nil {
 		return err
-	}
-
-	// Write txn lookups (txHash -> block)
-	for _, txn := range block.Transactions {
-		if err := b.db.WriteTxLookup(txn.Hash, block.Hash()); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -1040,44 +905,8 @@ func (b *Blockchain) ReadTxLookup(hash types.Hash) (types.Hash, bool) {
 // recoverFromFieldsInBlock recovers 'from' fields in the transactions of the given block
 // return error if the invalid signature found
 func (b *Blockchain) recoverFromFieldsInBlock(block *types.Block) error {
-	for _, tx := range block.Transactions {
-		if tx.From != types.ZeroAddress {
-			continue
-		}
-
-		sender, err := b.txSigner.Sender(tx)
-		if err != nil {
-			return err
-		}
-
-		tx.From = sender
-	}
 
 	return nil
-}
-
-// recoverFromFieldsInTransactions recovers 'from' fields in the transactions
-// log as warning if failing to recover one address
-func (b *Blockchain) recoverFromFieldsInTransactions(transactions []*types.Transaction) bool {
-	updated := false
-
-	for _, tx := range transactions {
-		if tx.From != types.ZeroAddress {
-			continue
-		}
-
-		sender, err := b.txSigner.Sender(tx)
-		if err != nil {
-			b.logger.Warn("failed to recover from address in Tx", "hash", tx.Hash, "err", err)
-
-			continue
-		}
-
-		tx.From = sender
-		updated = true
-	}
-
-	return updated
 }
 
 // verifyGasLimit is a helper function for validating a gas limit in a header
@@ -1356,7 +1185,6 @@ func (b *Blockchain) GetBlockByHash(hash types.Hash, full bool) (*types.Block, b
 	}
 
 	// Set the transactions and uncles
-	block.Transactions = body.Transactions
 	block.Uncles = body.Uncles
 	block.ExecutionPayload = body.ExecutionPayload
 

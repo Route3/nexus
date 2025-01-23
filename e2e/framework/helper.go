@@ -2,7 +2,6 @@ package framework
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,13 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apex-fusion/nexus/contracts/abis"
-	"github.com/apex-fusion/nexus/contracts/staking"
 	"github.com/apex-fusion/nexus/crypto"
-	"github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/helper/tests"
 	"github.com/apex-fusion/nexus/server/proto"
-	txpoolProto "github.com/apex-fusion/nexus/txpool/proto"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/umbracle/ethgo"
@@ -79,127 +74,6 @@ func GetAccountBalance(t *testing.T, address types.Address, rpcClient *jsonrpc.C
 	assert.NoError(t, err)
 
 	return accountBalance
-}
-
-// GetValidatorSet returns the validator set from the SC
-func GetValidatorSet(from types.Address, rpcClient *jsonrpc.Client) ([]types.Address, error) {
-	validatorsMethod, ok := abis.StakingABI.Methods["validators"]
-	if !ok {
-		return nil, errors.New("validators method doesn't exist in Staking contract ABI")
-	}
-
-	toAddress := ethgo.Address(staking.AddrStakingContract)
-	selector := validatorsMethod.ID()
-	response, err := rpcClient.Eth().Call(
-		&ethgo.CallMsg{
-			From:     ethgo.Address(from),
-			To:       &toAddress,
-			Data:     selector,
-			GasPrice: 100000000,
-			Value:    big.NewInt(0),
-		},
-		ethgo.Latest,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("unable to call Staking contract method validators, %w", err)
-	}
-
-	byteResponse, decodeError := hex.DecodeHex(response)
-	if decodeError != nil {
-		return nil, fmt.Errorf("unable to decode hex response, %w", decodeError)
-	}
-
-	return staking.DecodeValidators(validatorsMethod, byteResponse)
-}
-
-// StakeAmount is a helper function for staking an amount on the Staking SC
-func StakeAmount(
-	from types.Address,
-	senderKey *ecdsa.PrivateKey,
-	amount *big.Int,
-	srv *TestServer,
-) error {
-	// Stake Balance
-	txn := &PreparedTransaction{
-		From:     from,
-		To:       &staking.AddrStakingContract,
-		GasPrice: big.NewInt(10000),
-		Gas:      1000000,
-		Value:    amount,
-		Input:    MethodSig("stake"),
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
-
-	_, err := srv.SendRawTx(ctx, txn, senderKey)
-
-	if err != nil {
-		return fmt.Errorf("unable to call Staking contract method stake, %w", err)
-	}
-
-	return nil
-}
-
-// UnstakeAmount is a helper function for unstaking the entire amount on the Staking SC
-func UnstakeAmount(
-	from types.Address,
-	senderKey *ecdsa.PrivateKey,
-	srv *TestServer,
-) (*ethgo.Receipt, error) {
-	// Stake Balance
-	txn := &PreparedTransaction{
-		From:     from,
-		To:       &staking.AddrStakingContract,
-		GasPrice: big.NewInt(DefaultGasPrice),
-		Gas:      DefaultGasLimit,
-		Value:    big.NewInt(0),
-		Input:    MethodSig("unstake"),
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
-
-	receipt, err := srv.SendRawTx(ctx, txn, senderKey)
-
-	if err != nil {
-		return nil, fmt.Errorf("unable to call Staking contract method unstake, %w", err)
-	}
-
-	return receipt, nil
-}
-
-// GetStakedAmount is a helper function for getting the staked amount on the Staking SC
-func GetStakedAmount(from types.Address, rpcClient *jsonrpc.Client) (*big.Int, error) {
-	stakedAmountMethod, ok := abis.StakingABI.Methods["stakedAmount"]
-	if !ok {
-		return nil, errors.New("stakedAmount method doesn't exist in Staking contract ABI")
-	}
-
-	toAddress := ethgo.Address(staking.AddrStakingContract)
-	selector := stakedAmountMethod.ID()
-	response, err := rpcClient.Eth().Call(
-		&ethgo.CallMsg{
-			From:     ethgo.Address(from),
-			To:       &toAddress,
-			Data:     selector,
-			GasPrice: 100000000,
-			Value:    big.NewInt(0),
-		},
-		ethgo.Latest,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("unable to call Staking contract method stakedAmount, %w", err)
-	}
-
-	bigResponse, decodeErr := types.ParseUint256orHex(&response)
-	if decodeErr != nil {
-		return nil, fmt.Errorf("unable to decode hex response")
-	}
-
-	return bigResponse, nil
 }
 
 func EcrecoverFromBlockhash(hash types.Hash, signature []byte) (types.Address, error) {
@@ -306,37 +180,6 @@ func WaitUntilPeerConnects(ctx context.Context, srv *TestServer, requiredNum int
 	}
 
 	return peersListResponse, nil
-}
-
-// WaitUntilTxPoolFilled waits until node has required number of transactions in txpool,
-// otherwise returns timeout
-func WaitUntilTxPoolFilled(
-	ctx context.Context,
-	srv *TestServer,
-	requiredNum uint64,
-) (*txpoolProto.TxnPoolStatusResp, error) {
-	clt := srv.TxnPoolOperator()
-	res, err := tests.RetryUntilTimeout(ctx, func() (interface{}, bool) {
-		subCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		res, _ := clt.Status(subCtx, &empty.Empty{})
-		if res != nil && res.Length >= requiredNum {
-			return res, false
-		}
-
-		return nil, true
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	status, ok := res.(*txpoolProto.TxnPoolStatusResp)
-	if !ok {
-		return nil, errors.New("invalid type assertion")
-	}
-
-	return status, nil
 }
 
 // WaitUntilBlockMined waits until server mined block with bigger height than given height

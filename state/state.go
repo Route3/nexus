@@ -19,8 +19,6 @@ type State interface {
 }
 
 type Snapshot interface {
-	readSnapshot
-
 	Commit(objs []*Object) (Snapshot, []byte)
 }
 

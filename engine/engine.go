@@ -2,12 +2,14 @@ package engine
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"time"
 
 	hexutils "github.com/apex-fusion/nexus/helper/hex"
@@ -24,10 +26,10 @@ const (
 )
 
 type Client struct {
-	logger hclog.Logger
-	client *http.Client
-	url    *url.URL
-	token  []byte
+	logger       hclog.Logger
+	client       *http.Client
+	url          *url.URL
+	token        []byte
 	FeeRecipient string
 }
 
@@ -59,13 +61,13 @@ func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string, f
 	return engineClient, nil
 }
 
-func (c *Client) Init(latestPayloadHash string, parentBeaconBlockRoot string) (payloadId string, err error) {
+func (c *Client) Init(latestPayloadHash types.Hash, parentBeaconBlockRoot string) (payloadId string, err error) {
 	_, err = c.ExchangeCapabilities(make([]string, 0))
 	if err != nil {
 		return
 	}
 
-	res, err := c.ForkChoiceUpdatedV3(latestPayloadHash, parentBeaconBlockRoot, true)
+	res, err := c.ForkChoiceUpdatedV3(latestPayloadHash, parentBeaconBlockRoot, true, time.Now().Unix())
 	if err != nil {
 		return
 	}
@@ -194,42 +196,54 @@ func (c *Client) NewPayloadV3(payload *types.Payload, beaconBlockRoot string) (r
 	return
 }
 
-func (c *Client) ForkChoiceUpdatedV3(blockHash string, parentBeaconBlockRoot string, buildPayload bool) (responseData *ForkchoiceUpdatedV3Response, err error) {
-	c.logger.Debug("Running ForkchoiceUpdatedV3", "blockHash", blockHash)
+func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot string, buildPayload bool, timestamp int64) (responseData *ForkchoiceUpdatedV3Response, err error) {
+	responseData = new(ForkchoiceUpdatedV3Response)
+	for {
+		c.logger.Debug("Running ForkChoiceUpdatedV3", "blockHash", blockHash)
 
-	blockTimestamp := "0x" + fmt.Sprintf("%X", time.Now().Unix())
+		blockTimestamp := "0x" + fmt.Sprintf("%X", timestamp)
 
-	params := []ForkchoiceUpdatedV3Param{
-		ForkchoiceStateParam{
-			HeadBlockHash:      blockHash,
-			SafeBlockHash:      blockHash,
-			FinalizedBlockHash: blockHash,
-		},
-		nil,
-	}
-
-	fmt.Println("ForkChoiceUpdate feeRecipient:", c.FeeRecipient)
-
-	if buildPayload {
-		params[1] = ForkchoicePayloadAttributes{
-			Timestamp:             blockTimestamp,
-			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000", // TODO
-			SuggestedFeeRecipient: c.FeeRecipient,
-			Withdrawals:           make([]string, 0),
-			ParentBeaconBlockroot: parentBeaconBlockRoot,
+		params := []ForkchoiceUpdatedV3Param{
+			ForkchoiceStateParam{
+				HeadBlockHash:      blockHash.String(),
+				SafeBlockHash:      blockHash.String(),
+				FinalizedBlockHash: blockHash.String(),
+			},
+			nil,
 		}
-	}
-	requestData := ForkchoiceUpdatedV3Request{
-		RequestBase: getRequestBase(ForkchoiceUpdatedV3Method),
-		Params:      params,
-	}
 
-	c.retryIndefinitely(&requestData, &responseData)
+		if buildPayload {
+			params[1] = ForkchoicePayloadAttributes{
+				Timestamp:             blockTimestamp,
+				PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000",
+				SuggestedFeeRecipient: c.FeeRecipient,
+				Withdrawals:           make([]string, 0),
+				ParentBeaconBlockroot: parentBeaconBlockRoot,
+			}
+		}
+		requestData := ForkchoiceUpdatedV3Request{
+			RequestBase: getRequestBase(ForkchoiceUpdatedV3Method),
+			Params:      params,
+		}
+
+		err = c.handleRequest(requestData, responseData)
+
+		// If no error, stop retrying
+		if err == nil {
+			break
+		}
+
+		c.logger.Error("engine API error, retrying indefinitely", "error", err)
+
+		time.Sleep(200 * time.Millisecond)
+	}
 
 	if responseData.Result.PayloadStatus.Status == "SYNCING" {
 		c.logger.Error("payload status is not VALID!", "status", responseData.Result.PayloadStatus.Status)
 		return nil, fmt.Errorf("payload status is not VALID!")
 	}
+
+	c.logger.Debug("Running ForkChoiceUpdatedV3", "completed!", blockHash)
 
 	return
 }
@@ -246,41 +260,30 @@ func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseDat
 	return
 }
 
-func GetPayloadV3ResponseToPayload(resp *GetPayloadV3Response) (payload *types.Payload, err error) {
-	// TODO: handle potential conversion errors and implement this as a json.Unmarshal method
+// NewEngineAPIFromConfig creates a Engine API
+func NewEngineAPIFromConfig(config *EngineConfig, logger hclog.Logger, feeRecipient string) (*Client, error) {
+	var engineClient *Client
 
-	payload = new(types.Payload)
-	rawPayload := resp.Result.ExecutionPayload
-
-	payload.BaseFeePerGas = hexutils.DecodeHexToBig(string(hexutils.DropHexPrefix([]byte(rawPayload.BaseFeePerGas)))) // TODO: Make it prettier
-	payload.BlockHash = types.StringToHash(rawPayload.BlockHash)
-	payload.ExtraData, _ = hexutils.DecodeString(string(hexutils.DropHexPrefix([]byte(rawPayload.ExtraData)))) // TODO: Make it prettier
-	payload.FeeRecipient = types.StringToAddress(rawPayload.FeeRecipient)
-	payload.GasLimit, _ = hexutils.DecodeUint64(rawPayload.GasLimit)
-	payload.GasUsed, _ = hexutils.DecodeUint64(rawPayload.GasUsed)
-
-	// Logs bloom encoding
-	var logsBloom types.Bloom
-	input := hexutils.DropHexPrefix([]byte(rawPayload.LogsBloom))
-	if _, err := hex.Decode(logsBloom[:], input); err != nil {
-		return nil, err
-	}
-	payload.LogsBloom = logsBloom
-
-	payload.Number, _ = hexutils.DecodeUint64(rawPayload.BlockNumber)
-	payload.ParentHash = types.StringToHash(rawPayload.ParentHash)
-	payload.ReceiptsRoot = types.StringToHash(rawPayload.ReceiptsRoot)
-	payload.StateRoot = types.StringToHash(rawPayload.StateRoot)
-	payload.Timestamp, _ = hexutils.DecodeUint64(rawPayload.Timestamp)
-	payload.Transactions = [][]byte{}
-
-	for _, transaction := range rawPayload.Transactions {
-		decoded, err := hexutils.DecodeHex(transaction)
+	if data, err := os.ReadFile(config.EngineTokenPath); err == nil {
+		trimmed := strings.TrimSpace(string(data))
+		jwtSecret, err := types.ParseBytes(&trimmed)
 		if err != nil {
 			return nil, err
 		}
-		payload.Transactions = append(payload.Transactions, decoded)
+
+		if len(jwtSecret) != 32 {
+			return nil, fmt.Errorf("invalid JWT secret")
+		}
+
+		logger.Info("Loaded JWT secret file", "path", config.EngineTokenPath, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
+
+		engineClient, err = NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID, feeRecipient)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, err
 	}
 
-	return
+	return engineClient, nil
 }

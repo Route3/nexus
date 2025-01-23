@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
-	"math/big"
 	"net"
 	"net/http"
 	"os"
@@ -13,27 +12,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apex-fusion/nexus/engine"
-	"github.com/apex-fusion/nexus/profiling"
-
 	"github.com/apex-fusion/nexus/archive"
 	"github.com/apex-fusion/nexus/blockchain"
 	"github.com/apex-fusion/nexus/chain"
 	"github.com/apex-fusion/nexus/consensus"
-	consensusSigner "github.com/apex-fusion/nexus/consensus/ibft/signer"
 	"github.com/apex-fusion/nexus/crypto"
+	"github.com/apex-fusion/nexus/engine"
 	"github.com/apex-fusion/nexus/helper/common"
-	configHelper "github.com/apex-fusion/nexus/helper/config"
 	"github.com/apex-fusion/nexus/helper/progress"
 	"github.com/apex-fusion/nexus/jsonrpc"
 	"github.com/apex-fusion/nexus/network"
+	"github.com/apex-fusion/nexus/profiling"
 	"github.com/apex-fusion/nexus/secrets"
 	"github.com/apex-fusion/nexus/server/proto"
 	"github.com/apex-fusion/nexus/state"
 	itrie "github.com/apex-fusion/nexus/state/immutable-trie"
-	"github.com/apex-fusion/nexus/state/runtime"
-	"github.com/apex-fusion/nexus/state/runtime/tracer"
-	"github.com/apex-fusion/nexus/txpool"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/prometheus/client_golang/prometheus"
@@ -54,9 +47,6 @@ type Server struct {
 	blockchain *blockchain.Blockchain
 	chain      *chain.Chain
 
-	// state executor
-	executor *state.Executor
-
 	// jsonrpc stack
 	jsonrpcServer *jsonrpc.JSONRPC
 
@@ -65,9 +55,6 @@ type Server struct {
 
 	// libp2p network
 	network *network.Server
-
-	// transaction pool
-	txpool *txpool.TxPool
 
 	prometheusServer *http.Server
 
@@ -79,9 +66,6 @@ type Server struct {
 
 	// profiler
 	profiler profiling.Profiler
-
-	// Ethereum Engine API Client
-	engineClient *engine.Client
 }
 
 var dirPaths = []string{
@@ -134,7 +118,7 @@ func newLoggerFromConfig(config *Config) (hclog.Logger, error) {
 func newEngineAPIFromConfig(config *Config, logger hclog.Logger, feeRecipient string) (*engine.Client, error) {
 	var engineClient *engine.Client
 
-	if data, err := os.ReadFile(config.EngineTokenPath); err == nil {
+	if data, err := os.ReadFile(config.EngineConfig.EngineTokenPath); err == nil {
 		trimmed := strings.TrimSpace(string(data))
 		jwtSecret, err := types.ParseBytes(&trimmed)
 		if err != nil {
@@ -145,9 +129,9 @@ func newEngineAPIFromConfig(config *Config, logger hclog.Logger, feeRecipient st
 			return nil, fmt.Errorf("invalid JWT secret")
 		}
 
-		logger.Info("Loaded JWT secret file", "path", config.EngineTokenPath, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
+		logger.Info("Loaded JWT secret file", "path", config.EngineConfig.EngineTokenPath, "crc32", fmt.Sprintf("%#x", crc32.ChecksumIEEE(jwtSecret)))
 
-		engineClient, err = engine.NewClient(logger, config.EngineURL, jwtSecret, config.EngineJWTID, feeRecipient)
+		engineClient, err = engine.NewClient(logger, config.EngineConfig.EngineURL, jwtSecret, config.EngineConfig.EngineJWTID, feeRecipient)
 		if err != nil {
 			return nil, err
 		}
@@ -172,8 +156,6 @@ func NewServer(config *Config) (*Server, error) {
 		grpcServer:         grpc.NewServer(),
 		restoreProgression: progress.NewProgressionWrapper(progress.ChainSyncRestore),
 	}
-
-	
 
 	m.logger.Info("Data dir", "path", config.DataDir)
 
@@ -231,66 +213,13 @@ func NewServer(config *Config) (*Server, error) {
 	st := itrie.NewState(stateStorage)
 	m.state = st
 
-	m.executor = state.NewExecutor(config.Chain.Params, st, logger)
-
-	// compute the genesis root state
-	genesisRoot := m.executor.WriteGenesis(config.Chain.Genesis.Alloc)
-	config.Chain.Genesis.StateRoot = genesisRoot
-
 	// use the eip155 signer
 	signer := crypto.NewEIP155Signer(uint64(m.config.Chain.Params.ChainID))
 
-	// TODO: WE don't need an engine reference in the server, just move it all to blockchain
-	// Setting up Engine API
-	ecdsaValidatorSigner, _ := consensusSigner.NewECDSAKeyManager(m.secretsManager)
-	feeRecipient := ecdsaValidatorSigner.Address().String()
-	if config.SuggestedFeeRecipient != "" {
-		feeRecipient = config.SuggestedFeeRecipient
-	}
-	if engineClient, err := newEngineAPIFromConfig(config, logger, feeRecipient); err != nil {
-		return nil, fmt.Errorf("Engine API setup failed", "err", err.Error())
-	} else {
-		m.engineClient = engineClient
-	}
-
 	// blockchain object
-	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, m.executor, signer, m.config.ExecutionGenesisHash, m.engineClient)
+	m.blockchain, err = blockchain.NewBlockchain(logger, m.config.DataDir, config.Chain, nil, signer, m.config.ExecutionGenesisHash, &m.config.EngineConfig, &m.secretsManager, config.SuggestedFeeRecipient)
 	if err != nil {
 		return nil, err
-	}
-
-	m.executor.GetHash = m.blockchain.GetHashHelper
-
-	{
-		hub := &txpoolHub{
-			state:      m.state,
-			Blockchain: m.blockchain,
-		}
-
-		deploymentWhitelist, err := configHelper.GetDeploymentWhitelist(config.Chain)
-		if err != nil {
-			return nil, err
-		}
-
-		// start transaction pool
-		m.txpool, err = txpool.NewTxPool(
-			logger,
-			m.chain.Params.Forks.At(0),
-			hub,
-			m.grpcServer,
-			m.network,
-			&txpool.Config{
-				MaxSlots:            m.config.MaxSlots,
-				PriceLimit:          m.config.PriceLimit,
-				MaxAccountEnqueued:  m.config.MaxAccountEnqueued,
-				DeploymentWhitelist: deploymentWhitelist,
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		m.txpool.SetSigner(signer)
 	}
 
 	{
@@ -333,7 +262,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// initialize the engine API communication now that we have the blockchain state available
-	payloadId, err := m.engineClient.Init(m.blockchain.GetLatestPayloadHash(), m.blockchain.Header().Hash.String())
+	payloadId, err := m.blockchain.EngineClient.Init(m.blockchain.GetLatestPayloadHash(), m.blockchain.Header().Hash.String())
 	if err != nil {
 		return nil, err
 	}
@@ -343,8 +272,6 @@ func NewServer(config *Config) (*Server, error) {
 	if err := m.consensus.Start(); err != nil {
 		return nil, err
 	}
-
-	m.txpool.Start()
 
 	return m, nil
 }
@@ -359,52 +286,6 @@ func (s *Server) restoreChain() error {
 	}
 
 	return nil
-}
-
-type txpoolHub struct {
-	state state.State
-	*blockchain.Blockchain
-}
-
-// getAccountImpl is used for fetching account state from both TxPool and JSON-RPC
-func getAccountImpl(state state.State, root types.Hash, addr types.Address) (*state.Account, error) {
-	snap, err := state.NewSnapshotAt(root)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get snapshot for root '%s': %w", root, err)
-	}
-
-	account, err := snap.GetAccount(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	if account == nil {
-		return nil, jsonrpc.ErrStateNotFound
-	}
-
-	return account, nil
-}
-
-func (t *txpoolHub) GetNonce(root types.Hash, addr types.Address) uint64 {
-	account, err := getAccountImpl(t.state, root, addr)
-	if err != nil {
-		return 0
-	}
-
-	return account.Nonce
-}
-
-func (t *txpoolHub) GetBalance(root types.Hash, addr types.Address) (*big.Int, error) {
-	account, err := getAccountImpl(t.state, root, addr)
-	if err != nil {
-		if errors.Is(err, jsonrpc.ErrStateNotFound) {
-			return big.NewInt(0), nil
-		}
-
-		return big.NewInt(0), err
-	}
-
-	return account.Balance, nil
 }
 
 // setupSecretsManager sets up the secrets manager
@@ -476,10 +357,8 @@ func (s *Server) setupConsensus() error {
 		&consensus.Params{
 			Context:        context.Background(),
 			Config:         config,
-			TxPool:         s.txpool,
 			Network:        s.network,
 			Blockchain:     s.blockchain,
-			Executor:       s.executor,
 			Grpc:           s.grpcServer,
 			Logger:         s.logger,
 			SecretsManager: s.secretsManager,
@@ -500,202 +379,50 @@ type jsonRPCHub struct {
 	restoreProgression *progress.ProgressionWrapper
 
 	*blockchain.Blockchain
-	*txpool.TxPool
-	*state.Executor
 	*network.Server
 	consensus.Consensus
+}
+
+func (j *jsonRPCHub) GetCapacity() (uint64, uint64) {
+	return 0, 0
+}
+
+func (j *jsonRPCHub) GetNonce(types.Address) uint64 {
+	return 0
 }
 
 func (j *jsonRPCHub) GetPeers() int {
 	return len(j.Server.Peers())
 }
 
-func (j *jsonRPCHub) GetAccount(root types.Hash, addr types.Address) (*jsonrpc.Account, error) {
-	acct, err := getAccountImpl(j.state, root, addr)
-	if err != nil {
-		return nil, err
-	}
-
-	account := &jsonrpc.Account{
-		Nonce:   acct.Nonce,
-		Balance: new(big.Int).Set(acct.Balance),
-	}
-
-	return account, nil
+func (j *jsonRPCHub) GetAccount(root types.Hash, addr types.Address) error {
+	return nil
 }
-
-// GetForksInTime returns the active forks at the given block height
-func (j *jsonRPCHub) GetForksInTime(blockNumber uint64) chain.ForksInTime {
-	return j.Executor.GetForksInTime(blockNumber)
-}
-
-func (j *jsonRPCHub) GetStorage(stateRoot types.Hash, addr types.Address, slot types.Hash) ([]byte, error) {
-	account, err := getAccountImpl(j.state, stateRoot, addr)
-	if err != nil {
-		return nil, err
-	}
-
-	snap, err := j.state.NewSnapshotAt(stateRoot)
-	if err != nil {
-		return nil, err
-	}
-
-	res := snap.GetStorage(addr, account.Root, slot)
-
-	return res.Bytes(), nil
-}
-
 func (j *jsonRPCHub) GetCode(root types.Hash, addr types.Address) ([]byte, error) {
-	account, err := getAccountImpl(j.state, root, addr)
-	if err != nil {
-		return nil, err
-	}
 
-	code, ok := j.state.GetCode(types.BytesToHash(account.CodeHash))
-	if !ok {
-		return nil, fmt.Errorf("unable to fetch code")
-	}
-
-	return code, nil
+	return nil, nil
 }
 
 func (j *jsonRPCHub) ApplyTxn(
 	header *types.Header,
-	txn *types.Transaction,
-) (result *runtime.ExecutionResult, err error) {
-	blockCreator, err := j.GetConsensus().GetBlockCreator(header)
-	if err != nil {
-		return nil, err
-	}
+) (err error) {
 
-	transition, err := j.BeginTxn(header.StateRoot, header, blockCreator)
-	if err != nil {
-		return
-	}
-
-	result, err = transition.Apply(txn)
-
-	return
+	return nil
 }
 
 // TraceBlock traces all transactions in the given block and returns all results
 func (j *jsonRPCHub) TraceBlock(
 	block *types.Block,
-	tracer tracer.Tracer,
 ) ([]interface{}, error) {
-	if block.Number() == 0 {
-		return nil, errors.New("genesis block can't have transaction")
-	}
-
-	parentHeader, ok := j.GetHeaderByHash(block.ParentHash())
-	if !ok {
-		return nil, errors.New("parent header not found")
-	}
-
-	blockCreator, err := j.GetConsensus().GetBlockCreator(block.Header)
-	if err != nil {
-		return nil, err
-	}
-
-	transition, err := j.BeginTxn(parentHeader.StateRoot, block.Header, blockCreator)
-	if err != nil {
-		return nil, err
-	}
-
-	transition.SetTracer(tracer)
-
-	results := make([]interface{}, len(block.Transactions))
-
-	for idx, tx := range block.Transactions {
-		tracer.Clear()
-
-		if _, err := transition.Apply(tx); err != nil {
-			return nil, err
-		}
-
-		if results[idx], err = tracer.GetResult(); err != nil {
-			return nil, err
-		}
-	}
-
-	return results, nil
+	return nil, nil
 }
 
 // TraceTxn traces a transaction in the block, associated with the given hash
 func (j *jsonRPCHub) TraceTxn(
 	block *types.Block,
 	targetTxHash types.Hash,
-	tracer tracer.Tracer,
 ) (interface{}, error) {
-	if block.Number() == 0 {
-		return nil, errors.New("genesis block can't have transaction")
-	}
-
-	parentHeader, ok := j.GetHeaderByHash(block.ParentHash())
-	if !ok {
-		return nil, errors.New("parent header not found")
-	}
-
-	blockCreator, err := j.GetConsensus().GetBlockCreator(block.Header)
-	if err != nil {
-		return nil, err
-	}
-
-	transition, err := j.BeginTxn(parentHeader.StateRoot, block.Header, blockCreator)
-	if err != nil {
-		return nil, err
-	}
-
-	var targetTx *types.Transaction
-
-	for _, tx := range block.Transactions {
-		if tx.Hash == targetTxHash {
-			targetTx = tx
-
-			break
-		}
-
-		// Execute transactions without tracer until reaching the target transaction
-		if _, err := transition.Apply(tx); err != nil {
-			return nil, err
-		}
-	}
-
-	if targetTx == nil {
-		return nil, errors.New("target tx not found")
-	}
-
-	transition.SetTracer(tracer)
-
-	if _, err := transition.Apply(targetTx); err != nil {
-		return nil, err
-	}
-
-	return tracer.GetResult()
-}
-
-func (j *jsonRPCHub) TraceCall(
-	tx *types.Transaction,
-	parentHeader *types.Header,
-	tracer tracer.Tracer,
-) (interface{}, error) {
-	blockCreator, err := j.GetConsensus().GetBlockCreator(parentHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	transition, err := j.BeginTxn(parentHeader.StateRoot, parentHeader, blockCreator)
-	if err != nil {
-		return nil, err
-	}
-
-	transition.SetTracer(tracer)
-
-	if _, err := transition.Apply(tx); err != nil {
-		return nil, err
-	}
-
-	return tracer.GetResult()
+	return nil, nil
 }
 
 func (j *jsonRPCHub) GetSyncProgression() *progress.Progression {
@@ -720,8 +447,6 @@ func (s *Server) setupJSONRPC() error {
 		state:              s.state,
 		restoreProgression: s.restoreProgression,
 		Blockchain:         s.blockchain,
-		TxPool:             s.txpool,
-		Executor:           s.executor,
 		Consensus:          s.consensus,
 		Server:             s.network,
 	}
@@ -804,9 +529,6 @@ func (s *Server) Close() {
 			s.logger.Error("Prometheus server shutdown error", err)
 		}
 	}
-
-	// close the txpool's main loop
-	s.txpool.Close()
 
 	// close DataDog profiler
 	s.closeDataDogProfiler()

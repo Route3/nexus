@@ -38,6 +38,9 @@ func NewPeerMap(peers []*NoForkPeer) *PeerMap {
 
 func (m *PeerMap) Put(peers ...*NoForkPeer) {
 	for _, peer := range peers {
+		if peer == nil {
+			continue
+		}
 		m.Store(peer.ID.String(), peer)
 	}
 }

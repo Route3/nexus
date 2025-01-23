@@ -4,16 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
-	"math/big"
 	"os"
 
 	"github.com/apex-fusion/nexus/chain"
 	"github.com/apex-fusion/nexus/helper/hex"
-	"github.com/apex-fusion/nexus/state"
-	itrie "github.com/apex-fusion/nexus/state/immutable-trie"
-	"github.com/apex-fusion/nexus/state/runtime"
-	"github.com/apex-fusion/nexus/state/runtime/evm"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/umbracle/ethgo/abi"
 )
@@ -92,75 +86,16 @@ func loadContractArtifact(filepath string) (*contractArtifact, error) {
 }
 
 // getModifiedStorageMap fetches the modified storage map for the specified address
-func getModifiedStorageMap(radix *state.Txn, address types.Address) map[types.Hash]types.Hash {
+func getModifiedStorageMap(address types.Address) map[types.Hash]types.Hash {
 	storageMap := make(map[types.Hash]types.Hash)
-
-	radix.GetRadix().Root().Walk(func(k []byte, v interface{}) bool {
-		if types.BytesToAddress(k) != address {
-			// Ignore all addresses that are not the one the predeployment
-			// is meant to run for
-			return false
-		}
-
-		obj, _ := v.(*state.StateObject)
-		obj.Txn.Root().Walk(func(k []byte, v interface{}) bool {
-			val, _ := v.([]byte)
-			storageMap[types.BytesToHash(k)] = types.BytesToHash(val)
-
-			return false
-		})
-
-		return true
-	})
 
 	return storageMap
 }
 
 func getPredeployAccount(address types.Address, input, deployedBytecode []byte) (*chain.GenesisAccount, error) {
-	// Create an instance of the state
-	st := itrie.NewState(itrie.NewMemoryStorage())
 
-	// Create a snapshot
-	snapshot := st.NewSnapshot()
+	return nil, nil
 
-	// Create a radix
-	radix := state.NewTxn(snapshot)
-
-	// Create the contract object for the EVM
-	contract := runtime.NewContractCreation(
-		1,
-		types.ZeroAddress,
-		types.ZeroAddress,
-		address,
-		big.NewInt(0),
-		math.MaxInt64,
-		input,
-	)
-
-	// Enable all forks
-	config := chain.AllForksEnabled.At(0)
-
-	// Create a transition
-	transition := state.NewTransition(config, snapshot, radix)
-
-	// Run the transition through the EVM
-	res := evm.NewEVM().Run(contract, transition, &config)
-	if res.Err != nil {
-		return nil, fmt.Errorf("EVM predeployment failed, %w", res.Err)
-	}
-
-	// After the execution finishes,
-	// the state needs to be walked to collect all touched all storage slots
-	storageMap := getModifiedStorageMap(radix, address)
-
-	transition.Commit()
-
-	return &chain.GenesisAccount{
-		Balance: transition.GetBalance(address),
-		Nonce:   transition.GetNonce(address),
-		Code:    deployedBytecode,
-		Storage: storageMap,
-	}, nil
 }
 
 // GenerateGenesisAccountFromFile generates an account that is going to be directly

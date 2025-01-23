@@ -1,7 +1,6 @@
 package types
 
 import (
-	"math/big"
 	"reflect"
 	"testing"
 
@@ -34,34 +33,6 @@ func TestRLPEncoding(t *testing.T) {
 		if !reflect.DeepEqual(buf, buf2) {
 			t.Fatal("[ERROR] Buffers not equal")
 		}
-	}
-}
-
-func TestRLPMarshall_And_Unmarshall_Transaction(t *testing.T) {
-	addrTo := StringToAddress("11")
-	txn := &Transaction{
-		Nonce:    0,
-		GasPrice: big.NewInt(11),
-		Gas:      11,
-		To:       &addrTo,
-		Value:    big.NewInt(1),
-		Input:    []byte{1, 2},
-		V:        big.NewInt(25),
-		S:        big.NewInt(26),
-		R:        big.NewInt(27),
-	}
-	unmarshalledTxn := new(Transaction)
-	marshaledRlp := txn.MarshalRLP()
-
-	if err := unmarshalledTxn.UnmarshalRLP(marshaledRlp); err != nil {
-		t.Fatal(err)
-	}
-
-	unmarshalledTxn.ComputeHash()
-
-	txn.Hash = unmarshalledTxn.Hash
-	if !reflect.DeepEqual(txn, unmarshalledTxn) {
-		t.Fatal("[ERROR] Unmarshalled transaction not equal to base transaction")
 	}
 }
 

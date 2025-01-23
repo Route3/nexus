@@ -14,7 +14,6 @@ import (
 	"github.com/apex-fusion/nexus/command/secrets"
 	"github.com/apex-fusion/nexus/command/server"
 	"github.com/apex-fusion/nexus/command/status"
-	"github.com/apex-fusion/nexus/command/txpool"
 	"github.com/apex-fusion/nexus/command/version"
 	"github.com/apex-fusion/nexus/command/whitelist"
 	"github.com/spf13/cobra"
@@ -41,7 +40,6 @@ func NewRootCommand() *RootCommand {
 func (rc *RootCommand) registerSubCommands() {
 	rc.baseCmd.AddCommand(
 		version.GetCommand(),
-		txpool.GetCommand(),
 		status.GetCommand(),
 		secrets.GetCommand(),
 		peers.GetCommand(),

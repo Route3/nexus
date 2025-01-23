@@ -4,18 +4,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/apex-fusion/nexus/chain"
 	"github.com/apex-fusion/nexus/consensus/ibft/hook"
-	"github.com/apex-fusion/nexus/contracts/staking"
 	"github.com/apex-fusion/nexus/crypto"
 	"github.com/apex-fusion/nexus/helper/common"
 	stakingHelper "github.com/apex-fusion/nexus/helper/staking"
-	"github.com/apex-fusion/nexus/state"
-	itrie "github.com/apex-fusion/nexus/state/immutable-trie"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/validators"
 	"github.com/apex-fusion/nexus/validators/store"
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -168,9 +163,8 @@ func Test_registerUpdateValidatorsHooks(t *testing.T) {
 			err               = errors.New("test")
 
 			block = &types.Block{
-				Header:       &types.Header{},
-				Transactions: []*types.Transaction{},
-				Uncles:       []*types.Header{},
+				Header: &types.Header{},
+				Uncles: []*types.Header{},
 			}
 		)
 
@@ -236,17 +230,11 @@ func Test_registerTxInclusionGuardHooks(t *testing.T) {
 		}
 
 		blockWithoutTransactions = &types.Block{
-			Header:       &types.Header{},
-			Transactions: []*types.Transaction{},
+			Header: &types.Header{},
 		}
 
 		blockWithTransactions = &types.Block{
 			Header: &types.Header{},
-			Transactions: []*types.Transaction{
-				{
-					Nonce: 0,
-				},
-			},
 		}
 	)
 
@@ -268,88 +256,6 @@ func Test_registerTxInclusionGuardHooks(t *testing.T) {
 			assert.ErrorIs(t, ErrTxInLastEpochOfBlock, hooks.VerifyBlock(blockWithTransactions))
 		}
 	}
-}
-
-func newTestTransition(
-	t *testing.T,
-) *state.Transition {
-	t.Helper()
-
-	st := itrie.NewState(itrie.NewMemoryStorage())
-
-	ex := state.NewExecutor(&chain.Params{
-		Forks: chain.AllForksEnabled,
-	}, st, hclog.NewNullLogger())
-
-	rootHash := ex.WriteGenesis(nil)
-	ex.GetHash = func(h *types.Header) state.GetHashByNumber {
-		return func(i uint64) types.Hash {
-			return rootHash
-		}
-	}
-
-	transition, err := ex.BeginTxn(
-		rootHash,
-		&types.Header{},
-		types.ZeroAddress,
-	)
-	assert.NoError(t, err)
-
-	return transition
-}
-
-func Test_registerStakingContractDeploymentHooks(t *testing.T) {
-	t.Parallel()
-
-	hooks := &hook.Hooks{}
-	fork := &IBFTFork{
-		Deployment: &common.JSONNumber{
-			Value: 10,
-		},
-	}
-
-	registerStakingContractDeploymentHooks(hooks, fork)
-
-	assert.Nil(t, hooks.ShouldWriteTransactionFunc)
-	assert.Nil(t, hooks.ModifyHeaderFunc)
-	assert.Nil(t, hooks.VerifyHeaderFunc)
-	assert.Nil(t, hooks.ProcessHeaderFunc)
-	assert.Nil(t, hooks.PostInsertBlockFunc)
-
-	txn := newTestTransition(t)
-
-	// deployment should not happen
-	assert.NoError(
-		t,
-		hooks.PreCommitState(&types.Header{Number: 5}, txn),
-	)
-
-	assert.False(
-		t,
-		txn.AccountExists(staking.AddrStakingContract),
-	)
-
-	// should deploy contract
-	assert.NoError(
-		t,
-		hooks.PreCommitState(&types.Header{Number: 10}, txn),
-	)
-
-	assert.True(
-		t,
-		txn.AccountExists(staking.AddrStakingContract),
-	)
-
-	// should update only bytecode (if contract is deployed again, it returns error)
-	assert.NoError(
-		t,
-		hooks.PreCommitState(&types.Header{Number: 10}, txn),
-	)
-
-	assert.True(
-		t,
-		txn.AccountExists(staking.AddrStakingContract),
-	)
 }
 
 func Test_getPreDeployParams(t *testing.T) {

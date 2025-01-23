@@ -75,7 +75,6 @@ func TestNewForkManager(t *testing.T) {
 			logger,
 			nil,
 			nil,
-			nil,
 			"",
 			0,
 			map[string]interface{}{},
@@ -102,7 +101,6 @@ func TestNewForkManager(t *testing.T) {
 
 		_, err := NewForkManager(
 			logger,
-			nil,
 			nil,
 			secretManager,
 			"",
@@ -151,7 +149,6 @@ func TestNewForkManager(t *testing.T) {
 		fm, err := NewForkManager(
 			logger,
 			blockchain,
-			nil,
 			secretManager,
 			dirPath,
 			epochSize,
@@ -232,7 +229,6 @@ func TestNewForkManager(t *testing.T) {
 		fm, err := NewForkManager(
 			logger,
 			blockchain,
-			nil,
 			secretManager,
 			dirPath,
 			epochSize,
@@ -276,7 +272,6 @@ func TestNewForkManager(t *testing.T) {
 
 		fm, err := NewForkManager(
 			logger,
-			nil,
 			nil,
 			secretManager,
 			"",
@@ -844,7 +839,6 @@ func TestForkManager_initializeValidatorStores(t *testing.T) {
 	var (
 		logger     = hclog.NewNullLogger()
 		blockchain = &store.MockBlockchain{}
-		executor   = &MockExecutor{}
 
 		forks = IBFTForks{
 			{
@@ -866,7 +860,6 @@ func TestForkManager_initializeValidatorStores(t *testing.T) {
 		validatorStores: map[store.SourceType]ValidatorStore{},
 		logger:          logger,
 		blockchain:      blockchain,
-		executor:        executor,
 	}
 
 	assert.NoError(t, fm.initializeValidatorStores())

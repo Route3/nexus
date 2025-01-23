@@ -369,31 +369,8 @@ func (f *FilterManager) Exists(id string) bool {
 }
 
 func (f *FilterManager) getLogsFromBlock(query *LogQuery, block *types.Block) ([]*Log, error) {
-	receipts, err := f.store.GetReceiptsByHash(block.Header.Hash)
-	if err != nil {
-		return nil, err
-	}
 
-	logs := make([]*Log, 0)
-
-	for idx, receipt := range receipts {
-		for logIdx, log := range receipt.Logs {
-			if query.Match(log) {
-				logs = append(logs, &Log{
-					Address:     log.Address,
-					Topics:      log.Topics,
-					Data:        log.Data,
-					BlockNumber: argUint64(block.Header.Number),
-					BlockHash:   block.Header.Hash,
-					TxHash:      block.Transactions[idx].Hash,
-					TxIndex:     argUint64(idx),
-					LogIndex:    argUint64(logIdx),
-				})
-			}
-		}
-	}
-
-	return logs, nil
+	return nil, nil
 }
 
 func (f *FilterManager) getLogsFromBlocks(query *LogQuery) ([]*Log, error) {
@@ -425,22 +402,11 @@ func (f *FilterManager) getLogsFromBlocks(query *LogQuery) ([]*Log, error) {
 	logs := make([]*Log, 0)
 
 	for i := from; i <= to; i++ {
-		block, ok := f.store.GetBlockByNumber(i, true)
+		_, ok := f.store.GetBlockByNumber(i, true)
 		if !ok {
 			break
 		}
 
-		if len(block.Transactions) == 0 {
-			// do not check logs if no txs
-			continue
-		}
-
-		blockLogs, err := f.getLogsFromBlock(query, block)
-		if err != nil {
-			return nil, err
-		}
-
-		logs = append(logs, blockLogs...)
 	}
 
 	return logs, nil
@@ -450,17 +416,12 @@ func (f *FilterManager) getLogsFromBlocks(query *LogQuery) ([]*Log, error) {
 func (f *FilterManager) GetLogsForQuery(query *LogQuery) ([]*Log, error) {
 	if query.BlockHash != nil {
 		// BlockHash is set -> fetch logs from this block only
-		block, ok := f.store.GetBlockByHash(*query.BlockHash, true)
+		_, ok := f.store.GetBlockByHash(*query.BlockHash, true)
 		if !ok {
 			return nil, ErrBlockNotFound
 		}
 
-		if len(block.Transactions) == 0 {
-			// no txs in block, return empty response
-			return []*Log{}, nil
-		}
-
-		return f.getLogsFromBlock(query, block)
+		return []*Log{}, nil
 	}
 
 	// gets logs from a range of blocks
@@ -649,54 +610,6 @@ func (f *FilterManager) processEvent(evnt *blockchain.Event) {
 
 // appendLogsToFilters makes each LogFilters append logs in the header
 func (f *FilterManager) appendLogsToFilters(header *block) error {
-	receipts, err := f.store.GetReceiptsByHash(header.Hash)
-	if err != nil {
-		return err
-	}
-
-	// Get logFilters from filters
-	logFilters := make([]*logFilter, 0)
-
-	for _, f := range f.filters {
-		if logFilter, ok := f.(*logFilter); ok {
-			logFilters = append(logFilters, logFilter)
-		}
-	}
-
-	if len(logFilters) == 0 {
-		return nil
-	}
-
-	block, ok := f.store.GetBlockByHash(header.Hash, true)
-	if !ok {
-		f.logger.Error("could not find block in store", "hash", header.Hash.String())
-
-		return nil
-	}
-
-	for indx, receipt := range receipts {
-		if receipt.TxHash == types.ZeroHash {
-			// Extract tx Hash
-			receipt.TxHash = block.Transactions[indx].Hash
-		}
-		// check the logs with the filters
-		for _, log := range receipt.Logs {
-			for _, f := range logFilters {
-				if f.query.Match(log) {
-					f.appendLog(&Log{
-						Address:     log.Address,
-						Topics:      log.Topics,
-						Data:        argBytes(log.Data),
-						BlockNumber: header.Number,
-						BlockHash:   header.Hash,
-						TxHash:      receipt.TxHash,
-						TxIndex:     argUint64(indx),
-						Removed:     false,
-					})
-				}
-			}
-		}
-	}
 
 	return nil
 }
