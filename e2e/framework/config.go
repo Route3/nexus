@@ -23,10 +23,11 @@ type TestServerConfig struct {
 	ReservedPorts             []ReservedPort
 	JWTHex                    string
 	GethGenesis               string
-	JSONRPCPort               int                      // The JSON RPC endpoint port
-	GRPCPort                  int                      // The GRPC endpoint port
-	LibP2PPort                int                      // The LibP2P endpoint port
-	EnginePort                int                      // The Engine API port
+	JSONRPCPort               int                      // The geth's JSON RPC endpoint port
+	GRPCPort                  int                      // The nexus's GRPC endpoint port
+	LibP2PPort                int                      // The nexus's LibP2P endpoint port
+	EnginePort                int                      // The geth's Engine API port
+	DevP2PPort                int                      // The geth's DevP2P port
 	RootDir                   string                   // The root directory for test environment
 	IBFTDirPrefix             string                   // The prefix of data directory for IBFT
 	IBFTDir                   string                   // The name of data directory for IBFT

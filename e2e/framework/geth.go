@@ -45,6 +45,7 @@ func (t *TestServer) startGeth(ctx context.Context) error {
 		fmt.Sprintf("--http.port=%d", t.Config.JSONRPCPort),
 		"--authrpc.vhosts=*",
 		"--authrpc.addr=0.0.0.0",
+		fmt.Sprintf("--port=%d", t.Config.DevP2PPort),
 		fmt.Sprintf("--authrpc.jwtsecret=%s/jwt.hex", t.Config.GethDataDir),
 		fmt.Sprintf("--authrpc.port=%d", t.Config.EnginePort),
 		"--datadir=/geth",

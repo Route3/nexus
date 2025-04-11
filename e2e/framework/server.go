@@ -38,7 +38,7 @@ func NewTestServer(t *testing.T, rootDir string, callback TestServerConfigCallba
 	t.Helper()
 
 	// Reserve ports
-	ports, err := FindAvailablePorts(4, initialPort, initialPort+10000)
+	ports, err := FindAvailablePorts(5, initialPort, initialPort+10000)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,6 +51,7 @@ func NewTestServer(t *testing.T, rootDir string, callback TestServerConfigCallba
 		LibP2PPort:    ports[1].Port(),
 		JSONRPCPort:   ports[2].Port(),
 		EnginePort:    ports[3].Port(),
+		DevP2PPort:    ports[4].Port(),
 		RootDir:       rootDir,
 		Signer:        crypto.NewEIP155Signer(100),
 		ValidatorType: validators.ECDSAValidatorType,
