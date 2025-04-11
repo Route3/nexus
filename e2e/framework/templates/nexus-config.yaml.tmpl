@@ -1,0 +1,8 @@
+engine_url: "http://127.0.0.1:{{ .EnginePort }}"
+grpc_addr: "0.0.0.0:{{ .GRPCPort }}"
+engine_token_path: "{{ .PathToJWT }}"
+engine_jwt_id: "nexus-devenv"
+data_dir: "{{ .DataDir }}"
+chain_config: "{{ .PathToGenesis }}"
+execution_genesis_hash: "{{ .ExecutionGenesisHash }}"
+secrets_config: "{{ .DataDir }}/secrets.json"

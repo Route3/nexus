@@ -202,9 +202,10 @@ func NewBlockchain(
 	if feeRecipientFromConfig != "" {
 		feeRecipient = feeRecipientFromConfig
 	}
-	engineClient, engineErr := engine.NewEngineAPIFromConfig(engineConfig, logger, feeRecipient)
-	if engineErr != nil {
-		return nil, fmt.Errorf("Engine API setup failed", "err", engineErr.Error())
+
+	engineClient, err := engine.NewEngineAPIFromConfig(engineConfig, logger, feeRecipient)
+	if err != nil {
+		return nil, fmt.Errorf("Engine API setup failed %w", err)
 	}
 
 	b := &Blockchain{
@@ -221,10 +222,7 @@ func NewBlockchain(
 		},
 	}
 
-	var (
-		db  storage.Storage
-		err error
-	)
+	var db storage.Storage
 
 	if dataDir == "" {
 		if db, err = memory.NewMemoryStorage(nil); err != nil {
@@ -815,7 +813,7 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 	}
 
 	currentBlockBeaconRoot := block.Hash().String()
-	time.Sleep(2*time.Second)
+	time.Sleep(2 * time.Second)
 	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true, time.Now().Unix())
 	if err != nil {
 		b.logger.Error("cannot run FCU for block insertion", "err", err)

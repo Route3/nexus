@@ -41,12 +41,6 @@ const (
 	logFileLocationFlag          = "log-to"
 )
 
-// Flags that are deprecated, but need to be preserved for
-// backwards compatibility with existing scripts
-const (
-	ibftBaseTimeoutFlagLEGACY = "ibft-base-timeout"
-)
-
 const (
 	unsetPeersValue = -1
 )

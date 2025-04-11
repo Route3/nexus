@@ -6,7 +6,7 @@ config*.json
 bin/
 
 test-chain*
-.idea
+.idea/
 
 # MacOS Leftovers
 .DS_Store

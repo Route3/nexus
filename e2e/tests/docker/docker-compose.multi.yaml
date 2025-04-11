@@ -202,7 +202,8 @@ services:
     command: /bin/sh -c "sleep 20"
 
   nexus-0:
-    image: "nexus-dev:latest"
+    build:
+      context: ../../../
     network_mode: host
     command: server --config=/nexus-init/config-0.yaml
     volumes:
@@ -218,7 +219,8 @@ services:
         condition: service_completed_successfully
 
   nexus-1:
-    image: "nexus-dev:latest"
+    build:
+      context: ../../../
     network_mode: host
     command: server --config=/nexus-init/config-1.yaml
     volumes:
@@ -233,7 +235,8 @@ services:
         condition: service_completed_successfully
 
   nexus-2:
-    image: "nexus-dev:latest"
+    build:
+      context: ../../../
     network_mode: host
     command: server --config=/nexus-init/config-2.yaml
     volumes:
@@ -248,7 +251,8 @@ services:
         condition: service_completed_successfully
 
   nexus-3:
-    image: "nexus-dev:latest"
+    build:
+      context: ../../../
     network_mode: host
     command: server --config=/nexus-init/config-3.yaml
     volumes:

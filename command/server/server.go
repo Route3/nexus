@@ -221,23 +221,7 @@ func setFlags(cmd *cobra.Command) {
 		"write all logs to the file at specified location instead of writing them to console",
 	)
 
-	setLegacyFlags(cmd)
-
 	setDevFlags(cmd)
-}
-
-// setLegacyFlags sets the legacy flags to preserve backwards compatibility
-// with running partners
-func setLegacyFlags(cmd *cobra.Command) {
-	// Legacy IBFT base timeout flag
-	cmd.Flags().Uint64Var(
-		&params.ibftBaseTimeoutLegacy,
-		ibftBaseTimeoutFlagLEGACY,
-		0,
-		"",
-	)
-
-	_ = cmd.Flags().MarkHidden(ibftBaseTimeoutFlagLEGACY)
 }
 
 func setDevFlags(cmd *cobra.Command) {

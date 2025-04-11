@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 
@@ -20,19 +21,19 @@ func TestClusterBlockSync(t *testing.T) {
 		t.Helper()
 
 		// Start IBFT cluster (4 Validator + 2 Non-Validator)
-		ibftManager := framework.NewIBFTServersManager(
+		ibftManager, err := framework.NewServerManager(
 			t,
 			IBFTMinNodes+numNonValidators,
-			IBFTDirPrefix, func(i int, config *framework.TestServerConfig) {
+			func(i int, config *framework.TestServerConfig) {
 				config.SetValidatorType(validatorType)
 
 				if i >= IBFTMinNodes {
 					// Other nodes should not be in the validator set
 					dirPrefix := "nexus-non-validator-"
-					config.SetIBFTDirPrefix(dirPrefix)
 					config.SetIBFTDir(fmt.Sprintf("%s%d", dirPrefix, i))
 				}
 			})
+		require.NoError(t, err)
 
 		startContext, startCancelFn := context.WithTimeout(context.Background(), time.Minute)
 		defer startCancelFn()

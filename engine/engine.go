@@ -34,7 +34,7 @@ type Client struct {
 }
 
 func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string, feeRecipient string) (*Client, error) {
-	url, err := url.Parse(rawUrl)
+	engineUrl, err := url.Parse(rawUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func NewClient(logger hclog.Logger, rawUrl string, token []byte, jwtId string, f
 	engineClient := &Client{
 		logger.Named("engine"),
 		client,
-		url,
+		engineUrl,
 		token,
 		feeRecipient,
 	}
@@ -282,7 +282,7 @@ func NewEngineAPIFromConfig(config *EngineConfig, logger hclog.Logger, feeRecipi
 			return nil, err
 		}
 	} else {
-		return nil, err
+		return nil, fmt.Errorf("failed reading from %s: %w", config.EngineTokenPath, err)
 	}
 
 	return engineClient, nil

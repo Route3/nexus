@@ -19,7 +19,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/umbracle/ethgo"
 	"github.com/umbracle/ethgo/jsonrpc"
-	"golang.org/x/crypto/sha3"
 	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -104,7 +103,7 @@ func MultiJoin(t *testing.T, srvs ...*TestServer) {
 		t.Fatal("not an even number")
 	}
 
-	errors := NewAtomicErrors(len(srvs) / 2)
+	atomicErrors := NewAtomicErrors(len(srvs) / 2)
 
 	var wg sync.WaitGroup
 
@@ -124,7 +123,7 @@ func MultiJoin(t *testing.T, srvs ...*TestServer) {
 
 			dstStatus, err := dstClient.GetStatus(ctxFotStatus, &empty.Empty{})
 			if err != nil {
-				errors.Append(fmt.Errorf("failed to get status from server %d, error=%w", dstIndex, err))
+				atomicErrors.Append(fmt.Errorf("failed to get status from server %d, error=%w", dstIndex, err))
 
 				return
 			}
@@ -139,18 +138,18 @@ func MultiJoin(t *testing.T, srvs ...*TestServer) {
 			})
 
 			if err != nil {
-				errors.Append(fmt.Errorf("failed to connect from %d to %d, error=%w", srcIndex, dstIndex, err))
+				atomicErrors.Append(fmt.Errorf("failed to connect from %d to %d, error=%w", srcIndex, dstIndex, err))
 			}
 		}()
 	}
 
 	wg.Wait()
 
-	for _, err := range errors.Errors() {
+	for _, err := range atomicErrors.Errors() {
 		t.Error(err)
 	}
 
-	if len(errors.Errors()) > 0 {
+	if len(atomicErrors.Errors()) > 0 {
 		t.Fail()
 	}
 }
@@ -205,20 +204,6 @@ func WaitUntilBlockMined(ctx context.Context, srv *TestServer, desiredHeight uin
 	}
 
 	return blockNum, nil
-}
-
-// MethodSig returns the signature of a non-parametrized function
-func MethodSig(name string) []byte {
-	return MethodSigWithParams(fmt.Sprintf("%s()", name))
-}
-
-// MethodSigWithParams returns the signature of a function
-func MethodSigWithParams(nameWithParams string) []byte {
-	h := sha3.NewLegacyKeccak256()
-	h.Write([]byte(nameWithParams))
-	b := h.Sum(nil)
-
-	return b[:4]
 }
 
 // tempDir returns directory path in tmp with random directory name
@@ -287,86 +272,6 @@ func FindAvailablePorts(n, from, to int) ([]ReservedPort, error) {
 	}
 
 	return ports, nil
-}
-
-func NewTestServers(t *testing.T, num int, conf func(*TestServerConfig)) []*TestServer {
-	t.Helper()
-
-	srvs := make([]*TestServer, 0, num)
-
-	t.Cleanup(func() {
-		for _, srv := range srvs {
-			srv.Stop()
-			if err := os.RemoveAll(srv.Config.RootDir); err != nil {
-				t.Log(err)
-			}
-		}
-	})
-
-	logsDir, err := initLogsDir(t)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// It is safe to use a dummy MultiAddr here, since this init method
-	// is called for the Dev consensus mode, and IBFT servers are initialized with NewIBFTServersManager.
-	// This method needs to be standardized in the future
-	bootnodes := []string{tests.GenerateTestMultiAddr(t).String()}
-
-	for i := 0; i < num; i++ {
-		dataDir, err := tempDir()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		srv := NewTestServer(t, dataDir, func(c *TestServerConfig) {
-			c.SetLogsDir(logsDir)
-			c.SetSaveLogs(true)
-			conf(c)
-		})
-		srv.Config.SetBootnodes(bootnodes)
-
-		srvs = append(srvs, srv)
-	}
-
-	errors := NewAtomicErrors(len(srvs))
-
-	var wg sync.WaitGroup
-
-	for i, srv := range srvs {
-		i, srv := i, srv
-
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			if err := srv.GenerateGenesis(); err != nil {
-				errors.Append(fmt.Errorf("server %d failed genesis command, error=%w", i, err))
-
-				return
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-			defer cancel()
-
-			if err := srv.Start(ctx); err != nil {
-				errors.Append(fmt.Errorf("server %d failed to start, error=%w", i, err))
-			}
-		}()
-	}
-
-	wg.Wait()
-
-	for _, err := range errors.Errors() {
-		t.Error(err)
-	}
-
-	if len(errors.Errors()) > 0 {
-		t.Fail()
-	}
-
-	return srvs
 }
 
 func WaitForServersToSeal(servers []*TestServer, desiredHeight uint64) []error {
