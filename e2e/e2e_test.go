@@ -3,7 +3,6 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"github.com/apex-fusion/nexus/e2e/framework"
 	"github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/helper/tests"
 	"github.com/stretchr/testify/require"
@@ -14,22 +13,54 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/apex-fusion/nexus/e2e/framework"
 )
 
-func TestClusterTransactionBroadcast(t *testing.T) {
-	t.Helper()
+const (
+	numNonValidators = 2
+	ibftMinNodes     = 4
+	numberOfServers  = ibftMinNodes + numNonValidators
+	desiredHeight    = 10
+)
 
-	const (
-		numNonValidators = 2
-		numberOfServers  = IBFTMinNodes + numNonValidators
-	)
-
+// TestBlockProduction is a shorter smoke test
+func TestBlockProduction(t *testing.T) {
 	// Start IBFT cluster (4 Validator + 2 Non-Validator)
 	serverManager, err := framework.NewServerManager(
 		t,
 		numberOfServers,
 		func(i int, config *framework.TestServerConfig) {
-			if i >= IBFTMinNodes {
+			if i >= ibftMinNodes {
+				// Other nodes should not be in the validator set
+				dirPrefix := "nexus-non-validator-"
+				config.SetIBFTDir(fmt.Sprintf("%s%d", dirPrefix, i))
+			}
+		})
+
+	require.NoError(t, err)
+
+	startContext, startCancelFn := context.WithTimeout(context.Background(), time.Minute)
+	defer startCancelFn()
+	serverManager.StartServers(startContext)
+
+	// All nodes should have mined the same block eventually
+	waitErrors := framework.WaitForServersToSeal(serverManager.Servers, desiredHeight)
+
+	if len(waitErrors) != 0 {
+		t.Fatalf("Unable to wait for all nodes to seal blocks, %v", waitErrors)
+	}
+
+}
+
+// TestE2E is a full test that does transaction propagation etc.
+func TestE2E(t *testing.T) {
+	// Start IBFT cluster (4 Validator + 2 Non-Validator)
+	serverManager, err := framework.NewServerManager(
+		t,
+		numberOfServers,
+		func(i int, config *framework.TestServerConfig) {
+			if i >= ibftMinNodes {
 				// Other nodes should not be in the validator set
 				dirPrefix := "nexus-non-validator-"
 				config.SetIBFTDir(fmt.Sprintf("%s%d", dirPrefix, i))
@@ -95,4 +126,7 @@ func TestClusterTransactionBroadcast(t *testing.T) {
 		require.NoError(t, err, fmt.Sprintf("Server %d should be able to fetch balance of receiving address after sending", i))
 		require.Equal(t, halfPremineBalance, balance, fmt.Sprintf("Server #%d should have exact balance on recipient", i))
 	}
+
+	// TODO: Add tests:
+	// 			- for checking validator fee address balances after paid gas fees
 }

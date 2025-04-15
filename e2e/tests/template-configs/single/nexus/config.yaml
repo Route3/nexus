@@ -1,8 +1,0 @@
-engine_url: "http://mitmproxy:8550"
-engine_token_path: "/geth-init/jwt.hex"
-engine_jwt_id: "nexus-devenv"
-data_dir: "/nexus"
-chain_config: "/nexus-init/genesis.json"
-execution_genesis_hash: "0xd5e46105991a70a95dfc5416e125b18a41486694b3e4e5f4ba283395ce412f09"
-secrets_config: "/nexus-init/secrets.json"
-# suggested_fee_recipient: "0x0000000000000000000000000000000000000000"
