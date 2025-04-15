@@ -10,7 +10,6 @@ import (
 	"github.com/apex-fusion/nexus/network"
 	"github.com/apex-fusion/nexus/secrets"
 	"github.com/apex-fusion/nexus/secrets/local"
-	"github.com/apex-fusion/nexus/validators"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/hashicorp/go-hclog"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -62,19 +61,6 @@ func (t *TestServer) initNexus() (*InitIBFTResult, error) {
 		return nil, setErr
 	}
 
-	if t.Config.ValidatorType == validators.BLSValidatorType {
-		// Generate the BLS Key
-		_, bksKeyEncoded, keyErr := crypto.GenerateAndEncodeBLSSecretKey()
-		if keyErr != nil {
-			return nil, keyErr
-		}
-
-		// Write the networking private key to the secrets manager storage
-		if setErr := localSecretsManager.SetSecret(secrets.ValidatorBLSKey, bksKeyEncoded); setErr != nil {
-			return nil, setErr
-		}
-	}
-
 	// Get the node ID from the private key
 	nodeID, err := peer.IDFromPrivateKey(libp2pKey)
 	if err != nil {
@@ -101,12 +87,14 @@ func (t *TestServer) templateNexusConfig() error {
 		ExecutionGenesisHash string
 		EnginePort           int
 		GRPCPort             int
+		LibP2PPort           int
 		PathToJWT            string
 		PathToGenesis        string
 		DataDir              string
 	}{
 		ExecutionGenesisHash: t.Config.ExecutionGenesisBlockHash,
 		EnginePort:           t.Config.EnginePort,
+		LibP2PPort:           t.Config.LibP2PPort,
 		PathToJWT:            path.Join(t.Config.RootDir, t.Config.GethDataDir, "jwt.hex"),
 		PathToGenesis:        path.Join(t.Config.RootDir, "genesis.json"),
 		DataDir:              path.Join(t.Config.RootDir, t.Config.IBFTDir),
@@ -169,7 +157,6 @@ func (t *TestServer) generateNexusGenesis() error {
 	args := []string{
 		genesisCmd.Use,
 		"--consensus", "ibft",
-		"--ibft-validator-type", string(t.Config.ValidatorType),
 	}
 
 	args = append(args, "--ibft-validators-prefix-path", t.Config.IBFTDirPrefix)

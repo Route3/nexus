@@ -8,7 +8,6 @@ import (
 	"github.com/apex-fusion/nexus/consensus/ibft"
 	"github.com/apex-fusion/nexus/crypto"
 	"github.com/apex-fusion/nexus/types"
-	"github.com/apex-fusion/nexus/validators"
 )
 
 type ConsensusType int
@@ -23,23 +22,22 @@ type TestServerConfig struct {
 	ReservedPorts             []ReservedPort
 	JWTHex                    string
 	GethGenesis               string
-	JSONRPCPort               int                      // The geth's JSON RPC endpoint port
-	GRPCPort                  int                      // The nexus's GRPC endpoint port
-	LibP2PPort                int                      // The nexus's LibP2P endpoint port
-	EnginePort                int                      // The geth's Engine API port
-	DevP2PPort                int                      // The geth's DevP2P port
-	RootDir                   string                   // The root directory for test environment
-	IBFTDirPrefix             string                   // The prefix of data directory for IBFT
-	IBFTDir                   string                   // The name of data directory for IBFT
-	GethDataDir               string                   // The name of the data directory for Geth
-	ValidatorType             validators.ValidatorType // Validator Type
-	Bootnodes                 []string                 // Bootnode Addresses
-	EpochSize                 uint64                   // The epoch size in blocks for the IBFT layer
-	ShowsLog                  bool                     // Flag specifying if logs are shown
-	Name                      string                   // Name of the server
-	LogsDir                   string                   // Directory where logs are saved
-	Signer                    *crypto.EIP155Signer     // Signer used for transactions
-	BlockTime                 uint64                   // Minimum block generation time (in s)
+	JSONRPCPort               int                  // The geth's JSON RPC endpoint port
+	GRPCPort                  int                  // The nexus's GRPC endpoint port
+	LibP2PPort                int                  // The nexus's LibP2P endpoint port
+	EnginePort                int                  // The geth's Engine API port
+	DevP2PPort                int                  // The geth's DevP2P port
+	RootDir                   string               // The root directory for test environment
+	IBFTDirPrefix             string               // The prefix of data directory for IBFT
+	IBFTDir                   string               // The name of data directory for IBFT
+	GethDataDir               string               // The name of the data directory for Geth
+	Bootnodes                 []string             // Bootnode Addresses
+	EpochSize                 uint64               // The epoch size in blocks for the IBFT layer
+	ShowsLog                  bool                 // Flag specifying if logs are shown
+	Name                      string               // Name of the server
+	LogsDir                   string               // Directory where logs are saved
+	Signer                    *crypto.EIP155Signer // Signer used for transactions
+	BlockTime                 uint64               // Minimum block generation time (in s)
 	ExecutionGenesisBlockHash string
 }
 
@@ -62,11 +60,6 @@ func (t *TestServerConfig) PrivateKey() (*ecdsa.PrivateKey, error) {
 }
 
 // CALLBACKS //
-
-// SetValidatorType callback sets validator type
-func (t *TestServerConfig) SetValidatorType(vt validators.ValidatorType) {
-	t.ValidatorType = vt
-}
 
 // SetIBFTDir callback sets the name of data directory for IBFT
 func (t *TestServerConfig) SetIBFTDir(ibftDir string) {

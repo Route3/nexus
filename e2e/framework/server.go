@@ -6,7 +6,6 @@ import (
 	ibftOp "github.com/apex-fusion/nexus/consensus/ibft/proto"
 	"github.com/apex-fusion/nexus/crypto"
 	"github.com/apex-fusion/nexus/server/proto"
-	"github.com/apex-fusion/nexus/validators"
 	"github.com/umbracle/ethgo/jsonrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -54,7 +53,6 @@ func NewTestServer(t *testing.T, rootDir string, callback TestServerConfigCallba
 		DevP2PPort:    ports[4].Port(),
 		RootDir:       rootDir,
 		Signer:        crypto.NewEIP155Signer(100),
-		ValidatorType: validators.ECDSAValidatorType,
 	}
 
 	if callback != nil {
@@ -161,7 +159,7 @@ func (t *TestServer) Start(ctx context.Context) error {
 func (t *TestServer) GetStdout(logFilename string) io.Writer {
 	var writers []io.Writer
 
-	f, err := os.OpenFile(filepath.Join(t.Config.LogsDir, fmt.Sprintf("%s.log", logFilename)), os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	f, err := os.OpenFile(filepath.Join(t.Config.LogsDir, fmt.Sprintf("%s-%s.log", logFilename, t.Config.Name)), os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
 		t.t.Fatal(err)
 	}
