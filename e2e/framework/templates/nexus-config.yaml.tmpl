@@ -6,3 +6,5 @@ data_dir: "{{ .DataDir }}"
 chain_config: "{{ .PathToGenesis }}"
 execution_genesis_hash: "{{ .ExecutionGenesisHash }}"
 secrets_config: "{{ .DataDir }}/secrets.json"
+network:
+    libp2p_addr: ":{{ .LibP2PPort }}"
