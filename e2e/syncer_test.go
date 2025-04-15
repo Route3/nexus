@@ -8,54 +8,43 @@ import (
 	"time"
 
 	"github.com/apex-fusion/nexus/e2e/framework"
-	"github.com/apex-fusion/nexus/validators"
 )
 
 func TestClusterBlockSync(t *testing.T) {
 	const (
 		numNonValidators = 2
+		numberOfServers  = IBFTMinNodes + numNonValidators
 		desiredHeight    = 10
 	)
 
-	runTest := func(t *testing.T, validatorType validators.ValidatorType) {
-		t.Helper()
+	t.Helper()
 
-		// Start IBFT cluster (4 Validator + 2 Non-Validator)
-		ibftManager, err := framework.NewServerManager(
-			t,
-			IBFTMinNodes+numNonValidators,
-			func(i int, config *framework.TestServerConfig) {
-				config.SetValidatorType(validatorType)
+	// Start IBFT cluster (4 Validator + 2 Non-Validator)
+	ibftManager, err := framework.NewServerManager(
+		t,
+		numberOfServers,
+		func(i int, config *framework.TestServerConfig) {
+			if i >= IBFTMinNodes {
+				// Other nodes should not be in the validator set
+				dirPrefix := "nexus-non-validator-"
+				config.SetIBFTDir(fmt.Sprintf("%s%d", dirPrefix, i))
+			}
+		})
 
-				if i >= IBFTMinNodes {
-					// Other nodes should not be in the validator set
-					dirPrefix := "nexus-non-validator-"
-					config.SetIBFTDir(fmt.Sprintf("%s%d", dirPrefix, i))
-				}
-			})
-		require.NoError(t, err)
+	require.NoError(t, err)
 
-		startContext, startCancelFn := context.WithTimeout(context.Background(), time.Minute)
-		defer startCancelFn()
-		ibftManager.StartServers(startContext)
+	startContext, startCancelFn := context.WithTimeout(context.Background(), time.Minute)
+	defer startCancelFn()
+	ibftManager.StartServers(startContext)
 
-		servers := make([]*framework.TestServer, 0)
-		for i := 0; i < IBFTMinNodes+numNonValidators; i++ {
-			servers = append(servers, ibftManager.GetServer(i))
-		}
-		// All nodes should have mined the same block eventually
-		waitErrors := framework.WaitForServersToSeal(servers, desiredHeight)
-
-		if len(waitErrors) != 0 {
-			t.Fatalf("Unable to wait for all nodes to seal blocks, %v", waitErrors)
-		}
+	servers := make([]*framework.TestServer, 0)
+	for i := 0; i < numberOfServers; i++ {
+		servers = append(servers, ibftManager.GetServer(i))
 	}
+	// All nodes should have mined the same block eventually
+	waitErrors := framework.WaitForServersToSeal(servers, desiredHeight)
 
-	t.Run("ECDSA", func(t *testing.T) {
-		runTest(t, validators.ECDSAValidatorType)
-	})
-
-	t.Run("BLS", func(t *testing.T) {
-		runTest(t, validators.BLSValidatorType)
-	})
+	if len(waitErrors) != 0 {
+		t.Fatalf("Unable to wait for all nodes to seal blocks, %v", waitErrors)
+	}
 }
