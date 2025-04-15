@@ -44,7 +44,7 @@ func NewTestServer(t *testing.T, rootDir string, callback TestServerConfigCallba
 
 	// Sets the services to start on open ports
 	config := &TestServerConfig{
-		IBFTDirPrefix: "e2e-ibft-",
+		IBFTDirPrefix: "e2e-nexus-",
 		ReservedPorts: ports,
 		GRPCPort:      ports[0].Port(),
 		LibP2PPort:    ports[1].Port(),
