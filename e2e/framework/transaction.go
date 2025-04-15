@@ -24,7 +24,7 @@ type PreparedTransaction struct {
 type Transaction struct {
 	key     *wallet.Key
 	client  *jsonrpc.Eth
-	hash    *ethgo.Hash
+	Hash    *ethgo.Hash
 	receipt *ethgo.Receipt
 	raw     *ethgo.Transaction
 	chainID *big.Int
@@ -104,13 +104,13 @@ func (t *Transaction) sendImpl() error {
 		return fmt.Errorf("failed to send transaction: %w", err)
 	}
 
-	t.hash = &txHash
+	t.Hash = &txHash
 
 	return nil
 }
 
 func (t *Transaction) Send() *Transaction {
-	if t.hash != nil {
+	if t.Hash != nil {
 		panic("BUG: txn already sent")
 	}
 
@@ -167,7 +167,7 @@ func (t *Transaction) Wait() {
 	ctx, cancelFn := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancelFn()
 
-	receipt, err := tests.WaitForReceipt(ctx, t.client, *t.hash)
+	receipt, err := tests.WaitForReceipt(ctx, t.client, *t.Hash)
 	if err != nil {
 		t.waitErr = err
 	} else {

@@ -4,37 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"net"
 	"os"
-	"strings"
 	"sync"
-	"testing"
 	"time"
 
-	"github.com/apex-fusion/nexus/crypto"
 	"github.com/apex-fusion/nexus/helper/tests"
-	"github.com/apex-fusion/nexus/server/proto"
-	"github.com/apex-fusion/nexus/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/umbracle/ethgo"
-	"github.com/umbracle/ethgo/jsonrpc"
-	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 var (
-	DefaultTimeout = time.Minute
+	DefaultTimeout = 5 * time.Minute
 )
 
 type AtomicErrors struct {
 	sync.RWMutex
 	errors []error
-}
-
-func NewAtomicErrors(capacity int) AtomicErrors {
-	return AtomicErrors{
-		errors: make([]error, 0, capacity),
-	}
 }
 
 func (a *AtomicErrors) Append(err error) {
@@ -49,136 +33,6 @@ func (a *AtomicErrors) Errors() []error {
 	defer a.RUnlock()
 
 	return a.errors
-}
-
-func EthToWei(ethValue int64) *big.Int {
-	return EthToWeiPrecise(ethValue, 18)
-}
-
-func EthToWeiPrecise(ethValue int64, decimals int64) *big.Int {
-	return new(big.Int).Mul(
-		big.NewInt(ethValue),
-		new(big.Int).Exp(big.NewInt(10), big.NewInt(decimals), nil))
-}
-
-// GetAccountBalance is a helper method for fetching the Balance field of an account
-func GetAccountBalance(t *testing.T, address types.Address, rpcClient *jsonrpc.Client) *big.Int {
-	t.Helper()
-
-	accountBalance, err := rpcClient.Eth().GetBalance(
-		ethgo.Address(address),
-		ethgo.Latest,
-	)
-
-	assert.NoError(t, err)
-
-	return accountBalance
-}
-
-func EcrecoverFromBlockhash(hash types.Hash, signature []byte) (types.Address, error) {
-	pubKey, err := crypto.RecoverPubkey(signature, crypto.Keccak256(hash.Bytes()))
-	if err != nil {
-		return types.Address{}, err
-	}
-
-	return crypto.PubKeyToAddress(pubKey), nil
-}
-
-func MultiJoinSerial(t *testing.T, srvs []*TestServer) {
-	t.Helper()
-
-	dials := []*TestServer{}
-
-	for i := 0; i < len(srvs)-1; i++ {
-		srv, dst := srvs[i], srvs[i+1]
-		dials = append(dials, srv, dst)
-	}
-	MultiJoin(t, dials...)
-}
-
-func MultiJoin(t *testing.T, srvs ...*TestServer) {
-	t.Helper()
-
-	if len(srvs)%2 != 0 {
-		t.Fatal("not an even number")
-	}
-
-	atomicErrors := NewAtomicErrors(len(srvs) / 2)
-
-	var wg sync.WaitGroup
-
-	for i := 0; i < len(srvs); i += 2 {
-		src, dst := srvs[i], srvs[i+1]
-		srcIndex, dstIndex := i, i+1
-
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			srcClient, dstClient := src.Operator(), dst.Operator()
-			ctxFotStatus, cancelForStatus := context.WithTimeout(context.Background(), DefaultTimeout)
-
-			defer cancelForStatus()
-
-			dstStatus, err := dstClient.GetStatus(ctxFotStatus, &empty.Empty{})
-			if err != nil {
-				atomicErrors.Append(fmt.Errorf("failed to get status from server %d, error=%w", dstIndex, err))
-
-				return
-			}
-
-			dstAddr := strings.Split(dstStatus.P2PAddr, ",")[0]
-			ctxForConnecting, cancelForConnecting := context.WithTimeout(context.Background(), DefaultTimeout)
-
-			defer cancelForConnecting()
-
-			_, err = srcClient.PeersAdd(ctxForConnecting, &proto.PeersAddRequest{
-				Id: dstAddr,
-			})
-
-			if err != nil {
-				atomicErrors.Append(fmt.Errorf("failed to connect from %d to %d, error=%w", srcIndex, dstIndex, err))
-			}
-		}()
-	}
-
-	wg.Wait()
-
-	for _, err := range atomicErrors.Errors() {
-		t.Error(err)
-	}
-
-	if len(atomicErrors.Errors()) > 0 {
-		t.Fail()
-	}
-}
-
-// WaitUntilPeerConnects waits until server connects to required number of peers
-// otherwise returns timeout
-func WaitUntilPeerConnects(ctx context.Context, srv *TestServer, requiredNum int) (*proto.PeersListResponse, error) {
-	clt := srv.Operator()
-	res, err := tests.RetryUntilTimeout(ctx, func() (interface{}, bool) {
-		subCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		res, _ := clt.PeersList(subCtx, &empty.Empty{})
-		if res != nil && len(res.Peers) >= requiredNum {
-			return res, false
-		}
-
-		return nil, true
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	peersListResponse, ok := res.(*proto.PeersListResponse)
-	if !ok {
-		return nil, errors.New("invalid type assertion")
-	}
-
-	return peersListResponse, nil
 }
 
 // WaitUntilBlockMined waits until server mined block with bigger height than given height
@@ -261,7 +115,10 @@ func FindAvailablePorts(n, from, to int) ([]ReservedPort, error) {
 		if newPort == nil {
 			// Close current reserved ports
 			for _, p := range ports {
-				p.Close()
+				err := p.Close()
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			return nil, errors.New("couldn't reserve required number of ports")
@@ -290,14 +147,14 @@ func WaitForServersToSeal(servers []*TestServer, desiredHeight uint64) []error {
 	for i := 0; i < len(servers); i++ {
 		wg.Add(1)
 
-		go func(indx int) {
+		go func(i int) {
 			waitCtx, waitCancelFn := context.WithTimeout(context.Background(), time.Minute)
 			defer func() {
 				waitCancelFn()
 				wg.Done()
 			}()
 
-			_, waitErr := WaitUntilBlockMined(waitCtx, servers[indx], desiredHeight)
+			_, waitErr := WaitUntilBlockMined(waitCtx, servers[i], desiredHeight)
 			if waitErr != nil {
 				appendWaitErr(fmt.Errorf("unable to wait for block, %w", waitErr))
 			}
