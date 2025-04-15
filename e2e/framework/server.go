@@ -140,8 +140,8 @@ func (t *TestServer) Stop() {
 	}
 }
 
-func (t *TestServer) Start(ctx context.Context) error {
-	err := t.startGeth(ctx)
+func (t *TestServer) Start(ctx context.Context, bootnodeEnode string) error {
+	err := t.startGeth(ctx, bootnodeEnode)
 	if err != nil {
 		return err
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/umbracle/ethgo"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func (t *TestServer) initGeth() error {
@@ -35,23 +36,31 @@ func (t *TestServer) initGeth() error {
 	return nil
 }
 
-func (t *TestServer) startGeth(ctx context.Context) error {
+// startGeth starts go-ethereum and if the bootnode is set, it will also fetch the enode.
+func (t *TestServer) startGeth(ctx context.Context, bootnodeEnode string) error {
 	args := []string{
-		"--verbosity=5",
+		"--verbosity=4",
 		"--http",
-		"--http.api=eth,net,web3",
+		"--http.api=eth,net,web3,admin,txpool",
 		"--http.addr=0.0.0.0",
 		"--http.corsdomain=*",
 		fmt.Sprintf("--http.port=%d", t.Config.JSONRPCPort),
 		"--authrpc.vhosts=*",
 		"--authrpc.addr=0.0.0.0",
-		fmt.Sprintf("--port=%d", t.Config.DevP2PPort),
 		fmt.Sprintf("--authrpc.jwtsecret=%s/jwt.hex", t.Config.GethDataDir),
 		fmt.Sprintf("--authrpc.port=%d", t.Config.EnginePort),
 		"--datadir=/geth",
-		"--nodiscover",
 		"--syncmode=full",
+		"--state.scheme=path", // in order to use pebbledb
 		fmt.Sprintf("--datadir=%s", t.Config.GethDataDir),
+		fmt.Sprintf("--port=%d", t.Config.DevP2PPort),
+		"--nat=extip:127.0.0.1",
+		"--netrestrict=127.0.0.1/32",
+	}
+
+	// If bootnodeEnode arg is passed, then we set it
+	if bootnodeEnode != "" {
+		args = append(args, fmt.Sprintf("--bootnodes=%s", strings.TrimSuffix(bootnodeEnode, "?discport=0")))
 	}
 
 	t.ReleaseReservedPorts()
@@ -83,6 +92,22 @@ func (t *TestServer) startGeth(ctx context.Context) error {
 
 	castBlock := block.(*ethgo.Block)
 	t.Config.ExecutionGenesisBlockHash = castBlock.Hash.String()
+
+	// If bootnodeEnode arg is not passed, then we just need to fetch it
+	if bootnodeEnode == "" {
+		var result map[string]interface{}
+		err := t.JSONRPC().Call("admin_nodeInfo", &result)
+		if err != nil {
+			return fmt.Errorf("failed to fetch enode for bootnodeEnode: %w", err)
+		}
+
+		enode, ok := result["enode"].(string)
+		if !ok {
+			return fmt.Errorf("failed to parse enode from response: %w", err)
+		}
+
+		t.Config.GethBootnodeEnode = enode
+	}
 
 	return nil
 }

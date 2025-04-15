@@ -21,7 +21,7 @@ type PreparedTransaction struct {
 	Input    []byte
 }
 
-type Txn struct {
+type Transaction struct {
 	key     *wallet.Key
 	client  *jsonrpc.Eth
 	hash    *ethgo.Hash
@@ -33,50 +33,50 @@ type Txn struct {
 	waitErr error
 }
 
-func (t *Txn) Deploy(input []byte) *Txn {
+func (t *Transaction) Deploy(input []byte) *Transaction {
 	t.raw.Input = input
 
 	return t
 }
 
-func (t *Txn) Transfer(to ethgo.Address, value *big.Int) *Txn {
+func (t *Transaction) Transfer(to ethgo.Address, value *big.Int) *Transaction {
 	t.raw.To = &to
 	t.raw.Value = value
 
 	return t
 }
 
-func (t *Txn) Value(value *big.Int) *Txn {
+func (t *Transaction) Value(value *big.Int) *Transaction {
 	t.raw.Value = value
 
 	return t
 }
 
-func (t *Txn) To(to ethgo.Address) *Txn {
+func (t *Transaction) To(to ethgo.Address) *Transaction {
 	t.raw.To = &to
 
 	return t
 }
 
-func (t *Txn) GasLimit(gas uint64) *Txn {
+func (t *Transaction) GasLimit(gas uint64) *Transaction {
 	t.raw.Gas = gas
 
 	return t
 }
 
-func (t *Txn) GasPrice(price uint64) *Txn {
+func (t *Transaction) GasPrice(price uint64) *Transaction {
 	t.raw.GasPrice = price
 
 	return t
 }
 
-func (t *Txn) Nonce(nonce uint64) *Txn {
+func (t *Transaction) Nonce(nonce uint64) *Transaction {
 	t.raw.Nonce = nonce
 
 	return t
 }
 
-func (t *Txn) sendImpl() error {
+func (t *Transaction) sendImpl() error {
 	// populate default values
 	t.raw.Gas = 1048576
 	t.raw.GasPrice = 1048576
@@ -109,7 +109,7 @@ func (t *Txn) sendImpl() error {
 	return nil
 }
 
-func (t *Txn) Send() *Txn {
+func (t *Transaction) Send() *Transaction {
 	if t.hash != nil {
 		panic("BUG: txn already sent")
 	}
@@ -119,12 +119,12 @@ func (t *Txn) Send() *Txn {
 	return t
 }
 
-func (t *Txn) Receipt() *ethgo.Receipt {
+func (t *Transaction) Receipt() *ethgo.Receipt {
 	return t.receipt
 }
 
 //nolint:thelper
-func (t *Txn) NoFail(tt *testing.T) {
+func (t *Transaction) NoFail(tt *testing.T) {
 	t.Wait()
 
 	if t.sendErr != nil {
@@ -140,7 +140,7 @@ func (t *Txn) NoFail(tt *testing.T) {
 	}
 }
 
-func (t *Txn) Complete() bool {
+func (t *Transaction) Complete() bool {
 	if t.sendErr != nil {
 		// txn failed during sending
 		return true
@@ -159,7 +159,7 @@ func (t *Txn) Complete() bool {
 	return false
 }
 
-func (t *Txn) Wait() {
+func (t *Transaction) Wait() {
 	if t.Complete() {
 		return
 	}

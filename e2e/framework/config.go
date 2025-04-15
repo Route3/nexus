@@ -39,6 +39,7 @@ type TestServerConfig struct {
 	Signer                    *crypto.EIP155Signer // Signer used for transactions
 	BlockTime                 uint64               // Minimum block generation time (in s)
 	ExecutionGenesisBlockHash string
+	GethBootnodeEnode         string
 }
 
 // DataDir returns path of data directory server uses

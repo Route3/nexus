@@ -18,7 +18,7 @@ func TestClusterBlockSync(t *testing.T) {
 	)
 
 	// Start IBFT cluster (4 Validator + 2 Non-Validator)
-	ibftManager, err := framework.NewServerManager(
+	serverManager, err := framework.NewServerManager(
 		t,
 		numberOfServers,
 		func(i int, config *framework.TestServerConfig) {
@@ -33,16 +33,13 @@ func TestClusterBlockSync(t *testing.T) {
 
 	startContext, startCancelFn := context.WithTimeout(context.Background(), time.Minute)
 	defer startCancelFn()
-	ibftManager.StartServers(startContext)
+	serverManager.StartServers(startContext)
 
-	servers := make([]*framework.TestServer, 0)
-	for i := 0; i < numberOfServers; i++ {
-		servers = append(servers, ibftManager.GetServer(i))
-	}
 	// All nodes should have mined the same block eventually
-	waitErrors := framework.WaitForServersToSeal(servers, desiredHeight)
+	waitErrors := framework.WaitForServersToSeal(serverManager.Servers, desiredHeight)
 
 	if len(waitErrors) != 0 {
 		t.Fatalf("Unable to wait for all nodes to seal blocks, %v", waitErrors)
 	}
+
 }

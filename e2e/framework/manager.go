@@ -17,7 +17,7 @@ const PREMINE_BALANCE = "0x9B18AB5DF7180B6B8000000"
 
 type ServerManager struct {
 	t                  *testing.T
-	servers            []*TestServer
+	Servers            []*TestServer
 	PremineAllocations map[string]string // In hex format the premine alloc for EL
 }
 
@@ -109,13 +109,20 @@ func NewServerManager(
 }
 
 func (m *ServerManager) StartServers(ctx context.Context) {
-	for idx, srv := range m.servers {
-		if err := srv.Start(ctx); err != nil {
+	// We need to start the first geth to fetch bootnode data, and stop it
+	err := m.Servers[0].startGeth(ctx, "")
+	if err != nil {
+		m.t.Fatal(fmt.Errorf("failed to start bootnode: %w", err))
+	}
+	m.Servers[0].Stop()
+
+	for idx, srv := range m.Servers {
+		if err := srv.Start(ctx, m.Servers[0].Config.GethBootnodeEnode); err != nil {
 			m.t.Fatal(fmt.Errorf("server %d failed to start: %+v", idx, err))
 		}
 	}
 
-	for idx, srv := range m.servers {
+	for idx, srv := range m.Servers {
 		if err := srv.WaitForReady(ctx); err != nil {
 			m.t.Logf("server %d couldn't advance block: %+v", idx, err)
 			m.t.Fatal(err)
@@ -124,17 +131,17 @@ func (m *ServerManager) StartServers(ctx context.Context) {
 }
 
 func (m *ServerManager) StopServers() {
-	for _, srv := range m.servers {
+	for _, srv := range m.Servers {
 		srv.Stop()
 	}
 }
 
 func (m *ServerManager) GetServer(i int) *TestServer {
-	if i >= len(m.servers) {
+	if i >= len(m.Servers) {
 		return nil
 	}
 
-	return m.servers[i]
+	return m.Servers[i]
 }
 
 func initLogsDir(t *testing.T) (string, error) {

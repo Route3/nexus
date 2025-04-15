@@ -15,8 +15,8 @@ import (
 	"sync/atomic"
 )
 
-func (t *TestServer) Txn(key *wallet.Key) *Txn {
-	tt := &Txn{
+func (t *TestServer) Transaction(key *wallet.Key) *Transaction {
+	tt := &Transaction{
 		key:     key,
 		client:  t.JSONRPC().Eth(),
 		chainID: t.chainID,
