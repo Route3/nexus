@@ -17,8 +17,6 @@ func TestClusterBlockSync(t *testing.T) {
 		desiredHeight    = 10
 	)
 
-	t.Helper()
-
 	// Start IBFT cluster (4 Validator + 2 Non-Validator)
 	ibftManager, err := framework.NewServerManager(
 		t,
