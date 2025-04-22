@@ -220,49 +220,38 @@ func (c *Client) NewPayloadV3(payload *types.Payload, beaconBlockRoot string) (r
 
 func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot string, buildPayload bool, timestamp int64) (responseData *ForkchoiceUpdatedV3Response, err error) {
 	responseData = new(ForkchoiceUpdatedV3Response)
-	for {
-		c.logger.Debug("Running ForkChoiceUpdatedV3", "blockHash", blockHash)
+	c.logger.Debug("Running ForkChoiceUpdatedV3", "blockHash", blockHash)
 
-		blockTimestamp := "0x" + fmt.Sprintf("%X", timestamp)
+	blockTimestamp := "0x" + fmt.Sprintf("%X", timestamp)
 
-		params := []ForkchoiceUpdatedV3Param{
-			ForkchoiceStateParam{
-				HeadBlockHash:      blockHash.String(),
-				SafeBlockHash:      blockHash.String(),
-				FinalizedBlockHash: blockHash.String(),
-			},
-			nil,
-		}
-
-		if buildPayload {
-			params[1] = ForkchoicePayloadAttributes{
-				Timestamp:             blockTimestamp,
-				PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000",
-				SuggestedFeeRecipient: c.FeeRecipient,
-				Withdrawals:           make([]string, 0),
-				ParentBeaconBlockroot: parentBeaconBlockRoot,
-			}
-		}
-		requestData := ForkchoiceUpdatedV3Request{
-			RequestBase: getRequestBase(ForkchoiceUpdatedV3Method),
-			Params:      params,
-		}
-
-		err = c.handleRequest(requestData, responseData)
-
-		// If no error, stop retrying
-		if err == nil {
-			break
-		}
-
-		c.logger.Error("engine API error, retrying indefinitely", "error", err)
-
-		time.Sleep(200 * time.Millisecond)
+	params := []ForkchoiceUpdatedV3Param{
+		ForkchoiceStateParam{
+			HeadBlockHash:      blockHash.String(),
+			SafeBlockHash:      blockHash.String(),
+			FinalizedBlockHash: blockHash.String(),
+		},
+		nil,
 	}
+
+	if buildPayload {
+		params[1] = ForkchoicePayloadAttributes{
+			Timestamp:             blockTimestamp,
+			PrevRandao:            "0x0000000000000000000000000000000000000000000000000000000000000000",
+			SuggestedFeeRecipient: c.FeeRecipient,
+			Withdrawals:           make([]string, 0),
+			ParentBeaconBlockroot: parentBeaconBlockRoot,
+		}
+	}
+	requestData := ForkchoiceUpdatedV3Request{
+		RequestBase: getRequestBase(ForkchoiceUpdatedV3Method),
+		Params:      params,
+	}
+
+	c.retryIndefinitely(&requestData, &responseData)
 
 	if responseData.Result.PayloadStatus.Status == "SYNCING" {
 		c.logger.Error("payload status is not VALID!", "status", responseData.Result.PayloadStatus.Status)
-		return nil, fmt.Errorf("payload status is not VALID!")
+		return nil, fmt.Errorf("payload status is not VALID")
 	}
 
 	c.logger.Debug("Running ForkChoiceUpdatedV3", "completed!", blockHash)
