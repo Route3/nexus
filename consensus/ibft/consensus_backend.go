@@ -179,7 +179,8 @@ func (i *backendIBFT) buildBlock(parent *types.Header, ctx context.Context) (*ty
 	}
 
 	// set the timestamp
-	header.Timestamp = uint64(time.Now().UnixMilli())
+	potentialTimestamp := i.calcHeaderTimestamp(parent.Timestamp, time.Now())
+	header.Timestamp = uint64(potentialTimestamp.Unix())
 
 	parentCommittedSeals, err := i.extractParentCommittedSeals(parent)
 	if err != nil {
@@ -193,6 +194,11 @@ func (i *backendIBFT) buildBlock(parent *types.Header, ctx context.Context) (*ty
 		i.logger.Error("cannot get engine's payload", "err", err)
 
 		return nil, err
+	}
+
+	timeUntilTimestamp := time.Until(potentialTimestamp)
+	if timeUntilTimestamp > 0 {
+		time.Sleep(timeUntilTimestamp)
 	}
 
 	header.PayloadHash = payloadResponse.Result.ExecutionPayload.BlockHash
@@ -214,6 +220,14 @@ func (i *backendIBFT) buildBlock(parent *types.Header, ctx context.Context) (*ty
 	// compute the hash, this is only a provisional hash since the final one
 	// is sealed after all the committed seals
 	block.Header.ComputeHash()
+
+	parentBeaconBlockRoot := parent.Hash.String()
+	_, err = i.blockchain.EngineClient.NewPayloadV3(block.ExecutionPayload, parentBeaconBlockRoot)
+	if err != nil {
+		i.logger.Error("payload verification failed", "err", err)
+
+		return nil, err
+	}
 
 	return &block, nil
 }
@@ -252,4 +266,24 @@ func (i *backendIBFT) extractParentCommittedSeals(
 	}
 
 	return i.extractCommittedSeals(header)
+}
+
+// calcHeaderTimestamp calculates the new block timestamp, based
+// on the block time and parent timestamp
+func (i *backendIBFT) calcHeaderTimestamp(parentUnix uint64, currentTime time.Time) time.Time {
+	var (
+		parentTimestamp    = time.Unix(int64(parentUnix), 0)
+		potentialTimestamp = parentTimestamp.Add(i.blockTime)
+	)
+
+	if potentialTimestamp.Before(currentTime) {
+		// The deadline for creating this next block
+		// has passed, round it to the nearest
+		// multiple of block time
+		// t........t+blockT...x (t+blockT.x; now).....t+blockT (potential)
+
+		potentialTimestamp = currentTime.Add(i.blockTime / 2).Round(i.blockTime)
+	}
+
+	return potentialTimestamp
 }

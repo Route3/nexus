@@ -237,6 +237,11 @@ func (s *syncer) bulkSyncWithPeer(peerID peer.ID, newBlockCallback func(*types.B
 				continue
 			}
 
+			if block.Number() <= s.blockchain.Header().Number {
+				s.logger.Info("block already inserted", "block", block.Number(), "source", "syncer")
+				continue
+			}
+
 			if err := s.blockchain.VerifyFinalizedBlock(block); err != nil {
 				return lastReceivedNumber, false, fmt.Errorf("unable to verify block, %w", err)
 			}

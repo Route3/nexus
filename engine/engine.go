@@ -68,7 +68,7 @@ func (c *Client) Init(latestPayloadHash types.Hash, parentBeaconBlockRoot string
 		return
 	}
 
-	res, err := c.ForkChoiceUpdatedV3(latestPayloadHash, parentBeaconBlockRoot, true, time.Now().Unix())
+	res, err := c.ForkChoiceUpdatedV3(latestPayloadHash, parentBeaconBlockRoot, true, uint64(time.Now().Unix()))
 	if err != nil {
 		return
 	}
@@ -218,7 +218,7 @@ func (c *Client) NewPayloadV3(payload *types.Payload, beaconBlockRoot string) (r
 	return
 }
 
-func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot string, buildPayload bool, timestamp int64) (responseData *ForkchoiceUpdatedV3Response, err error) {
+func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot string, buildPayload bool, timestamp uint64) (responseData *ForkchoiceUpdatedV3Response, err error) {
 	responseData = new(ForkchoiceUpdatedV3Response)
 	c.logger.Debug("Running ForkChoiceUpdatedV3", "blockHash", blockHash)
 

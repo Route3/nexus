@@ -47,6 +47,14 @@ func (i *backendIBFT) IsValidBlock(proposal []byte) bool {
 		return false
 	}
 
+	parentBeaconBlockRoot := latestHeader.Hash.String()
+	_, err := i.blockchain.EngineClient.NewPayloadV3(newBlock.ExecutionPayload, parentBeaconBlockRoot)
+	if err != nil {
+		i.logger.Error("payload verification failed", "err", err)
+
+		return false
+	}
+
 	return true
 }
 

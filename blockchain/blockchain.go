@@ -3,12 +3,6 @@ package blockchain
 import (
 	"errors"
 	"fmt"
-	"math/big"
-	"path/filepath"
-	"sync"
-	"sync/atomic"
-	"time"
-
 	"github.com/apex-fusion/nexus/blockchain/storage"
 	"github.com/apex-fusion/nexus/blockchain/storage/leveldb"
 	"github.com/apex-fusion/nexus/blockchain/storage/memory"
@@ -19,6 +13,10 @@ import (
 	"github.com/apex-fusion/nexus/secrets"
 	"github.com/apex-fusion/nexus/types"
 	"github.com/apex-fusion/nexus/types/buildroot"
+	"math/big"
+	"path/filepath"
+	"sync"
+	"sync/atomic"
 
 	"github.com/hashicorp/go-hclog"
 	lru "github.com/hashicorp/golang-lru"
@@ -30,14 +28,11 @@ const (
 )
 
 var (
-	ErrNoBlock              = errors.New("no block data passed in")
+	ErrInvalidPayload       = errors.New("invalid payload")
 	ErrParentNotFound       = errors.New("parent block not found")
 	ErrInvalidParentHash    = errors.New("parent block hash is invalid")
 	ErrParentHashMismatch   = errors.New("invalid parent block hash")
 	ErrInvalidBlockSequence = errors.New("invalid block sequence")
-	ErrInvalidSha3Uncles    = errors.New("invalid block sha3 uncles root")
-	ErrInvalidTxRoot        = errors.New("invalid block transactions root")
-	ErrInvalidReceiptsSize  = errors.New("invalid number of receipts")
 	ErrInvalidStateRoot     = errors.New("invalid block state root")
 	ErrInvalidGasUsed       = errors.New("invalid block gas used")
 	ErrInvalidReceiptsRoot  = errors.New("invalid block receipts root")
@@ -679,14 +674,6 @@ func (b *Blockchain) WriteHeadersWithBodies(headers []*types.Header) error {
 	return nil
 }
 
-// VerifyPotentialBlock does the minimal block verification without consulting the
-// consensus layer. Should only be used if consensus checks are done
-// outside the method call
-func (b *Blockchain) VerifyPotentialBlock(block *types.Block) error {
-	// Do just the initial block verification
-	return b.verifyBlock(block)
-}
-
 // VerifyFinalizedBlock verifies that the block is valid by performing a series of checks.
 // It is assumed that the block status is sealed (committed)
 func (b *Blockchain) VerifyFinalizedBlock(block *types.Block) error {
@@ -706,7 +693,13 @@ func (b *Blockchain) VerifyFinalizedBlock(block *types.Block) error {
 // verifyBlock does the base (common) block verification steps by
 // verifying the block body as well as the parent information
 func (b *Blockchain) verifyBlock(block *types.Block) error {
+	parentBeaconBlockRoot := block.ParentHash().String()
 
+	_, err := b.EngineClient.NewPayloadV3(block.ExecutionPayload, parentBeaconBlockRoot)
+	if err != nil {
+		b.logger.Error("payload verification failed", "err", err)
+		return ErrInvalidPayload
+	}
 	return nil
 }
 
@@ -805,16 +798,8 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 	b.writeLock.Lock()
 	defer b.writeLock.Unlock()
 
-	parentBeaconBlockRoot := block.ParentHash().String()
-	_, err := b.EngineClient.NewPayloadV3(block.ExecutionPayload, parentBeaconBlockRoot)
-	if err != nil {
-		b.logger.Error("cannot create new payload", "err", err)
-		return err
-	}
-
 	currentBlockBeaconRoot := block.Hash().String()
-	time.Sleep(2 * time.Second)
-	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true, time.Now().Unix())
+	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true, block.Header.Timestamp)
 	if err != nil {
 		b.logger.Error("cannot run FCU for block insertion", "err", err)
 		return err
