@@ -20,7 +20,8 @@ func (b *Body) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
-	if len(tuple) < 3 {
+	// TODO: Backwards compatibility prior to Enhancements #15
+	if len(tuple) < 2 {
 		return fmt.Errorf("incorrect number of elements to decode header, expected 2 but found %d", len(tuple))
 	}
 

@@ -289,6 +289,7 @@ func (p *Payload) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
+	// TODO: Backwards compatibility prior to Enhancements #15
 	if len(elems) != 13 {
 		return fmt.Errorf("incorrect number of elements to decode payload, expected 12 but found %d", len(elems))
 	}
