@@ -24,6 +24,17 @@ const (
 	desiredHeight    = 10
 )
 
+// TestMain will run once before any tests.
+func TestMain(m *testing.M) {
+	// Build the Nexus binary with debugging flags enabled
+	if err := framework.Build(); err != nil {
+		panic("Cannot build Nexus binary: " + err.Error() + "")
+	}
+
+	// Run the tests
+	m.Run()
+}
+
 // TestBlockProduction is a shorter smoke test
 func TestBlockProduction(t *testing.T) {
 	// Start IBFT cluster (4 Validator + 2 Non-Validator)
