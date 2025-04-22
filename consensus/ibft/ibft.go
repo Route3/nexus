@@ -33,12 +33,13 @@ const (
 )
 
 var (
-	ErrInvalidHookParam             = errors.New("invalid IBFT hook param passed in")
-	ErrProposerSealByNonValidator   = errors.New("proposer seal by non-validator")
-	ErrInvalidMixHash               = errors.New("invalid mixhash")
-	ErrInvalidSha3Uncles            = errors.New("invalid sha3 uncles")
-	ErrWrongDifficulty              = errors.New("wrong difficulty")
-	ErrParentCommittedSealsNotFound = errors.New("parent committed seals not found")
+	ErrProposerSealByNonValidator = errors.New("proposer seal by non-validator")
+	ErrInvalidMixHash             = errors.New("invalid mixhash")
+	ErrInvalidSha3Uncles          = errors.New("invalid sha3 uncles")
+	ErrWrongDifficulty            = errors.New("wrong difficulty")
+	ErrGasUsedExceedsGasLimit     = errors.New("gas used exceeds gas limit in block")
+	ErrTimestampInFuture          = errors.New("header timestamp is too far in the future")
+	ErrNonMonotonicTimestamp      = errors.New("header timestamp is not monotonically increasing")
 )
 
 type forkManagerInterface interface {
@@ -350,6 +351,21 @@ func (i *backendIBFT) verifyHeaderImpl(
 	// difficulty has to match number
 	if header.Difficulty != header.Number {
 		return ErrWrongDifficulty
+	}
+
+	// Enforce GasUsed <= GasLimit
+	if header.GasUsed > header.GasLimit {
+		return ErrGasUsedExceedsGasLimit
+	}
+
+	// Prevent future timestamps
+	if header.Timestamp > (uint64(time.Now().UTC().Unix()) + 2*uint64(i.blockTime.Seconds())) {
+		return ErrTimestampInFuture
+	}
+
+	// Enforce timestamp > parent.Timestamp
+	if header.Timestamp <= parent.Timestamp {
+		return ErrNonMonotonicTimestamp
 	}
 
 	// ensure the extra data is correctly formatted
