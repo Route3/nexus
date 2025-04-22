@@ -259,11 +259,11 @@ func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot
 	return
 }
 
-func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseData *ExchangeCapabilitiesResponse, err error) {
+func (c *Client) ExchangeCapabilities(consensusCapabilities []string) (responseData *ExchangeCapabilitiesResponse, err error) {
 	c.logger.Debug("Running ExchangeCapabilities")
 	requestData := ExchangeCapabilitiesRequest{
 		RequestBase: getRequestBase(ExchangeCapabilitiesMethod),
-		Params:      [][]string{consesusCapabilites},
+		Params:      [][]string{consensusCapabilities},
 	}
 
 	c.retryIndefinitely(&requestData, &responseData)
