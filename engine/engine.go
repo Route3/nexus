@@ -255,7 +255,7 @@ func (c *Client) ExchangeCapabilities(consesusCapabilites []string) (responseDat
 		Params:      [][]string{consesusCapabilites},
 	}
 
-	err = c.handleRequest(&requestData, &responseData)
+	c.retryIndefinitely(&requestData, &responseData)
 
 	return
 }
