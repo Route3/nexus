@@ -67,6 +67,8 @@ github.com/Microsoft/go-winio v0.5.1/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpz
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 h1:TngWCqHvy9oXAN6lEVMRuU21PR1EtLVZJmdB18Gu3Rw=
 github.com/Route3/go-ibft v0.0.0-20230915132655-8d4c4c12f3cc h1:fmuEcNvjWl7I6Sgj/JrFamZDT1EtLG+zRgRJG/G5BVw=
 github.com/Route3/go-ibft v0.0.0-20230915132655-8d4c4c12f3cc/go.mod h1:k8xnJq3iMA1LsxVAhooAMDvpqaLUH9m9Ka8/SPrjevU=
+github.com/Route3/go-ibft v0.0.0-20250422152106-ea6845f840fd h1:DXKuAYLisHlabW7syAO6YDzHA1zdPO2UgHXI/KQ8T6g=
+github.com/Route3/go-ibft v0.0.0-20250422152106-ea6845f840fd/go.mod h1:k8xnJq3iMA1LsxVAhooAMDvpqaLUH9m9Ka8/SPrjevU=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

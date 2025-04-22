@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	cloud.google.com/go/secretmanager v1.8.0
-	github.com/Route3/go-ibft v0.0.0-20230915132655-8d4c4c12f3cc
+	github.com/Route3/go-ibft v0.0.0-20250422152106-ea6845f840fd
 	github.com/armon/go-metrics v0.4.1
 	github.com/aws/aws-sdk-go v1.44.61
 	github.com/btcsuite/btcd v0.22.1

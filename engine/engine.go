@@ -2,6 +2,7 @@ package engine
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
@@ -90,6 +91,27 @@ func (c *Client) retryIndefinitely(requestData interface{}, responseData interfa
 	}
 }
 
+func (c *Client) retryWithinContext(requestData interface{}, responseData interface{}, ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			c.logger.Warn("context cancelled, stopping retry loop")
+			return fmt.Errorf("context cancelled before successful engine API response.")
+		default:
+			err := c.handleRequest(requestData, responseData)
+
+			// If no error, stop retrying
+			if err == nil {
+				return nil
+			}
+
+			c.logger.Error("engine API error, retrying indefinitely", "error", err)
+
+			time.Sleep(2 * time.Second)
+		}
+	}
+}
+
 func getRequestBase(method string) RequestBase {
 	return RequestBase{
 		JsonRPC: JSONRPC,
@@ -139,14 +161,14 @@ func (c *Client) handleRequest(requestData interface{}, responseData interface{}
 	return nil
 }
 
-func (c *Client) GetPayloadV3(payloadId string) (responseData *GetPayloadV3Response, err error) {
+func (c *Client) GetPayloadV3(payloadId string, ctx context.Context) (responseData *GetPayloadV3Response, err error) {
 	c.logger.Debug("Running GetPayloadV3")
 	requestData := GetPayloadV3Request{
 		RequestBase: getRequestBase(GetPayloadV3Method),
 		Params:      []string{payloadId},
 	}
 
-	c.retryIndefinitely(&requestData, &responseData)
+	err = c.retryWithinContext(&requestData, &responseData, ctx)
 
 	return
 }

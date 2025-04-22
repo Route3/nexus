@@ -1,6 +1,7 @@
 package ibft
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"time"
@@ -11,7 +12,7 @@ import (
 	"github.com/apex-fusion/nexus/types"
 )
 
-func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
+func (i *backendIBFT) BuildProposal(blockNumber uint64, context context.Context) []byte {
 	var (
 		latestHeader      = i.blockchain.Header()
 		latestBlockNumber = latestHeader.Number
@@ -27,7 +28,7 @@ func (i *backendIBFT) BuildProposal(blockNumber uint64) []byte {
 		return nil
 	}
 
-	block, err := i.buildBlock(latestHeader)
+	block, err := i.buildBlock(latestHeader, context)
 	if err != nil {
 		i.logger.Error("cannot build block", "num", blockNumber, "err", err)
 
@@ -150,7 +151,7 @@ func (i *backendIBFT) Quorum(blockNumber uint64) uint64 {
 }
 
 // buildBlock builds the block, based on the passed in snapshot and parent header
-func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
+func (i *backendIBFT) buildBlock(parent *types.Header, ctx context.Context) (*types.Block, error) {
 	header := &types.Header{
 		ParentHash: parent.Hash,
 		Number:     parent.Number + 1,
@@ -187,7 +188,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 
 	i.currentSigner.InitIBFTExtra(header, i.currentValidators, parentCommittedSeals)
 
-	payloadResponse, err := i.blockchain.EngineClient.GetPayloadV3(i.blockchain.GetPayloadId())
+	payloadResponse, err := i.blockchain.EngineClient.GetPayloadV3(i.blockchain.GetPayloadId(), ctx)
 	if err != nil {
 		i.logger.Error("cannot get engine's payload", "err", err)
 
