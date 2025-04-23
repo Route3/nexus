@@ -30,6 +30,8 @@ func (b *Block) MarshalRLPWith(ar *fastrlp.Arena) *fastrlp.Value {
 	vv := ar.NewArray()
 	vv.Set(b.Header.MarshalRLPWith(ar))
 
+	vv.Set(ar.NewNullArray()) // Backwards compatibility for Transactions in block
+
 	if len(b.Uncles) == 0 {
 		vv.Set(ar.NewNullArray())
 	} else {

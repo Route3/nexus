@@ -20,13 +20,12 @@ func (b *Body) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
-	// TODO: Backwards compatibility prior to Enhancements #15
-	if len(tuple) < 2 {
-		return fmt.Errorf("incorrect number of elements to decode header, expected 2 but found %d", len(tuple))
+	if len(tuple) < 3 {
+		return fmt.Errorf("incorrect number of elements to decode header, expected 3 but found %d", len(tuple))
 	}
 
 	// uncles
-	uncles, err := tuple[0].GetElems()
+	uncles, err := tuple[1].GetElems()
 	if err != nil {
 		return err
 	}
@@ -42,7 +41,7 @@ func (b *Body) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 
 	// execution payload
 	b.ExecutionPayload = &Payload{}
-	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, tuple[1]); err != nil {
+	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, tuple[2]); err != nil {
 		return err
 	}
 

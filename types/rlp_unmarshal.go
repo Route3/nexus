@@ -44,7 +44,7 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
-	if len(elems) < 3 {
+	if len(elems) < 4 {
 		return fmt.Errorf("incorrect number of elements to decode block, expected 3 but found %d", len(elems))
 	}
 
@@ -55,7 +55,7 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 	}
 
 	// uncles
-	uncles, err := elems[1].GetElems()
+	uncles, err := elems[2].GetElems()
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 
 	// payload
 	b.ExecutionPayload = &Payload{}
-	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, elems[2]); err != nil {
+	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, elems[3]); err != nil {
 		return err
 	}
 
@@ -82,7 +82,7 @@ func (h *Header) UnmarshalRLP(input []byte) error {
 	return UnmarshalRlp(h.UnmarshalRLPFrom, input)
 }
 
-func (h *Header) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
+func (h *Header) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
 	elems, err := v.GetElems()
 	if err != nil {
 		return err
@@ -247,7 +247,7 @@ func (r *Receipt) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 	return nil
 }
 
-func (l *Log) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
+func (l *Log) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
 	elems, err := v.GetElems()
 	if err != nil {
 		return err
@@ -289,9 +289,8 @@ func (p *Payload) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
-	// TODO: Backwards compatibility prior to Enhancements #15
 	if len(elems) != 13 {
-		return fmt.Errorf("incorrect number of elements to decode payload, expected 12 but found %d", len(elems))
+		return fmt.Errorf("incorrect number of elements to decode payload, expected 13 but found %d", len(elems))
 	}
 
 	if err = elems[0].GetHash(p.ParentHash[:]); err != nil {

@@ -15,6 +15,8 @@ func (b *Body) MarshalRLPTo(dst []byte) []byte {
 func (b *Body) MarshalRLPWith(ar *fastrlp.Arena) *fastrlp.Value {
 	vv := ar.NewArray()
 
+	vv.Set(ar.NewNullArray()) // Backwards compatibility for Transactions in block
+
 	if len(b.Uncles) == 0 {
 		vv.Set(ar.NewNullArray())
 	} else {
