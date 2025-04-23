@@ -308,15 +308,6 @@ func (m *mockBlockStore) setupLogs() {
 	}
 }
 
-func (m *mockBlockStore) GetReceiptsByHash(hash types.Hash) ([]*types.Receipt, error) {
-	receipts, ok := m.receipts[hash]
-	if !ok {
-		return nil, nil
-	}
-
-	return receipts, nil
-}
-
 func (m *mockBlockStore) GetBlockByNumber(blockNumber uint64, full bool) (*types.Block, bool) {
 	for _, b := range m.blocks {
 		if b.Number() == blockNumber {

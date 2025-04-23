@@ -221,51 +221,6 @@ func (s *KeyValueStorage) ReadBody(hash types.Hash) (*types.Body, error) {
 	return body, err
 }
 
-// RECEIPTS //
-
-// WriteReceipts writes the receipts
-func (s *KeyValueStorage) WriteReceipts(hash types.Hash, receipts []*types.Receipt) error {
-	rr := types.Receipts(receipts)
-
-	return s.writeRLP(RECEIPTS, hash.Bytes(), &rr)
-}
-
-// ReadReceipts reads the receipts
-func (s *KeyValueStorage) ReadReceipts(hash types.Hash) ([]*types.Receipt, error) {
-	receipts := &types.Receipts{}
-	err := s.readRLP(RECEIPTS, hash.Bytes(), receipts)
-
-	return *receipts, err
-}
-
-// TX LOOKUP //
-
-// WriteTxLookup maps the transaction hash to the block hash
-func (s *KeyValueStorage) WriteTxLookup(hash types.Hash, blockHash types.Hash) error {
-	ar := &fastrlp.Arena{}
-	vr := ar.NewBytes(blockHash.Bytes())
-
-	return s.write2(TX_LOOKUP_PREFIX, hash.Bytes(), vr)
-}
-
-// ReadTxLookup reads the block hash using the transaction hash
-func (s *KeyValueStorage) ReadTxLookup(hash types.Hash) (types.Hash, bool) {
-	parser := &fastrlp.Parser{}
-
-	v := s.read2(TX_LOOKUP_PREFIX, hash.Bytes(), parser)
-	if v == nil {
-		return types.Hash{}, false
-	}
-
-	blockHash := []byte{}
-	blockHash, err := v.GetBytes(blockHash[:0], 32)
-	if err != nil {
-		panic(err)
-	}
-
-	return types.BytesToHash(blockHash), true
-}
-
 // WRITE OPERATIONS //
 
 func (s *KeyValueStorage) writeRLP(p, k []byte, raw types.RLPMarshaler) error {

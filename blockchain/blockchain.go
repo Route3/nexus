@@ -12,7 +12,6 @@ import (
 	"github.com/apex-fusion/nexus/helper/common"
 	"github.com/apex-fusion/nexus/secrets"
 	"github.com/apex-fusion/nexus/types"
-	"github.com/apex-fusion/nexus/types/buildroot"
 	"math/big"
 	"path/filepath"
 	"sync"
@@ -536,11 +535,6 @@ func (b *Blockchain) advanceHead(newHeader *types.Header) (*big.Int, error) {
 	return newTD, nil
 }
 
-// GetReceiptsByHash returns the receipts by their hash
-func (b *Blockchain) GetReceiptsByHash(hash types.Hash) ([]*types.Receipt, error) {
-	return b.db.ReadReceipts(hash)
-}
-
 // GetBodyByHash returns the body by their hash
 func (b *Blockchain) GetBodyByHash(hash types.Hash) (*types.Body, bool) {
 	return b.readBody(hash)
@@ -777,12 +771,6 @@ func (br *BlockResult) verifyBlockResult(referenceBlock *types.Block) error {
 		return ErrInvalidGasUsed
 	}
 
-	// Make sure the receipts root matches up
-	receiptsRoot := buildroot.CalculateReceiptsRoot(br.Receipts)
-	if receiptsRoot != referenceBlock.Header.ReceiptsRoot {
-		return ErrInvalidReceiptsRoot
-	}
-
 	return nil
 }
 
@@ -876,13 +864,6 @@ func (b *Blockchain) writeBody(block *types.Block) error {
 	}
 
 	return nil
-}
-
-// ReadTxLookup returns the block hash using the transaction hash
-func (b *Blockchain) ReadTxLookup(hash types.Hash) (types.Hash, bool) {
-	v, ok := b.db.ReadTxLookup(hash)
-
-	return v, ok
 }
 
 // recoverFromFieldsInBlock recovers 'from' fields in the transactions of the given block

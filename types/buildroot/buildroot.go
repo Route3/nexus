@@ -9,21 +9,6 @@ import (
 
 var arenaPool fastrlp.ArenaPool
 
-// CalculateReceiptsRoot calculates the root of a list of receipts
-func CalculateReceiptsRoot(receipts []*types.Receipt) types.Hash {
-	ar := arenaPool.Get()
-
-	res := calculateRootWithRlp(len(receipts), func(i int) *fastrlp.Value {
-		ar.Reset()
-
-		return receipts[i].MarshalRLPWith(ar)
-	})
-
-	arenaPool.Put(ar)
-
-	return res
-}
-
 // CalculateUncleRoot calculates the root of a list of uncles
 func CalculateUncleRoot(uncles []*types.Header) types.Hash {
 	if len(uncles) == 0 {
