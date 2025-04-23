@@ -31,16 +31,7 @@ func (b *Block) MarshalRLPWith(ar *fastrlp.Arena) *fastrlp.Value {
 	vv.Set(b.Header.MarshalRLPWith(ar))
 
 	vv.Set(ar.NewNullArray()) // Backwards compatibility for Transactions in block
-
-	if len(b.Uncles) == 0 {
-		vv.Set(ar.NewNullArray())
-	} else {
-		v1 := ar.NewArray()
-		for _, uncle := range b.Uncles {
-			v1.Set(uncle.MarshalRLPWith(ar))
-		}
-		vv.Set(v1)
-	}
+	vv.Set(ar.NewNullArray()) // Backwards compatibility for Uncles in block
 
 	if b.ExecutionPayload != nil {
 		vv.Set(b.ExecutionPayload.MarshalRLPWith(ar))

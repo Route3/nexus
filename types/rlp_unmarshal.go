@@ -54,21 +54,6 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
-	// uncles
-	uncles, err := elems[2].GetElems()
-	if err != nil {
-		return err
-	}
-
-	for _, uncle := range uncles {
-		bUncle := &Header{}
-		if err := bUncle.UnmarshalRLPFrom(p, uncle); err != nil {
-			return err
-		}
-
-		b.Uncles = append(b.Uncles, bUncle)
-	}
-
 	// payload
 	b.ExecutionPayload = &Payload{}
 	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, elems[3]); err != nil {

@@ -24,21 +24,6 @@ func (b *Body) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return fmt.Errorf("incorrect number of elements to decode header, expected 3 but found %d", len(tuple))
 	}
 
-	// uncles
-	uncles, err := tuple[1].GetElems()
-	if err != nil {
-		return err
-	}
-
-	for _, uncle := range uncles {
-		bUncle := &Header{}
-		if err := bUncle.UnmarshalRLPFrom(p, uncle); err != nil {
-			return err
-		}
-
-		b.Uncles = append(b.Uncles, bUncle)
-	}
-
 	// execution payload
 	b.ExecutionPayload = &Payload{}
 	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, tuple[2]); err != nil {

@@ -1148,8 +1148,6 @@ func (b *Blockchain) GetBlockByHash(hash types.Hash, full bool) (*types.Block, b
 		return block, false
 	}
 
-	// Set the transactions and uncles
-	block.Uncles = body.Uncles
 	block.ExecutionPayload = body.ExecutionPayload
 
 	return block, true
