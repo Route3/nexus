@@ -21,7 +21,7 @@ jobs:
         env:
           CC: gcc
           CXX: g++
-          GOARC: amd64
+          GOARCH: amd64
           GOOS: linux
 
       - name: 'Upload Artifact'
