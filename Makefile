@@ -44,8 +44,7 @@ test:
 
 .PHONY: test-e2e
 test-e2e:
-    # We need to build the binary with the race flag enabled
-    # because it will get picked up and run during e2e tests
-    # and the e2e tests should error out if any kind of race is found
-	go build -race -o e2e/framework/artifacts/nexus .
-	NEXUS_BINARY=${PWD}/artifacts/nexus GETH_BINARY=${PWD}/artifacts/nexus-geth go test -v -timeout=30m ./e2e/...
+	curl -L -o nexus-geth https://github.com/Route3/nexus-geth/releases/download/v1.0.1/nexus-geth
+	chmod +x nexus-geth
+	mv nexus-geth ./e2e/framework/artifacts/nexus-geth
+	go test -v -timeout=30m ./e2e/...
