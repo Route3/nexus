@@ -12,7 +12,6 @@ import (
 	"github.com/apex-fusion/nexus/helper/common"
 	"github.com/apex-fusion/nexus/secrets"
 	"github.com/apex-fusion/nexus/types"
-	"github.com/apex-fusion/nexus/types/buildroot"
 	"math/big"
 	"path/filepath"
 	"sync"
@@ -536,11 +535,6 @@ func (b *Blockchain) advanceHead(newHeader *types.Header) (*big.Int, error) {
 	return newTD, nil
 }
 
-// GetReceiptsByHash returns the receipts by their hash
-func (b *Blockchain) GetReceiptsByHash(hash types.Hash) ([]*types.Receipt, error) {
-	return b.db.ReadReceipts(hash)
-}
-
 // GetBodyByHash returns the body by their hash
 func (b *Blockchain) GetBodyByHash(hash types.Hash) (*types.Body, bool) {
 	return b.readBody(hash)
@@ -695,6 +689,12 @@ func (b *Blockchain) VerifyFinalizedBlock(block *types.Block) error {
 func (b *Blockchain) verifyBlock(block *types.Block) error {
 	parentBeaconBlockRoot := block.ParentHash().String()
 
+	if b.Config().Forks.IsBelgrade(block.Number()) {
+		if block.ExecutionPayload.StateRoot != block.Header.StateRoot {
+			b.logger.Error("block verification failed: consensus stateRoot doesn't match payload's stateRoot")
+		}
+	}
+
 	_, err := b.EngineClient.NewPayloadV3(block.ExecutionPayload, parentBeaconBlockRoot)
 	if err != nil {
 		b.logger.Error("payload verification failed", "err", err)
@@ -775,12 +775,6 @@ func (br *BlockResult) verifyBlockResult(referenceBlock *types.Block) error {
 	// Make sure the gas used is valid
 	if br.TotalGas != referenceBlock.Header.GasUsed {
 		return ErrInvalidGasUsed
-	}
-
-	// Make sure the receipts root matches up
-	receiptsRoot := buildroot.CalculateReceiptsRoot(br.Receipts)
-	if receiptsRoot != referenceBlock.Header.ReceiptsRoot {
-		return ErrInvalidReceiptsRoot
 	}
 
 	return nil
@@ -876,13 +870,6 @@ func (b *Blockchain) writeBody(block *types.Block) error {
 	}
 
 	return nil
-}
-
-// ReadTxLookup returns the block hash using the transaction hash
-func (b *Blockchain) ReadTxLookup(hash types.Hash) (types.Hash, bool) {
-	v, ok := b.db.ReadTxLookup(hash)
-
-	return v, ok
 }
 
 // recoverFromFieldsInBlock recovers 'from' fields in the transactions of the given block
@@ -1167,8 +1154,6 @@ func (b *Blockchain) GetBlockByHash(hash types.Hash, full bool) (*types.Block, b
 		return block, false
 	}
 
-	// Set the transactions and uncles
-	block.Uncles = body.Uncles
 	block.ExecutionPayload = body.ExecutionPayload
 
 	return block, true

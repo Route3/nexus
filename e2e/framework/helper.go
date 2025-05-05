@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -33,6 +35,44 @@ func (a *AtomicErrors) Errors() []error {
 	defer a.RUnlock()
 
 	return a.errors
+}
+
+func setupBinaries(dataDir string) error {
+	srcFiles := []string{
+		"framework/artifacts/nexus-geth",
+		"framework/artifacts/nexus",
+		"framework/artifacts/nexus-old",
+	}
+
+	for _, srcFile := range srcFiles {
+		destFile := fmt.Sprintf("%s/%s", dataDir, filepath.Base(srcFile))
+
+		err := func() error {
+			src, err := os.Open(srcFile)
+			if err != nil {
+				return err
+			}
+			defer src.Close()
+
+			dest, err := os.Create(destFile)
+
+			if err != nil {
+				return err
+			}
+			defer dest.Close()
+
+			_, err = io.Copy(dest, src)
+
+			err = os.Chmod(destFile, 0755)
+			return err
+		}()
+
+		if err != nil {
+			panic(fmt.Sprintf("failed to copy %s to %s: %v", srcFile, dataDir, err))
+		}
+	}
+
+	return nil
 }
 
 // WaitUntilBlockMined waits until server mined block with bigger height than given height

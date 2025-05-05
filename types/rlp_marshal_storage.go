@@ -15,56 +15,12 @@ func (b *Body) MarshalRLPTo(dst []byte) []byte {
 func (b *Body) MarshalRLPWith(ar *fastrlp.Arena) *fastrlp.Value {
 	vv := ar.NewArray()
 
-	if len(b.Uncles) == 0 {
-		vv.Set(ar.NewNullArray())
-	} else {
-		v1 := ar.NewArray()
-		for _, uncle := range b.Uncles {
-			v1.Set(uncle.MarshalRLPWith(ar))
-		}
-		vv.Set(v1)
-	}
+	vv.Set(ar.NewNullArray()) // Backwards compatibility for Transactions in Body
+	vv.Set(ar.NewNullArray()) // Backwards compatibility for Uncles in Body
 
 	if b.ExecutionPayload != nil {
 		vv.Set(b.ExecutionPayload.MarshalRLPWith(ar))
 	}
-
-	return vv
-}
-
-func (r Receipts) MarshalStoreRLPTo(dst []byte) []byte {
-	return MarshalRLPTo(r.MarshalStoreRLPWith, dst)
-}
-
-func (r *Receipts) MarshalStoreRLPWith(a *fastrlp.Arena) *fastrlp.Value {
-	vv := a.NewArray()
-	for _, rr := range *r {
-		vv.Set(rr.MarshalStoreRLPWith(a))
-	}
-
-	return vv
-}
-
-func (r *Receipt) MarshalStoreRLPTo(dst []byte) []byte {
-	return MarshalRLPTo(r.MarshalStoreRLPWith, dst)
-}
-
-func (r *Receipt) MarshalStoreRLPWith(a *fastrlp.Arena) *fastrlp.Value {
-	// use the hash part
-	vv := a.NewArray()
-	vv.Set(r.MarshalRLPWith(a))
-
-	if r.ContractAddress == nil {
-		vv.Set(a.NewNull())
-	} else {
-		vv.Set(a.NewBytes(r.ContractAddress.Bytes()))
-	}
-
-	// gas used
-	vv.Set(a.NewUint(r.GasUsed))
-
-	// TxHash
-	vv.Set(a.NewBytes(r.TxHash.Bytes()))
 
 	return vv
 }

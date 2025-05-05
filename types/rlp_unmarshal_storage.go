@@ -20,100 +20,14 @@ func (b *Body) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
-	// TODO: Backwards compatibility prior to Enhancements #15
-	if len(tuple) < 2 {
-		return fmt.Errorf("incorrect number of elements to decode header, expected 2 but found %d", len(tuple))
-	}
-
-	// uncles
-	uncles, err := tuple[0].GetElems()
-	if err != nil {
-		return err
-	}
-
-	for _, uncle := range uncles {
-		bUncle := &Header{}
-		if err := bUncle.UnmarshalRLPFrom(p, uncle); err != nil {
-			return err
-		}
-
-		b.Uncles = append(b.Uncles, bUncle)
+	if len(tuple) < 3 {
+		return fmt.Errorf("incorrect number of elements to decode header, expected 3 but found %d", len(tuple))
 	}
 
 	// execution payload
 	b.ExecutionPayload = &Payload{}
-	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, tuple[1]); err != nil {
+	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, tuple[2]); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (r *Receipts) UnmarshalStoreRLP(input []byte) error {
-	return UnmarshalRlp(r.UnmarshalStoreRLPFrom, input)
-}
-
-func (r *Receipts) UnmarshalStoreRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
-	elems, err := v.GetElems()
-	if err != nil {
-		return err
-	}
-
-	for _, elem := range elems {
-		rr := &Receipt{}
-		if err := rr.UnmarshalStoreRLPFrom(p, elem); err != nil {
-			return err
-		}
-
-		(*r) = append(*r, rr)
-	}
-
-	return nil
-}
-
-func (r *Receipt) UnmarshalStoreRLP(input []byte) error {
-	return UnmarshalRlp(r.UnmarshalStoreRLPFrom, input)
-}
-
-func (r *Receipt) UnmarshalStoreRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
-	elems, err := v.GetElems()
-	if err != nil {
-		return err
-	}
-
-	if len(elems) < 3 {
-		return fmt.Errorf("incorrect number of elements to decode receipt, expected at least 3 but found %d", len(elems))
-	}
-
-	if err := r.UnmarshalRLPFrom(p, elems[0]); err != nil {
-		return err
-	}
-
-	// contract address
-	vv, err := elems[1].Bytes()
-	if err != nil {
-		return err
-	}
-
-	if len(vv) == 20 {
-		// address
-		r.SetContractAddress(BytesToAddress(vv))
-	}
-
-	// gas used
-	if r.GasUsed, err = elems[2].GetUint64(); err != nil {
-		return err
-	}
-
-	// tx hash
-	// backwards compatibility, old receipts did not marshal a TxHash
-	if len(elems) == 4 {
-		vv, err := elems[3].Bytes()
-		if err != nil {
-			return err
-		}
-
-		r.TxHash = BytesToHash(vv)
 	}
 
 	return nil

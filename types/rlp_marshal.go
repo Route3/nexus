@@ -30,15 +30,8 @@ func (b *Block) MarshalRLPWith(ar *fastrlp.Arena) *fastrlp.Value {
 	vv := ar.NewArray()
 	vv.Set(b.Header.MarshalRLPWith(ar))
 
-	if len(b.Uncles) == 0 {
-		vv.Set(ar.NewNullArray())
-	} else {
-		v1 := ar.NewArray()
-		for _, uncle := range b.Uncles {
-			v1.Set(uncle.MarshalRLPWith(ar))
-		}
-		vv.Set(v1)
-	}
+	vv.Set(ar.NewNullArray()) // Backwards compatibility for Transactions in block
+	vv.Set(ar.NewNullArray()) // Backwards compatibility for Uncles in block
 
 	if b.ExecutionPayload != nil {
 		vv.Set(b.ExecutionPayload.MarshalRLPWith(ar))
@@ -79,75 +72,6 @@ func (h *Header) MarshalRLPWith(arena *fastrlp.Arena) *fastrlp.Value {
 	vv.Set(arena.NewBytes(h.PayloadHash.Bytes()))
 
 	return vv
-}
-
-func (r Receipts) MarshalRLPTo(dst []byte) []byte {
-	return MarshalRLPTo(r.MarshalRLPWith, dst)
-}
-
-func (r *Receipts) MarshalRLPWith(a *fastrlp.Arena) *fastrlp.Value {
-	vv := a.NewArray()
-	for _, rr := range *r {
-		vv.Set(rr.MarshalRLPWith(a))
-	}
-
-	return vv
-}
-
-func (r *Receipt) MarshalRLP() []byte {
-	return r.MarshalRLPTo(nil)
-}
-
-func (r *Receipt) MarshalRLPTo(dst []byte) []byte {
-	return MarshalRLPTo(r.MarshalRLPWith, dst)
-}
-
-// MarshalRLPWith marshals a receipt with a specific fastrlp.Arena
-func (r *Receipt) MarshalRLPWith(a *fastrlp.Arena) *fastrlp.Value {
-	vv := a.NewArray()
-
-	if r.Status != nil {
-		vv.Set(a.NewUint(uint64(*r.Status)))
-	} else {
-		vv.Set(a.NewBytes(r.Root[:]))
-	}
-
-	vv.Set(a.NewUint(r.CumulativeGasUsed))
-	vv.Set(a.NewCopyBytes(r.LogsBloom[:]))
-	vv.Set(r.MarshalLogsWith(a))
-
-	return vv
-}
-
-// MarshalLogsWith marshals the logs of the receipt to RLP with a specific fastrlp.Arena
-func (r *Receipt) MarshalLogsWith(a *fastrlp.Arena) *fastrlp.Value {
-	if len(r.Logs) == 0 {
-		// There are no receipts, write the RLP null array entry
-		return a.NewNullArray()
-	}
-
-	logs := a.NewArray()
-
-	for _, l := range r.Logs {
-		logs.Set(l.MarshalRLPWith(a))
-	}
-
-	return logs
-}
-
-func (l *Log) MarshalRLPWith(a *fastrlp.Arena) *fastrlp.Value {
-	v := a.NewArray()
-	v.Set(a.NewBytes(l.Address.Bytes()))
-
-	topics := a.NewArray()
-	for _, t := range l.Topics {
-		topics.Set(a.NewBytes(t.Bytes()))
-	}
-
-	v.Set(topics)
-	v.Set(a.NewBytes(l.Data))
-
-	return v
 }
 
 func (p *Payload) MarshalRLPWith(arena *fastrlp.Arena) *fastrlp.Value {

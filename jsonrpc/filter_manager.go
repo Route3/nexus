@@ -220,9 +220,6 @@ type filterManagerStore interface {
 	// SubscribeEvents subscribes for chain head events
 	SubscribeEvents() blockchain.Subscription
 
-	// GetReceiptsByHash returns the receipts for a block hash
-	GetReceiptsByHash(hash types.Hash) ([]*types.Receipt, error)
-
 	// GetBlockByHash returns the block using the block hash
 	GetBlockByHash(hash types.Hash, full bool) (*types.Block, bool)
 

@@ -92,7 +92,6 @@ func (h *Header) Copy() *Header {
 }
 
 type Body struct {
-	Uncles           []*Header
 	ExecutionPayload *Payload
 }
 
@@ -257,7 +256,6 @@ func (b *Block) ParentHash() Hash {
 
 func (b *Block) Body() *Body {
 	return &Body{
-		Uncles:           b.Uncles,
 		ExecutionPayload: b.ExecutionPayload,
 	}
 }
@@ -284,15 +282,4 @@ func (b *Block) String() string {
 	str := fmt.Sprintf(`Block(#%v):`, b.Number())
 
 	return str
-}
-
-// WithSeal returns a new block with the data from b but the header replaced with
-// the sealed one.
-func (b *Block) WithSeal(header *Header) *Block {
-	cpy := *header
-
-	return &Block{
-		Header: &cpy,
-		Uncles: b.Uncles,
-	}
 }

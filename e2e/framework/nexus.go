@@ -2,6 +2,7 @@ package framework
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/apex-fusion/nexus/command/genesis"
 	"github.com/apex-fusion/nexus/command/server"
@@ -177,7 +178,44 @@ func (t *TestServer) generateNexusGenesis() error {
 	cmd.Stderr = stdout
 
 	err := cmd.Run()
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to generate genesis.json: %w", err)
+	}
+
+	// Update the genesis.json file to replace the Params.ForksInTime object
+	genesisFilePath := filepath.Join(t.Config.RootDir, "genesis.json")
+
+	// Read the contents of the genesis.json file
+	genesisFileContents, err := os.ReadFile(genesisFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to read genesis.json: %w", err)
+	}
+
+	// Parse the JSON into a map for modification
+	var genesisData map[string]interface{}
+	if err := json.Unmarshal(genesisFileContents, &genesisData); err != nil {
+		return fmt.Errorf("failed to parse genesis.json: %w", err)
+	}
+
+	// Access Params field and update ForksInTime
+	if params, ok := genesisData["params"].(map[string]interface{}); ok {
+		params["forks"] = t.Config.Forks
+	} else {
+		return fmt.Errorf("Params object not found in genesis.json")
+	}
+
+	// Marshal the updated data back to JSON
+	updatedGenesisFileContents, err := json.MarshalIndent(genesisData, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to encode updated genesis.json: %w", err)
+	}
+
+	// Write the updated JSON back to the genesis.json file
+	if err := os.WriteFile(genesisFilePath, updatedGenesisFileContents, 0644); err != nil {
+		return fmt.Errorf("failed to write updated genesis.json: %w", err)
+	}
+
+	return nil
 }
 
 func (t *TestServer) resolveNexusBinary() string {
@@ -185,6 +223,11 @@ func (t *TestServer) resolveNexusBinary() string {
 	if bin != "" {
 		return bin
 	}
-	// fallback
-	return fmt.Sprintf("%s/%s", t.Config.RootDir, "nexus")
+
+	binName := "nexus"
+	if t.Config.CustomNexusBinary != "" {
+		binName = t.Config.CustomNexusBinary
+	}
+
+	return fmt.Sprintf("%s/%s", t.Config.RootDir, binName)
 }

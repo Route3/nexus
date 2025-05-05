@@ -124,15 +124,6 @@ func (m *mockStore) Header() *types.Header {
 	return m.header
 }
 
-func (m *mockStore) GetReceiptsByHash(hash types.Hash) ([]*types.Receipt, error) {
-	m.receiptsLock.Lock()
-	defer m.receiptsLock.Unlock()
-
-	receipts := m.receipts[hash]
-
-	return receipts, nil
-}
-
 func (m *mockStore) SubscribeEvents() blockchain.Subscription {
 	return m.subscription
 }
