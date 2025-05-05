@@ -159,10 +159,12 @@ func (i *backendIBFT) buildBlock(parent *types.Header, ctx context.Context) (*ty
 		Nonce:      types.Nonce{},
 		MixHash:    signer.IstanbulDigest,
 		// this is required because blockchain needs difficulty to organize blocks and forks
-		Difficulty: parent.Number + 1,
-		StateRoot:  types.EmptyRootHash, // this avoids needing state for now
-		Sha3Uncles: types.EmptyUncleHash,
-		GasLimit:   parent.GasLimit, // Inherit from parent for now, will need to adjust dynamically later.
+		Difficulty:   parent.Number + 1,
+		StateRoot:    types.EmptyRootHash, // this avoids needing state for now
+		ReceiptsRoot: types.EmptyRootHash,
+		Sha3Uncles:   types.EmptyUncleHash,
+		GasLimit:     parent.GasLimit, // Inherit from parent for now, will need to adjust dynamically later.
+		TxRoot:       types.EmptyRootHash,
 	}
 
 	// calculate gas limit based on parent header
@@ -205,7 +207,13 @@ func (i *backendIBFT) buildBlock(parent *types.Header, ctx context.Context) (*ty
 
 	var block types.Block
 
-	header.StateRoot = payloadResponse.Result.ExecutionPayload.StateRoot
+	if i.blockchain.Config().Forks.IsBelgrade(header.Number) {
+		i.logger.Debug("Belgrade Fork detected, setting header state root from payload")
+		header.StateRoot = payloadResponse.Result.ExecutionPayload.StateRoot
+	} else {
+		i.logger.Debug("BG not activated!")
+	}
+
 	header.GasUsed = uint64(payloadResponse.Result.ExecutionPayload.GasUsed)
 
 	// write the seal of the block after all the fields are completed

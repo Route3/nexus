@@ -689,6 +689,12 @@ func (b *Blockchain) VerifyFinalizedBlock(block *types.Block) error {
 func (b *Blockchain) verifyBlock(block *types.Block) error {
 	parentBeaconBlockRoot := block.ParentHash().String()
 
+	if b.Config().Forks.IsBelgrade(block.Number()) {
+		if block.ExecutionPayload.StateRoot != block.Header.StateRoot {
+			b.logger.Error("block verification failed: consensus stateRoot doesn't match payload's stateRoot")
+		}
+	}
+
 	_, err := b.EngineClient.NewPayloadV3(block.ExecutionPayload, parentBeaconBlockRoot)
 	if err != nil {
 		b.logger.Error("payload verification failed", "err", err)

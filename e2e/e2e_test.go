@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"github.com/apex-fusion/nexus/chain"
 	"github.com/apex-fusion/nexus/helper/hex"
 	"github.com/apex-fusion/nexus/helper/tests"
 	"github.com/stretchr/testify/require"
@@ -18,10 +19,12 @@ import (
 )
 
 const (
-	numNonValidators = 2
-	ibftMinNodes     = 4
-	numberOfServers  = ibftMinNodes + numNonValidators
-	desiredHeight    = 10
+	numNonValidators   = 2
+	ibftMinNodes       = 4
+	numberOfServers    = ibftMinNodes + numNonValidators
+	desiredHeight      = 10
+	belgradeForkHeight = 5
+	indexOfOldNode     = 1
 )
 
 // TestMain will run once before any tests.
@@ -62,6 +65,50 @@ func TestBlockProduction(t *testing.T) {
 		t.Fatalf("Unable to wait for all nodes to seal blocks, %v", waitErrors)
 	}
 
+}
+
+// TestBlockProductionWithBelgrade fork is a shorter smoke test that will run the first validator with old
+// nexus client that will not be able to follow the belgrade fork.
+
+func TestBlockProductionWithBelgradeFork(t *testing.T) {
+	// Start IBFT cluster (4 Validator (1 old + 3 new) + 2 Non-Validator)
+	serverManager, err := framework.NewServerManager(
+		t,
+		numberOfServers,
+		func(i int, config *framework.TestServerConfig) {
+			if i >= ibftMinNodes {
+				// Other nodes should not be in the validator set
+				dirPrefix := "nexus-non-validator-"
+				config.SetIBFTDir(fmt.Sprintf("%s%d", dirPrefix, i))
+			}
+
+			if i == indexOfOldNode {
+				config.CustomNexusBinary = "nexus-old"
+			}
+
+			// Activate the Belgrade fork at height 5
+			config.Forks.Belgrade = chain.NewFork(belgradeForkHeight)
+		},
+	)
+
+	require.NoError(t, err)
+
+	startContext, startCancelFn := context.WithTimeout(context.Background(), time.Minute)
+	defer startCancelFn()
+	serverManager.StartServers(startContext)
+
+	// All new nodes should have mined the same block eventually
+	waitErrors := framework.WaitForServersToSeal(append(serverManager.Servers[:indexOfOldNode], serverManager.Servers[indexOfOldNode+1:]...), desiredHeight)
+
+	if len(waitErrors) != 0 {
+		t.Fatalf("Unable to wait for all nodes to seal blocks: %v", waitErrors)
+	}
+
+	// Old node should just get to the block number 5 in the network
+	oldNodeWaitErrors := framework.WaitForServersToSeal([]*framework.TestServer{serverManager.Servers[indexOfOldNode]}, desiredHeight)
+	if len(oldNodeWaitErrors) != 0 {
+		t.Fatalf("Old node not able to sync up to block %d: %v", belgradeForkHeight, oldNodeWaitErrors)
+	}
 }
 
 // TestE2E is a full test that does transaction propagation etc.

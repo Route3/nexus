@@ -2,6 +2,7 @@ package framework
 
 import (
 	"crypto/ecdsa"
+	"github.com/apex-fusion/nexus/chain"
 	"math/big"
 	"path/filepath"
 
@@ -40,6 +41,8 @@ type TestServerConfig struct {
 	BlockTime                 uint64               // Minimum block generation time (in s)
 	ExecutionGenesisBlockHash string
 	GethBootnodeEnode         string
+	CustomNexusBinary         string // Override the default binary name in the e2e/framework/artifacts/
+	Forks                     chain.Forks
 }
 
 // DataDir returns path of data directory server uses
