@@ -41,7 +41,6 @@ func setupBinaries(dataDir string) error {
 	srcFiles := []string{
 		"framework/artifacts/nexus-geth",
 		"framework/artifacts/nexus",
-		"framework/artifacts/nexus-old",
 	}
 
 	for _, srcFile := range srcFiles {

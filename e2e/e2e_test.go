@@ -82,9 +82,10 @@ func TestBlockProductionWithBelgradeFork(t *testing.T) {
 				config.SetIBFTDir(fmt.Sprintf("%s%d", dirPrefix, i))
 			}
 
-			if i == indexOfOldNode {
-				config.CustomNexusBinary = "nexus-old"
-			}
+			// TODO: Setup a proper build for the old node.
+			//if i == indexOfOldNode {
+			//	config.CustomNexusBinary = "nexus-old"
+			//}
 
 			// Activate the Belgrade fork at height 5
 			config.Forks.Belgrade = chain.NewFork(belgradeForkHeight)
