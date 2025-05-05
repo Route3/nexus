@@ -46,6 +46,6 @@ test:
 test-e2e:
 	curl -L -o nexus-geth https://github.com/Route3/nexus-geth/releases/download/v1.0.1/nexus-geth
 	chmod +x nexus-geth
-	mkdir ./e2e/framework/artifacts
+	mkdir -p ./e2e/framework/artifacts
 	mv nexus-geth ./e2e/framework/artifacts/nexus-geth
 	go test -v -timeout=30m ./e2e/...
