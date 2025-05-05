@@ -31,12 +31,6 @@ type Storage interface {
 	WriteBody(hash types.Hash, body *types.Body) error
 	ReadBody(hash types.Hash) (*types.Body, error)
 
-	WriteReceipts(hash types.Hash, receipts []*types.Receipt) error
-	ReadReceipts(hash types.Hash) ([]*types.Receipt, error)
-
-	WriteTxLookup(hash types.Hash, blockHash types.Hash) error
-	ReadTxLookup(hash types.Hash) (types.Hash, bool)
-
 	Close() error
 }
 

@@ -1,66 +1,78 @@
 ---
-  name: Release
-  on:  # yamllint disable-line rule:truthy
-    push:
-      branches-ignore:
-        - '**'
-      tags:
-        - 'v*.*.*'
-        # to be used by fork patch-releases ^^
-        - 'v*.*.*-*'
+name: Build and Release
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches-ignore:
+      - '**'
+    tags:
+      - 'v*.*.*'
+      # to be used by fork patch-releases ^^
+      - 'v*.*.*-*'
 
-  jobs:
-    goreleaser:
-      runs-on: arc-runner-set
-      env:
-        DOCKER_CONFIG: $HOME/.docker
-      steps:
-        - name: Setup git
-          run: |
-            sudo apt update && sudo apt install -y git
+jobs:
+  build-and-release:
+    name: Nexus
+    runs-on: ubuntu-latest
+    steps:
 
-        - name: Checkout
-          uses: actions/checkout@v4
-          with:
-            fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-        - name: Set up Go
-          uses: actions/setup-go@master
-          with:
-            go-version: 1.18.x
+      - name: Setup Go environment
+        uses: actions/setup-go@v3.3.0
+        with:
+          go-version: 1.18.x
 
-        - name: Prepare
-          id: prepare
-          run: |
-            TAG=${GITHUB_REF#refs/tags/}
-            echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
+      - name: Log in to GitHub Docker Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-        - name: Set up QEMU
-          uses: docker/setup-qemu-action@v3
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_NAME=ghcr.io/route3/nexus:${{ github.ref_name }}
+          echo "Building Docker image $IMAGE_NAME"
+          docker build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
 
-        - name: Login to GitHub Container Registry
-          uses: docker/login-action@v3
-          with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build binary
+        run: go build -tags netgo -ldflags="-s -w -linkmode external -extldflags "-static" -X \"github.com/apex-fusion/nexus/versioning.Version=${github.ref_name}\" -X \"github.com/apex-fusion/nexus/versioning.Commit=${github.sha}\""
+        env:
+          CC: gcc
+          CXX: g++
+          GOARCH: amd64
+          GOOS: linux
 
-        - name: Run GoReleaser
-          run: |
-            echo ${PACKAGE_NAME}
-            docker run \
-                --rm \
-                --privileged \
-                -e CGO_ENABLED=1 \
-                -e GITHUB_TOKEN \
-                -e DOCKER_CONFIG \
-                -v /var/run/docker.sock:/var/run/docker.sock \
-                -v `pwd`:/go/src/${PACKAGE_NAME} \
-                -w /go/src/${PACKAGE_NAME} \
-                ghcr.io/goreleaser/goreleaser-cross:${GOLANG_CROSS_VERSION} \
-                --rm-dist --skip-validate
-          env:
-            PACKAGE_NAME: github.com/apex-fusion/nexus
-            GOLANG_CROSS_VERSION: v1.18.3
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            VERSION: ${{ steps.prepare.outputs.tag_name }}
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Changes in this release:
+            - Automatic release created by GitHub Actions.
+            - Built amd64/linux docker image
+            
+            [ghcr.io/Route3/nexus](https://ghcr.io/route3/nexus:${{ github.ref_name}})
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 'Upload Artifact  '
+        uses: actions/upload-artifact@v3
+        with:
+          name: nexus
+          path: nexus.tar.gz
+          retention-days: 3
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./nexus
+          asset_name: nexus
+          asset_content_type: application/octet-stream

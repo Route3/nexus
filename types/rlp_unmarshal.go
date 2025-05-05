@@ -44,7 +44,7 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
-	if len(elems) < 3 {
+	if len(elems) < 4 {
 		return fmt.Errorf("incorrect number of elements to decode block, expected 3 but found %d", len(elems))
 	}
 
@@ -54,24 +54,9 @@ func (b *Block) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 		return err
 	}
 
-	// uncles
-	uncles, err := elems[1].GetElems()
-	if err != nil {
-		return err
-	}
-
-	for _, uncle := range uncles {
-		bUncle := &Header{}
-		if err := bUncle.UnmarshalRLPFrom(p, uncle); err != nil {
-			return err
-		}
-
-		b.Uncles = append(b.Uncles, bUncle)
-	}
-
 	// payload
 	b.ExecutionPayload = &Payload{}
-	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, elems[2]); err != nil {
+	if err := b.ExecutionPayload.UnmarshalRLPFrom(p, elems[3]); err != nil {
 		return err
 	}
 
@@ -82,7 +67,7 @@ func (h *Header) UnmarshalRLP(input []byte) error {
 	return UnmarshalRlp(h.UnmarshalRLPFrom, input)
 }
 
-func (h *Header) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
+func (h *Header) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
 	elems, err := v.GetElems()
 	if err != nil {
 		return err
@@ -166,132 +151,14 @@ func (h *Header) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
 	return err
 }
 
-func (r *Receipts) UnmarshalRLP(input []byte) error {
-	return UnmarshalRlp(r.UnmarshalRLPFrom, input)
-}
-
-func (r *Receipts) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
-	elems, err := v.GetElems()
-	if err != nil {
-		return err
-	}
-
-	for _, elem := range elems {
-		rr := &Receipt{}
-		if err := rr.UnmarshalRLPFrom(p, elem); err != nil {
-			return err
-		}
-
-		(*r) = append(*r, rr)
-	}
-
-	return nil
-}
-
-func (r *Receipt) UnmarshalRLP(input []byte) error {
-	return UnmarshalRlp(r.UnmarshalRLPFrom, input)
-}
-
-// UnmarshalRLP unmarshals a Receipt in RLP format
-func (r *Receipt) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
-	elems, err := v.GetElems()
-	if err != nil {
-		return err
-	}
-
-	if len(elems) < 4 {
-		return fmt.Errorf("incorrect number of elements to decode receipt, expected 4 but found %d", len(elems))
-	}
-
-	// root or status
-	buf, err := elems[0].Bytes()
-	if err != nil {
-		return err
-	}
-
-	switch size := len(buf); size {
-	case 32:
-		// root
-		copy(r.Root[:], buf[:])
-	case 1:
-		// status
-		r.SetStatus(ReceiptStatus(buf[0]))
-	default:
-		r.SetStatus(0)
-	}
-
-	// cumulativeGasUsed
-	if r.CumulativeGasUsed, err = elems[1].GetUint64(); err != nil {
-		return err
-	}
-	// logsBloom
-	if _, err = elems[2].GetBytes(r.LogsBloom[:0], 256); err != nil {
-		return err
-	}
-
-	// logs
-	logsElems, err := v.Get(3).GetElems()
-	if err != nil {
-		return err
-	}
-
-	for _, elem := range logsElems {
-		log := &Log{}
-		if err := log.UnmarshalRLPFrom(p, elem); err != nil {
-			return err
-		}
-
-		r.Logs = append(r.Logs, log)
-	}
-
-	return nil
-}
-
-func (l *Log) UnmarshalRLPFrom(p *fastrlp.Parser, v *fastrlp.Value) error {
-	elems, err := v.GetElems()
-	if err != nil {
-		return err
-	}
-
-	if len(elems) < 3 {
-		return fmt.Errorf("incorrect number of elements to decode log, expected 3 but found %d", len(elems))
-	}
-
-	// address
-	if err := elems[0].GetAddr(l.Address[:]); err != nil {
-		return err
-	}
-	// topics
-	topicElems, err := elems[1].GetElems()
-	if err != nil {
-		return err
-	}
-
-	l.Topics = make([]Hash, len(topicElems))
-
-	for indx, topic := range topicElems {
-		if err := topic.GetHash(l.Topics[indx][:]); err != nil {
-			return err
-		}
-	}
-
-	// data
-	if l.Data, err = elems[2].GetBytes(l.Data[:0]); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (p *Payload) UnmarshalRLPFrom(_ *fastrlp.Parser, v *fastrlp.Value) error {
 	elems, err := v.GetElems()
 	if err != nil {
 		return err
 	}
 
-	// TODO: Backwards compatibility prior to Enhancements #15
 	if len(elems) != 13 {
-		return fmt.Errorf("incorrect number of elements to decode payload, expected 12 but found %d", len(elems))
+		return fmt.Errorf("incorrect number of elements to decode payload, expected 13 but found %d", len(elems))
 	}
 
 	if err = elems[0].GetHash(p.ParentHash[:]); err != nil {

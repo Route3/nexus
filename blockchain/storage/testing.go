@@ -40,13 +40,7 @@ func TestStorage(t *testing.T, m PlaceholderStorage) {
 		testHeader(t, m)
 	})
 	t.Run("", func(t *testing.T) {
-		testBody(t, m)
-	})
-	t.Run("", func(t *testing.T) {
 		testWriteCanonicalHeader(t, m)
-	})
-	t.Run("", func(t *testing.T) {
-		testReceipts(t, m)
 	})
 }
 
@@ -248,57 +242,6 @@ func testHeader(t *testing.T, m PlaceholderStorage) {
 	if !reflect.DeepEqual(header, header1) {
 		t.Fatal("bad")
 	}
-}
-
-func testBody(t *testing.T, m PlaceholderStorage) {
-	t.Helper()
-
-	s, closeFn := m(t)
-	defer closeFn()
-
-	header := &types.Header{
-		Number:     5,
-		Difficulty: 10,
-		ParentHash: types.StringToHash("11"),
-		Timestamp:  10,
-		ExtraData:  []byte{}, // if not set it will fail
-	}
-	if err := s.WriteHeader(header); err != nil {
-		panic(err)
-	}
-
-	block := types.Block{
-		Header: header,
-	}
-
-	body0 := block.Body()
-	if err := s.WriteBody(header.Hash, body0); err != nil {
-		panic(err)
-	}
-
-}
-
-func testReceipts(t *testing.T, m PlaceholderStorage) {
-	t.Helper()
-
-	s, closeFn := m(t)
-	defer closeFn()
-
-	h := &types.Header{
-		Difficulty: 133,
-		Number:     11,
-		ExtraData:  []byte{},
-	}
-	if err := s.WriteHeader(h); err != nil {
-		t.Fatal(err)
-	}
-
-	body := &types.Body{}
-
-	if err := s.WriteBody(h.Hash, body); err != nil {
-		t.Fatal(err)
-	}
-
 }
 
 func testWriteCanonicalHeader(t *testing.T, m PlaceholderStorage) {

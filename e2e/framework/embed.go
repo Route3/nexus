@@ -4,35 +4,8 @@ import (
 	"embed"
 	"fmt"
 	"os"
-	"strings"
 	"text/template"
 )
-
-//go:embed artifacts
-var embeddedBinaries embed.FS
-
-func setupBinaries(dir string) error {
-	files := []string{
-		"artifacts/nexus-geth",
-		"artifacts/nexus",
-	}
-
-	for _, file := range files {
-		filename := strings.Split(file, "/")[1]
-
-		input, err := embeddedBinaries.ReadFile(file)
-		if err != nil {
-			return fmt.Errorf("failed to read embedded file: %w", err)
-		}
-
-		err = os.WriteFile(fmt.Sprintf("%s/%s", dir, filename), input, 0755)
-		if err != nil {
-			return fmt.Errorf("failed to copy file to destination: %w", err)
-		}
-	}
-
-	return nil
-}
 
 //go:embed templates
 var embeddedTemplates embed.FS
