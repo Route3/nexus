@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	lru "github.com/hashicorp/golang-lru"
@@ -793,7 +794,7 @@ func (b *Blockchain) WriteBlock(block *types.Block, source string) error {
 	defer b.writeLock.Unlock()
 
 	currentBlockBeaconRoot := block.Hash().String()
-	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true, block.Header.Timestamp)
+	res, err := b.EngineClient.ForkChoiceUpdatedV3(block.Header.PayloadHash, currentBlockBeaconRoot, true, uint64(time.Now().Unix()))
 	if err != nil {
 		b.logger.Error("cannot run FCU for block insertion", "err", err)
 		return err

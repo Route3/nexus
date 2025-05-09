@@ -87,7 +87,6 @@ func (s *syncer) Close() error {
 // initializePeerMap fetches peer statuses and initializes map
 func (s *syncer) initializePeerMap() {
 	peerStatuses := s.syncPeerClient.GetConnectedPeerStatuses()
-	fmt.Println("peerStatuses", peerStatuses)
 	s.peerMap.Put(peerStatuses...)
 }
 

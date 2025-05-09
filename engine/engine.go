@@ -254,7 +254,7 @@ func (c *Client) ForkChoiceUpdatedV3(blockHash types.Hash, parentBeaconBlockRoot
 		return nil, fmt.Errorf("payload status is not VALID")
 	}
 
-	c.logger.Debug("Running ForkChoiceUpdatedV3", "completed!", blockHash)
+	c.logger.Debug("Running ForkChoiceUpdatedV3", "completed", blockHash)
 
 	return
 }
