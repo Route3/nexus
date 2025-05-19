@@ -353,11 +353,6 @@ func (i *backendIBFT) verifyHeaderImpl(
 		return ErrWrongDifficulty
 	}
 
-	// Enforce GasUsed <= GasLimit
-	if header.GasUsed > header.GasLimit {
-		return ErrGasUsedExceedsGasLimit
-	}
-
 	// Prevent future timestamps
 	if header.Timestamp > (uint64(time.Now().UTC().Unix()) + 2*uint64(i.blockTime.Seconds())) {
 		return ErrTimestampInFuture

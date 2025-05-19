@@ -214,8 +214,6 @@ func (i *backendIBFT) buildBlock(parent *types.Header, ctx context.Context) (*ty
 		i.logger.Debug("BG not activated!")
 	}
 
-	header.GasUsed = uint64(payloadResponse.Result.ExecutionPayload.GasUsed)
-
 	// write the seal of the block after all the fields are completed
 	header, err = i.currentSigner.WriteProposerSeal(header)
 	if err != nil {
