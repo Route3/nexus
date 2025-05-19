@@ -191,16 +191,16 @@ func (i *backendIBFT) buildBlock(parent *types.Header, ctx context.Context) (*ty
 
 	i.currentSigner.InitIBFTExtra(header, i.currentValidators, parentCommittedSeals)
 
+	timeUntilTimestamp := time.Until(potentialTimestamp)
+	if timeUntilTimestamp > 0 {
+		time.Sleep(timeUntilTimestamp)
+	}
+
 	payloadResponse, err := i.blockchain.EngineClient.GetPayloadV3(i.blockchain.GetPayloadId(), ctx)
 	if err != nil {
 		i.logger.Error("cannot get engine's payload", "err", err)
 
 		return nil, err
-	}
-
-	timeUntilTimestamp := time.Until(potentialTimestamp)
-	if timeUntilTimestamp > 0 {
-		time.Sleep(timeUntilTimestamp)
 	}
 
 	header.PayloadHash = payloadResponse.Result.ExecutionPayload.BlockHash
